@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enrollments</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+
+.header { padding: 20px 24px 0; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.header-left h1 { font-size: 20px; font-weight: 600; color: #f1f5f9; }
+.header-left p { font-size: 13px; color: #64748b; margin-top: 2px; }
+
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; transition: all .15s; }
+.btn-primary { background: #1D9E75; color: #fff; }
+.btn-primary:hover { background: #17875f; }
+.btn-secondary { background: #1e2333; color: #94a3b8; border: 1px solid #2d3748; }
+.btn-secondary:hover { background: #252c3f; color: #e2e8f0; }
+.btn-sm { padding: 5px 12px; font-size: 12px; }
+
+.content { padding: 16px 24px; }
+
+/* Campaign selector */
+.camp-select-row { display: flex; gap: 10px; margin-bottom: 16px; align-items: center; flex-wrap: wrap; }
+select { background: #1e2333; border: 1px solid #2d3748; border-radius: 8px; color: #e2e8f0; font-size: 13px; padding: 8px 12px; cursor: pointer; }
+select:focus { outline: none; border-color: #1D9E75; }
+
+/* Stats strip */
+.stats-strip { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+.stat-card { background: #161b2e; border: 1px solid #1e2a3a; border-radius: 8px; padding: 12px 16px; min-width: 110px; }
+.stat-val { font-size: 22px; font-weight: 700; color: #f1f5f9; }
+.stat-label { font-size: 11px; color: #64748b; margin-top: 2px; text-transform: uppercase; letter-spacing: .5px; }
+
+/* Filter tabs */
+.filter-tabs { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 14px; }
+.ftab { padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid #2d3748; color: #64748b; background: transparent; transition: all .15s; }
+.ftab.active { background: #1D9E75; color: #fff; border-color: #1D9E75; }
+.ftab:hover:not(.active) { border-color: #94a3b8; color: #94a3b8; }
+
+/* Table */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: .5px; padding: 8px 12px; border-bottom: 1px solid #1e2a3a; }
+td { padding: 10px 12px; border-bottom: 1px solid #0f1117; vertical-align: middle; }
+tr:hover td { background: #161b2e; }
+.contact-name { font-weight: 500; color: #f1f5f9; }
+.contact-sub { font-size: 11px; color: #64748b; margin-top: 2px; }
+
+/* Status badge */
+.status { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+.status-pending        { background: #1e2333; color: #94a3b8; }
+.status-invite_sent    { background: #0d2a1f; color: #34d399; }
+.status-approved       { background: #0d2240; color: #60a5fa; }
+.status-messaged       { background: #1a1a00; color: #fbbf24; }
+.status-replied        { background: #1a0d2e; color: #a78bfa; }
+.status-positive_reply { background: #0d2a1f; color: #10b981; }
+.status-done           { background: #1e2333; color: #475569; }
+.status-withdrawn      { background: #1a0a0a; color: #f87171; }
+.status-skipped        { background: #1a0a0a; color: #f87171; }
+.status-error          { background: #2a0a0a; color: #ef4444; }
+
+/* Next action */
+.next-action { font-size: 11px; }
+.next-action.due   { color: #fbbf24; }
+.next-action.soon  { color: #34d399; }
+.next-action.later { color: #64748b; }
+
+/* Actions */
+.row-actions { display: flex; gap: 6px; }
+.action-btn { background: #1e2333; border: 1px solid #2d3748; color: #94a3b8; padding: 4px 8px; border-radius: 5px; font-size: 11px; cursor: pointer; }
+.action-btn:hover { background: #252c3f; color: #e2e8f0; }
+
+/* Pagination */
+.pagination { display: flex; gap: 6px; justify-content: center; margin-top: 16px; align-items: center; }
+.page-btn { background: #1e2333; border: 1px solid #2d3748; color: #94a3b8; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+.page-btn.active { background: #1D9E75; color: #fff; border-color: #1D9E75; }
+.page-info { font-size: 12px; color: #64748b; }
+
+/* Empty */
+.empty { text-align: center; padding: 60px 20px; color: #475569; }
+.empty-icon { font-size: 40px; margin-bottom: 12px; }
+.empty-text { font-size: 14px; }
+.empty-hint { font-size: 12px; color: #334155; margin-top: 6px; }
+
+/* Enroll modal */
+.modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.7); display: flex; align-items: center; justify-content: center; z-index: 100; }
+.modal { background: #161b2e; border: 1px solid #1e2a3a; border-radius: 12px; padding: 28px; width: 400px; }
+.modal h2 { font-size: 16px; font-weight: 600; color: #f1f5f9; margin-bottom: 8px; }
+.modal p { font-size: 13px; color: #94a3b8; margin-bottom: 20px; }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+/* Toast */
+.toast { position: fixed; bottom: 24px; right: 24px; background: #1e2a3a; border: 1px solid #2d3748; color: #e2e8f0; padding: 12px 18px; border-radius: 8px; font-size: 13px; z-index: 999; animation: fi .2s; }
+.toast.success { border-color: #1D9E75; color: #34d399; }
+.toast.error { border-color: #ef4444; color: #f87171; }
+@keyframes fi { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+.loading { text-align: center; padding: 40px; color: #475569; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>Enrollments</h1>
+    <p>Track and manage contact journey through your sequences</p>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <button class="btn btn-secondary" onclick="openEnrollModal()">⚡ Enroll Campaign</button>
+    <button class="btn btn-secondary" onclick="reEnrichSlugs()">🔄 Re-enrich Slugs</button>
+  </div>
+</div>
+
+<div class="content">
+  <div class="camp-select-row">
+    <select id="campSelect" onchange="onCampChange()">
+      <option value="">— Select campaign —</option>
+    </select>
+    <select id="limitSelect" onchange="load()">
+      <option value="50">50 per page</option>
+      <option value="100">100 per page</option>
+    </select>
+  </div>
+
+  <div class="stats-strip" id="statsStrip" style="display:none"></div>
+
+  <div class="filter-tabs" id="filterTabs" style="display:none">
+    <button class="ftab active" onclick="setFilter('')">All</button>
+    <button class="ftab" onclick="setFilter('pending')">Pending</button>
+    <button class="ftab" onclick="setFilter('invite_sent')">Invite Sent</button>
+    <button class="ftab" onclick="setFilter('approved')">Approved</button>
+    <button class="ftab" onclick="setFilter('messaged')">Messaged</button>
+    <button class="ftab" onclick="setFilter('replied')">Replied</button>
+    <button class="ftab" onclick="setFilter('positive_reply')" style="background:rgba(16,185,129,0.12);color:#10b981;border-color:#10b981;">⭐ Positive</button>
+    <button class="ftab" onclick="setFilter('withdrawn')">Withdrawn</button>
+    <button class="ftab" onclick="setFilter('done')">Done</button>
+    <button class="ftab" onclick="setFilter('error')">Error</button>
+  </div>
+
+  <div id="tableArea">
+    <div class="empty">
+      <div class="empty-icon">📊</div>
+      <div class="empty-text">Select a campaign to view enrollments</div>
+    </div>
+  </div>
+
+  <div class="pagination" id="paginationEl" style="display:none"></div>
+</div>
+
+<!-- Enroll modal -->
+<div class="modal-bg" id="enrollModal" style="display:none">
+  <div class="modal">
+    <h2>Enroll Campaign Contacts</h2>
+    <p>Creates an enrollment record for every contact in the selected campaign's list. Existing enrollments are skipped.</p>
+    <div class="form-group">
+      <select id="enrollCampSelect" style="width:100%;margin-bottom:16px"></select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeEnrollModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="doEnroll()">Enroll Contacts</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const params = new URLSearchParams(location.search);
+const WS_ID = parseInt(params.get('workspace_id')) || 1;
+const BASE = '';
+
+let campaigns = [];
+let currentCamp = null;
+let currentFilter = '';
+let currentPage = 1;
+let totalPages = 1;
+
+async function api(path, opts = {}) {
+  const r = await fetch(BASE + path, { headers: {'Content-Type':'application/json'}, ...opts });
+  return r.json();
+}
+
+function toast(msg, type = '') {
+  const t = document.createElement('div');
+  t.className = 'toast' + (type ? ' ' + type : '');
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── Init ───────────────────────────────────────────────────────────────────
+async function init() {
+  const data = await api(`/api/campaigns?workspace_id=${WS_ID}`);
+  campaigns = (data.items || []).filter(c => c.status === 'active');
+  const sel = document.getElementById('campSelect');
+  campaigns.forEach(c => {
+    const opt = new Option(`${c.name} (${c.contact_count || 0} contacts)`, c.id);
+    sel.add(opt);
+  });
+  // Populate enroll modal select
+  const es = document.getElementById('enrollCampSelect');
+  campaigns.forEach(c => { es.add(new Option(c.name, c.id)); });
+}
+
+function onCampChange() {
+  const id = parseInt(document.getElementById('campSelect').value);
+  currentCamp = campaigns.find(c => c.id === id) || null;
+  currentFilter = '';
+  currentPage = 1;
+  document.querySelectorAll('.ftab').forEach((t,i) => t.classList.toggle('active', i===0));
+  if (currentCamp) {
+    document.getElementById('statsStrip').style.display = 'flex';
+    document.getElementById('filterTabs').style.display = 'flex';
+    load();
+    loadStats();
+  } else {
+    document.getElementById('statsStrip').style.display = 'none';
+    document.getElementById('filterTabs').style.display = 'none';
+    document.getElementById('tableArea').innerHTML = `<div class="empty"><div class="empty-icon">📊</div><div class="empty-text">Select a campaign to view enrollments</div></div>`;
+  }
+}
+
+async function loadStats() {
+  if (!currentCamp) return;
+  const ALL_STATUSES = ['pending','invite_sent','approved','messaged','replied','positive_reply','done','withdrawn','skipped','error'];
+  const counts = {};
+  const d = await api(`/api/campaigns/${currentCamp.id}/enrollments?workspace_id=${WS_ID}&limit=1`);
+  counts.total = d.total || 0;
+
+  const strip = document.getElementById('statsStrip');
+  // Quick status breakdown
+  const statusData = await Promise.all(
+    ['invite_sent','approved','messaged','replied','positive_reply'].map(s =>
+      api(`/api/campaigns/${currentCamp.id}/enrollments?workspace_id=${WS_ID}&status=${s}&limit=1`)
+        .then(d => ({ status: s, count: d.total || 0 }))
+    )
+  );
+  const total = counts.total;
+  const invited = statusData.find(s=>s.status==='invite_sent')?.count || 0;
+  const approved = statusData.find(s=>s.status==='approved')?.count || 0;
+  const messaged = statusData.find(s=>s.status==='messaged')?.count || 0;
+  const replied  = statusData.find(s=>s.status==='replied')?.count || 0;
+  const positive = statusData.find(s=>s.status==='positive_reply')?.count || 0;
+
+  // Update positive tab badge
+  const posBtn = document.querySelector('.ftab[onclick*="positive_reply"]');
+  if (posBtn) {
+    posBtn.innerHTML = positive > 0
+      ? `⭐ Positive <span style="background:#10b981;color:#fff;border-radius:10px;padding:1px 7px;font-size:11px;margin-left:4px">${positive}</span>`
+      : '⭐ Positive';
+  }
+
+  strip.innerHTML = [
+    { val: total,    label: 'Enrolled' },
+    { val: invited,  label: 'Invite Sent' },
+    { val: approved, label: 'Approved' },
+    { val: messaged, label: 'Messaged' },
+    { val: replied,  label: 'Replied' },
+    { val: positive, label: 'Positive 🎯' },
+  ].map(s => `<div class="stat-card"><div class="stat-val">${s.val}</div><div class="stat-label">${s.label}</div></div>`).join('');
+}
+
+// ── Load table ─────────────────────────────────────────────────────────────
+async function load() {
+  if (!currentCamp) return;
+  document.getElementById('tableArea').innerHTML = '<div class="loading">Loading…</div>';
+
+  const limit = parseInt(document.getElementById('limitSelect').value) || 50;
+  let url = `/api/campaigns/${currentCamp.id}/enrollments?workspace_id=${WS_ID}&limit=${limit}&page=${currentPage}`;
+  if (currentFilter) url += `&status=${currentFilter}`;
+
+  const data = await api(url);
+  const items = data.items || [];
+  totalPages = data.pages || 1;
+
+  if (!items.length) {
+    const msg = currentFilter ? `No enrollments with status "${currentFilter}"` : 'No enrollments yet';
+    const hint = !currentFilter ? 'Click "Enroll Campaign" to create enrollments from the campaign list.' : '';
+    document.getElementById('tableArea').innerHTML = `<div class="empty"><div class="empty-icon">📭</div><div class="empty-text">${msg}</div>${hint ? `<div class="empty-hint">${hint}</div>` : ''}</div>`;
+    document.getElementById('paginationEl').style.display = 'none';
+    return;
+  }
+
+  const now = Date.now();
+  const rows = items.map(e => {
+    const name = [e.first_name, e.last_name].filter(Boolean).join(' ') || '—';
+    const sub  = [e.title, e.company].filter(Boolean).join(' @ ');
+    const url  = e.li_profile_url ? `<a href="${esc(e.li_profile_url)}" target="_blank" style="color:#1D9E75;text-decoration:none">↗</a>` : '';
+
+    // Next action timing
+    let nextTxt = '', nextClass = 'later';
+    if (e.next_action_at && !['done','withdrawn','skipped','error','positive_reply'].includes(e.status)) {
+      const ms = new Date(e.next_action_at).getTime() - now;
+      if (ms < 0) { nextTxt = 'Due now'; nextClass = 'due'; }
+      else if (ms < 3600000) { nextTxt = `${Math.round(ms/60000)}m`; nextClass = 'soon'; }
+      else if (ms < 86400000) { nextTxt = `${Math.round(ms/3600000)}h`; nextClass = 'soon'; }
+      else { nextTxt = `${Math.round(ms/86400000)}d`; nextClass = 'later'; }
+    }
+
+    // Show last reply for positive/replied rows
+    const replyPreview = e.last_reply
+      ? `<div style="margin-top:4px;font-size:11px;color:#94a3b8;font-style:italic;max-width:300px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis" title="${esc(e.last_reply)}">💬 ${esc(e.last_reply)}</div>`
+      : '';
+
+    const isPositive = e.status === 'positive_reply';
+
+    return `<tr style="${isPositive ? 'background:rgba(16,185,129,0.06);' : ''}">
+      <td>
+        <div class="contact-name">${isPositive ? '⭐ ' : ''}${esc(name)} ${url}</div>
+        <div class="contact-sub">${esc(sub)}</div>
+        ${replyPreview}
+      </td>
+      <td><span class="status status-${e.status}">${e.status.replace(/_/g,' ')}</span></td>
+      <td class="next-action ${nextClass}">${nextTxt}</td>
+      <td>${e.current_step || 0}</td>
+      <td><div class="row-actions">
+        ${isPositive && e.chat_id
+          ? `<button class="action-btn" style="background:#1D9E75;color:#fff" onclick="openChatFromEnrollment('${e.chat_id}','${esc(name)}','${e.li_profile_url||''}')">💬 Open chat</button>` : ''}
+        ${e.status === 'error' ? `<button class="action-btn" onclick="retryEnrollment(${e.id})">Retry</button>` : ''}
+        ${['pending','invite_sent','approved','messaged'].includes(e.status)
+          ? `<button class="action-btn" onclick="skipEnrollment(${e.id})">Skip</button>` : ''}
+        ${e.status === 'approved'
+          ? `<button class="action-btn" onclick="forceMessage(${e.id})">Force msg</button>` : ''}
+      </div></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('tableArea').innerHTML = `
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Contact</th><th>Status</th><th>Next action</th><th>Step</th><th>Actions</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <div style="margin-top:10px;font-size:12px;color:#475569;text-align:right">${data.total} enrollments total</div>
+  `;
+
+  renderPagination(data.total, limit);
+}
+
+function renderPagination(total, limit) {
+  const el = document.getElementById('paginationEl');
+  if (totalPages <= 1) { el.style.display = 'none'; return; }
+  el.style.display = 'flex';
+  let html = '';
+  if (currentPage > 1) html += `<button class="page-btn" onclick="goPage(${currentPage-1})">← Prev</button>`;
+  html += `<span class="page-info">Page ${currentPage} of ${totalPages}</span>`;
+  if (currentPage < totalPages) html += `<button class="page-btn" onclick="goPage(${currentPage+1})">Next →</button>`;
+  el.innerHTML = html;
+}
+
+function goPage(p) { currentPage = p; load(); }
+
+function setFilter(status) {
+  currentFilter = status;
+  currentPage = 1;
+  document.querySelectorAll('.ftab').forEach(t => {
+    const tv = t.getAttribute('onclick').match(/setFilter\('([^']*)'\)/)?.[1] ?? '';
+    t.classList.toggle('active', tv === status);
+  });
+  load();
+}
+
+// ── Enrollment actions ─────────────────────────────────────────────────────
+function openChatFromEnrollment(chatId, name, liUrl) {
+  // Navigate parent workspace to Inbox and open this chat
+  const payload = {
+    type: 'open-inbox-contact',
+    action: 'open_inbox_contact',
+    chat_id: chatId,
+    provider_id: null,
+    li_profile_url: liUrl || null,
+    name: name || 'Contact'
+  };
+  if (window.parent && window.parent !== window) {
+    window.parent.postMessage(payload, '*');
+  }
+}
+
+async function retryEnrollment(id) {
+  await api(`/api/enrollments/${id}`, { method: 'PATCH', body: JSON.stringify({ workspace_id: WS_ID, status: 'pending', next_action_at: new Date().toISOString() }) });
+  toast('Enrollment reset to pending', 'success');
+  load();
+}
+
+async function skipEnrollment(id) {
+  if (!confirm('Skip this enrollment? It will not receive further outreach.')) return;
+  await api(`/api/enrollments/${id}`, { method: 'PATCH', body: JSON.stringify({ workspace_id: WS_ID, status: 'skipped' }) });
+  toast('Enrollment skipped', 'success');
+  load(); loadStats();
+}
+
+async function forceMessage(id) {
+  await api(`/api/enrollments/${id}`, { method: 'PATCH', body: JSON.stringify({ workspace_id: WS_ID, next_action_at: new Date().toISOString() }) });
+  toast('Enrollment queued for immediate action', 'success');
+  load();
+}
+
+// ── Enroll modal ───────────────────────────────────────────────────────────
+function openEnrollModal() { document.getElementById('enrollModal').style.display = 'flex'; }
+function closeEnrollModal() { document.getElementById('enrollModal').style.display = 'none'; }
+
+async function doEnroll() {
+  const campId = parseInt(document.getElementById('enrollCampSelect').value);
+  if (!campId) { toast('Select a campaign', 'error'); return; }
+
+  const r = await api(`/api/campaigns/${campId}/enroll`, {
+    method: 'POST',
+    body: JSON.stringify({ workspace_id: WS_ID }),
+  });
+
+  if (r.error) { toast(r.error, 'error'); return; }
+  toast(`Enrolled ${r.enrolled} contacts (${r.skipped} already enrolled)`, 'success');
+  closeEnrollModal();
+  if (currentCamp?.id === campId) { load(); loadStats(); }
+}
+
+async function reEnrichSlugs() {
+  toast('Queuing slug re-enrichment…');
+  const r = await api('/api/admin/re-enrich-slugs', {
+    method: 'POST',
+    body: JSON.stringify({ workspace_id: WS_ID }),
+  });
+  if (r.error) { toast(r.error, 'error'); return; }
+  toast(`Queued ${r.queued} contacts for re-enrichment`, 'success');
+}
+
+init();
+</script>
+</body>
+</html>

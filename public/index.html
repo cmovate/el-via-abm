@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Select Workspace</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #e8f5f0 0%, #f5f5f5 50%, #eef4f8 100%); padding: 40px 20px; }
+.shell { width: min(900px, 100%); text-align: center; }
+.kicker { font-size: 11px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: #1D9E75; margin-bottom: 14px; }
+.title { font-size: 34px; font-weight: 700; color: #111; margin-bottom: 10px; letter-spacing: -0.5px; }
+.subtitle { font-size: 15px; color: #888; margin-bottom: 36px; }
+.admin-link { display: inline-flex; align-items: center; gap: 7px; background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 10px 18px; font-size: 13px; font-weight: 500; color: #555; text-decoration: none; transition: all 0.12s; }
+.admin-link:hover { border-color: #1D9E75; color: #1D9E75; background: #F0FBF7; box-shadow: 0 2px 8px rgba(29,158,117,0.1); }
+.admin-link-icon { font-size: 16px; }
+.workspace-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-bottom: 16px; }
+.workspace-tile { background: white; border: 1.5px solid #e8e8e8; border-radius: 18px; padding: 28px 20px 22px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 14px; transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s; position: relative; text-align: center; }
+.workspace-tile:hover { transform: translateY(-3px); border-color: #b0ddd0; box-shadow: 0 12px 32px rgba(29,158,117,0.12); }
+.workspace-mark { width: 72px; height: 72px; border-radius: 18px; background: linear-gradient(145deg, #1D9E75, #148a63); display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; color: white; }
+.workspace-name { font-size: 16px; font-weight: 600; color: #111; }
+.workspace-hint { font-size: 12px; color: #aaa; }
+.tile-delete { position: absolute; top: 10px; right: 10px; width: 24px; height: 24px; border-radius: 50%; background: #f5f5f5; border: 1px solid #e0e0e0; color: #bbb; font-size: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; opacity: 0; transition: opacity 0.15s, background 0.15s, color 0.15s; }
+.workspace-tile:hover .tile-delete { opacity: 1; }
+.tile-delete:hover { background: #FEF2F2; border-color: #FECACA; color: #DC2626; }
+.add-tile { background: transparent; border: 1.5px dashed #d0d0d0; border-radius: 18px; padding: 28px 20px 22px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 14px; transition: border-color 0.15s, background 0.15s; text-align: center; }
+.add-tile:hover { border-color: #1D9E75; background: #F0FBF7; }
+.add-icon { width: 72px; height: 72px; border-radius: 18px; border: 2px dashed #d0d0d0; display: flex; align-items: center; justify-content: center; font-size: 28px; color: #ccc; transition: border-color 0.15s, color 0.15s; }
+.add-tile:hover .add-icon { border-color: #1D9E75; color: #1D9E75; }
+.add-label { font-size: 14px; font-weight: 500; color: #aaa; transition: color 0.15s; }
+.add-tile:hover .add-label { color: #1D9E75; }
+.modal-backdrop { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; padding: 20px; }
+.modal { background: white; border-radius: 16px; width: min(440px, 100%); padding: 28px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+.modal h3 { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
+.modal p { font-size: 13px; color: #888; margin-bottom: 20px; line-height: 1.5; }
+.modal-input { width: 100%; padding: 11px 14px; border: 1.5px solid #e0e0e0; border-radius: 10px; font-size: 15px; font-family: inherit; margin-bottom: 16px; }
+.modal-input:focus { outline: none; border-color: #1D9E75; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.ghost-btn { background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 9px 18px; font-size: 14px; color: #555; cursor: pointer; }
+.ghost-btn:hover { background: #f5f5f5; }
+.primary-btn { background: #1D9E75; border: none; border-radius: 8px; padding: 9px 20px; font-size: 14px; font-weight: 500; color: white; cursor: pointer; }
+.primary-btn:hover { background: #178f68; }
+.danger-btn { background: #DC2626; border: none; border-radius: 8px; padding: 9px 20px; font-size: 14px; font-weight: 500; color: white; cursor: pointer; }
+.danger-btn:hover { background: #b91c1c; }
+.error-msg { background: #FEF2F2; border: 1px solid #FECACA; border-radius: 8px; padding: 10px 14px; color: #DC2626; font-size: 13px; margin-bottom: 16px; display: none; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="kicker">Platform access</div>
+  <div class="title">Select workspace</div>
+  <div class="subtitle">Choose the client you are currently working on</div>
+
+
+  
+
+  <div class="workspace-grid" id="workspace-grid"><div style="color:#aaa;font-size:14px;padding:40px;">Loading workspaces...</div></div>
+</div>
+
+<div id="add-modal" class="modal-backdrop" style="display:none;">
+  <div class="modal">
+    <h3>Add workspace</h3>
+    <p>Enter the client or company name. Each workspace has its own campaigns, contacts, and settings.</p>
+    <div class="error-msg" id="add-error"></div>
+    <input class="modal-input" id="new-name" type="text" placeholder="e.g. TFT" maxlength="40" onkeydown="if(event.key==='Enter') saveWorkspace()">
+    <div class="modal-actions">
+      <button class="ghost-btn" onclick="closeAdd()">Cancel</button>
+      <button class="primary-btn" onclick="saveWorkspace()">Add workspace</button>
+    </div>
+  </div>
+</div>
+
+<div id="del-modal" class="modal-backdrop" style="display:none;">
+  <div class="modal">
+    <h3>Delete workspace</h3>
+    <p id="del-msg"></p>
+    <div class="modal-actions">
+      <button class="ghost-btn" onclick="closeDelete()">Cancel</button>
+      <button class="danger-btn" onclick="confirmDelete()">Delete workspace</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let workspaces = [];
+let pendingDeleteId = null;
+
+function initials(name) {
+  const words = name.trim().split(/\s+/);
+  if (words.length === 1) return name.slice(0, 4).toUpperCase();
+  return words.map(w => w[0]).join('').slice(0, 4).toUpperCase();
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+async function load() {
+  try {
+    const res = await fetch('/api/workspaces');
+    const data = await res.json();
+    workspaces = Array.isArray(data.items) ? data.items : [];
+    render();
+  } catch (err) {
+    document.getElementById('workspace-grid').innerHTML = `<div style="color:#DC2626;font-size:13px;">Failed to load workspaces: ${err.message}</div>`;
+  }
+}
+
+function render() {
+  const grid = document.getElementById('workspace-grid');
+  grid.innerHTML = workspaces.map(ws => `
+    <div class="workspace-tile" onclick="enterWorkspace(${ws.id})">
+      <button class="tile-delete" onclick="event.stopPropagation(); askDelete(${ws.id}, '${esc(ws.name)}')" title="Delete workspace">&times;</button>
+      <div class="workspace-mark">${initials(ws.name)}</div>
+      <div>
+        <div class="workspace-name">${esc(ws.name)}</div>
+        <div class="workspace-hint">Open workspace</div>
+      </div>
+    </div>`).join('') + `
+    <div class="add-tile" onclick="openAdd()">
+      <div class="add-icon">+</div>
+      <div class="add-label">Add workspace</div>
+    </div>`;
+}
+
+function enterWorkspace(id) { window.location.href = `/workspace.html?id=${id}`; }
+
+function openAdd() {
+  document.getElementById('new-name').value = '';
+  document.getElementById('add-error').style.display = 'none';
+  document.getElementById('add-modal').style.display = 'flex';
+  setTimeout(() => document.getElementById('new-name').focus(), 50);
+}
+
+function closeAdd() { document.getElementById('add-modal').style.display = 'none'; }
+
+async function saveWorkspace() {
+  const name = document.getElementById('new-name').value.trim();
+  if (!name) return;
+  try {
+    const res = await fetch('/api/workspaces', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ name }) });
+    if (!res.ok) throw new Error((await res.json()).error);
+    closeAdd(); await load();
+  } catch (err) {
+    const errEl = document.getElementById('add-error');
+    errEl.textContent = err.message;
+    errEl.style.display = 'block';
+  }
+}
+
+function askDelete(id, name) {
+  pendingDeleteId = id;
+  document.getElementById('del-msg').textContent = `Are you sure you want to delete "${name}"? All campaigns and contacts will be permanently removed.`;
+  document.getElementById('del-modal').style.display = 'flex';
+}
+
+function closeDelete() { document.getElementById('del-modal').style.display = 'none'; pendingDeleteId = null; }
+
+async function confirmDelete() {
+  if (!pendingDeleteId) return;
+  await fetch(`/api/workspaces/${pendingDeleteId}`, { method: 'DELETE' });
+  closeDelete(); await load();
+}
+
+load();
+</script>
+
+<script>
+(function() {
+  const LAST_CHECK_KEY = 'elvia-last-session-check';
+  const TODO_URL = 'https://raw.githubusercontent.com/cmovate/el-via-abm/main/TODO.md?t=' + Date.now();
+
+  async function checkForSessionUpdate() {
+    try {
+      const lastCheck = localStorage.getItem(LAST_CHECK_KEY) || '0';
+      const res = await fetch(TODO_URL);
+      if (!res.ok) return;
+      const text = await res.text();
+
+      // Extract session timestamp from TODO.md
+      const match = text.match(/Last session: (.+)/);
+      if (!match) return;
+      const sessionTime = match[1].trim();
+      
+      if (sessionTime === lastCheck) return; // already seen this session
+      
+      // New session notes — show notification
+      const summaryMatch = text.match(/## Completed this session\n([\s\S]*?)(?=##|$)/);
+      const summary = summaryMatch ? summaryMatch[1].trim().slice(0,200) : 'Check TODO.md for details.';
+
+      // Update last seen
+      localStorage.setItem(LAST_CHECK_KEY, sessionTime);
+
+      // Show browser notification
+      if ('Notification' in window) {
+        const show = () => new Notification('El-Via ABM — Claude session complete', {
+          body: 'Session: ' + sessionTime + '\n' + summary,
+          icon: '/favicon.ico',
+          tag: 'elvia-session'
+        });
+        if (Notification.permission === 'granted') {
+          show();
+        } else if (Notification.permission !== 'denied') {
+          Notification.requestPermission().then(p => { if (p === 'granted') show(); });
+        }
+      }
+
+      // Also show in-page banner
+      const banner = document.createElement('div');
+      banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#16a34a;color:white;padding:12px 20px;font-size:14px;font-family:sans-serif;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 8px rgba(0,0,0,.2)';
+      banner.innerHTML = '<span>🤖 <strong>Claude session completed</strong> — ' + sessionTime + ' &nbsp;|&nbsp; <a href="/TODO.md" target="_blank" style="color:white;text-decoration:underline">View TODO.md</a></span>' +
+        '<button onclick="this.parentElement.remove()" style="background:none;border:none;color:white;font-size:18px;cursor:pointer">×</button>';
+      document.body.appendChild(banner);
+      setTimeout(() => banner?.remove(), 8000);
+
+    } catch(e) { /* silent */ }
+  }
+
+  // Run after page loads
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkForSessionUpdate);
+  } else {
+    setTimeout(checkForSessionUpdate, 1000);
+  }
+})();
+</script>
+
+</body>
+</html>

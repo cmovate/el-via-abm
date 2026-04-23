@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lists</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f8f9fa; }
+.page-header { background: white; padding: 20px 24px 16px; border-bottom: 1px solid #e5e7eb; }
+.page-header h1 { font-size: 18px; font-weight: 600; color: #111827; }
+.page-header p { font-size: 13px; color: #6b7280; margin-top: 4px; }
+.content { padding: 28px 24px; }
+.view-toggle { display: flex; gap: 12px; max-width: 480px; margin-bottom: 20px; }
+.view-btn { flex: 1; padding: 13px; border: 2px solid #e5e7eb; border-radius: 10px; background: white; font-size: 14px; font-weight: 500; cursor: pointer; color: #374151; transition: all .15s; }
+.view-btn:hover { border-color: #9ca3af; }
+.view-btn.active { border-color: #1D9E75; background: #f0fdf4; color: #1D9E75; }
+.lists-area { max-width: 700px; min-height: 36px; margin-bottom: 24px; }
+.lists-area-label { font-size: 11px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
+.bubbles-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.list-bubble { display: inline-flex; align-items: center; gap: 6px; background: white; border: 1.5px solid #d1fae5; color: #065f46; border-radius: 20px; padding: 5px 12px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all .15s; }
+.list-bubble:hover { background: #f0fdf4; border-color: #1D9E75; }
+.list-bubble .count { background: #d1fae5; color: #065f46; border-radius: 10px; padding: 1px 7px; font-size: 11px; font-weight: 600; }
+.btn-add-list { display: block; width: 100%; max-width: 480px; padding: 17px; background: #1D9E75; color: white; border: none; border-radius: 12px; font-size: 17px; font-weight: 600; cursor: pointer; transition: background .15s; }
+.btn-add-list:hover { background: #178a65; }
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none; align-items: center; justify-content: center; z-index: 1000; }
+.overlay.open { display: flex; }
+.modal { background: white; border-radius: 14px; width: 600px; max-width: 95vw; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 24px 64px rgba(0,0,0,.18); }
+.modal-header { padding: 20px 24px 0; border-bottom: 1px solid #e5e7eb; }
+.modal-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.modal-top h2 { font-size: 16px; font-weight: 600; color: #111827; }
+.modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: #6b7280; padding: 2px 6px; border-radius: 4px; }
+.modal-close:hover { background: #f3f4f6; }
+.modal-tabs { display: flex; }
+.modal-tab { padding: 10px 20px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; background: none; color: #6b7280; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all .15s; }
+.modal-tab:hover { color: #374151; }
+.modal-tab.active { color: #1D9E75; border-bottom-color: #1D9E75; font-weight: 600; }
+.modal-tab:disabled { opacity: .4; cursor: default; }
+.step-back { background: none; border: none; cursor: pointer; color: #6b7280; font-size: 13px; display: inline-flex; align-items: center; gap: 5px; padding: 0 0 16px 0; }
+.step-back:hover { color: #374151; }
+.modal-body { padding: 24px; overflow-y: auto; flex: 1; }
+.step { display: none; }
+.step.active { display: block; }
+.panel { display: none; }
+.panel.active { display: block; }
+.field-label { font-size: 12px; font-weight: 600; color: #374151; margin-bottom: 6px; display: block; }
+.url-canvas { width: 100%; height: 180px; border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 10px 12px; font-size: 13px; font-family: monospace; resize: vertical; color: #374151; line-height: 1.6; }
+.url-canvas:focus { outline: none; border-color: #1D9E75; }
+.url-canvas::placeholder { color: #9ca3af; }
+.canvas-hint { font-size: 11px; color: #9ca3af; margin-top: 6px; }
+.name-step-icon { font-size: 40px; text-align: center; margin-bottom: 8px; }
+.name-step-title { font-size: 17px; font-weight: 600; color: #111827; text-align: center; margin-bottom: 4px; }
+.name-step-sub { font-size: 13px; color: #6b7280; text-align: center; margin-bottom: 28px; }
+.name-input { width: 100%; padding: 12px 14px; border: 1.5px solid #e5e7eb; border-radius: 8px; font-size: 15px; color: #111827; }
+.name-input:focus { outline: none; border-color: #1D9E75; }
+.name-input::placeholder { color: #9ca3af; }
+.result-msg { font-size: 12px; min-height: 18px; margin-top: 8px; }
+.result-err { color: #dc2626; }
+.result-ok { color: #16a34a; }
+.icp-section { margin-top: 28px; padding-top: 20px; border-top: 1px solid #f3f4f6; }
+.icp-title { font-size: 14px; font-weight: 600; color: #111827; margin-bottom: 2px; }
+.icp-sub { font-size: 12px; color: #6b7280; margin-bottom: 18px; }
+.country-wrapper { position: relative; }
+.country-trigger { width: 100%; padding: 9px 12px; border: 1.5px solid #e5e7eb; border-radius: 8px; background: white; font-size: 13px; color: #374151; cursor: pointer; text-align: left; display: flex; align-items: center; justify-content: space-between; }
+.country-trigger:hover { border-color: #9ca3af; }
+.country-trigger.open { border-color: #1D9E75; }
+.country-dropdown { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: white; border: 1.5px solid #e5e7eb; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.1); z-index: 10; max-height: 200px; overflow-y: auto; display: none; }
+.country-dropdown.open { display: block; }
+.country-search { width: 100%; padding: 8px 12px; border: none; border-bottom: 1px solid #f3f4f6; font-size: 13px; outline: none; position: sticky; top: 0; background: white; }
+.country-option { padding: 8px 12px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+.country-option:hover { background: #f9fafb; }
+.country-option.selected { background: #f0fdf4; }
+.country-option input { accent-color: #1D9E75; pointer-events: none; }
+.country-bubbles { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; min-height: 4px; }
+.bubble { display: inline-flex; align-items: center; gap: 4px; background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; border-radius: 20px; padding: 3px 8px 3px 10px; font-size: 12px; font-weight: 500; }
+.bubble-x { background: none; border: none; cursor: pointer; color: #166534; font-size: 15px; line-height: 1; padding: 0 0 0 2px; }
+.bubble-x:hover { color: #dc2626; }
+.titles-canvas { width: 100%; height: 120px; border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 10px 12px; font-size: 13px; resize: vertical; color: #374151; line-height: 1.7; }
+.titles-canvas:focus { outline: none; border-color: #1D9E75; }
+.titles-canvas::placeholder { color: #9ca3af; }
+.modal-footer { padding: 14px 24px; border-top: 1px solid #e5e7eb; display: flex; justify-content: flex-end; gap: 10px; flex-shrink: 0; }
+.btn-cancel { padding: 9px 18px; border: 1.5px solid #e5e7eb; border-radius: 8px; background: white; font-size: 13px; font-weight: 500; cursor: pointer; color: #374151; }
+.btn-cancel:hover { background: #f9fafb; }
+.btn-primary { padding: 9px 20px; background: #1D9E75; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.btn-primary:hover { background: #178a65; }
+.btn-primary:disabled { background: #9ca3af; cursor: default; }
+</style>
+</head>
+<body>
+<div class="page-header">
+  <h1>&#128203; Lists</h1>
+  <p>Manage your contact and company lists</p>
+</div>
+<div class="content">
+  <div class="view-toggle">
+    <button class="view-btn active" id="btn-view-contacts" onclick="selectView('contacts')">&#128101; Contacts</button>
+    <button class="view-btn" id="btn-view-companies" onclick="selectView('companies')">&#127970; Companies</button>
+  </div>
+  <div class="lists-area" id="lists-area">
+    <div class="bubbles-row" id="bubbles-contacts"></div>
+    <div class="bubbles-row" id="bubbles-companies" style="display:none"></div>
+  </div>
+  <button class="btn-add-list" id="btn-add">+ ADD LIST</button>
+</div>
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-top">
+        <h2>Add List</h2>
+        <button class="modal-close" onclick="closeModal()">&#x2715;</button>
+      </div>
+      <div class="modal-tabs">
+        <button class="modal-tab active" id="tab-companies" onclick="switchTab('companies')">&#127970; Companies</button>
+        <button class="modal-tab" id="tab-contacts" onclick="switchTab('contacts')">&#128101; Contacts</button>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div class="step active" id="step-1">
+        <div class="panel active" id="panel-companies">
+          <label class="field-label">LinkedIn company URLs</label>
+          <textarea class="url-canvas" id="company-urls" placeholder="https://www.linkedin.com/company/microsoft&#10;https://www.linkedin.com/company/google&#10;..."></textarea>
+          <div class="canvas-hint">Paste one LinkedIn company URL per line. No limit.</div>
+          <div class="icp-section">
+            <div class="icp-title">Define your ICP</div>
+            <div class="icp-sub">Set the criteria to filter and target the right accounts</div>
+            <label class="field-label">Country</label>
+            <div class="country-wrapper" id="country-wrapper">
+              <button class="country-trigger" id="country-trigger" onclick="toggleCountry()"><span id="trigger-label">Select countries</span> &#9660;</button>
+              <div class="country-dropdown" id="country-dropdown">
+                <input class="country-search" id="country-search" placeholder="Search country..." oninput="filterCountries(this.value)">
+                <div id="country-list"></div>
+              </div>
+            </div>
+            <div class="country-bubbles" id="country-bubbles"></div>
+            <label class="field-label" style="margin-top:18px;display:block">Job titles</label>
+            <textarea class="titles-canvas" id="job-titles" placeholder="Chief Technology Officer&#10;VP Engineering&#10;Head of Product&#10;..."></textarea>
+            <div class="canvas-hint">One title per line</div>
+          </div>
+        </div>
+        <div class="panel" id="panel-contacts">
+          <label class="field-label">LinkedIn profile URLs</label>
+          <textarea class="url-canvas" id="contact-urls" style="height:260px" placeholder="https://www.linkedin.com/in/john-doe&#10;https://www.linkedin.com/in/jane-smith&#10;..."></textarea>
+          <div class="canvas-hint">Paste one LinkedIn profile URL per line. No limit.</div>
+        </div>
+      </div>
+      <div class="step" id="step-2">
+        <button class="step-back" onclick="goBack()">&#8592; Back</button>
+        <div class="name-step-icon" id="name-icon">&#128101;</div>
+        <div class="name-step-title">Name your list</div>
+        <div class="name-step-sub" id="name-sub">Give this contacts list a name</div>
+        <input class="name-input" id="list-name" type="text" placeholder="e.g. Israeli CTOs Q3 2025" maxlength="80">
+        <div class="result-msg" id="save-result"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" id="footer-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" id="footer-btn" onclick="footerAction()">Next &#8594;</button>
+    </div>
+  </div>
+</div>
+<script>
+var params = new URLSearchParams(window.location.search);
+var workspaceId = params.get('workspace_id');
+var currentView = 'contacts';
+var currentTab = 'companies';
+var currentStep = 1;
+var selectedCountries = [];
+var savedLists = [];
+var ALL_COUNTRIES = ["Afghanistan","Albania","Algeria","Andorra","Angola","Argentina","Armenia","Australia","Austria","Azerbaijan","Bahrain","Bangladesh","Belarus","Belgium","Belize","Bolivia","Bosnia and Herzegovina","Botswana","Brazil","Brunei","Bulgaria","Cambodia","Cameroon","Canada","Chad","Chile","China","Colombia","Congo","Costa Rica","Croatia","Cuba","Cyprus","Czech Republic","Denmark","Dominican Republic","Ecuador","Egypt","Estonia","Ethiopia","Finland","France","Georgia","Germany","Ghana","Greece","Guatemala","Honduras","Hungary","India","Indonesia","Iran","Iraq","Ireland","Israel","Italy","Japan","Jordan","Kazakhstan","Kenya","Kuwait","Latvia","Lebanon","Libya","Lithuania","Luxembourg","Malaysia","Mexico","Morocco","Netherlands","New Zealand","Nigeria","Norway","Pakistan","Panama","Peru","Philippines","Poland","Portugal","Qatar","Romania","Russia","Saudi Arabia","Serbia","Singapore","Slovakia","Slovenia","South Africa","South Korea","Spain","Sri Lanka","Sweden","Switzerland","Taiwan","Thailand","Tunisia","Turkey","Uganda","Ukraine","United Arab Emirates","United Kingdom","United States","Uruguay","Venezuela","Vietnam"];
+function selectView(v) {
+  currentView = v;
+  document.getElementById('btn-view-contacts').className = 'view-btn' + (v==='contacts' ? ' active' : '');
+  document.getElementById('btn-view-companies').className = 'view-btn' + (v==='companies' ? ' active' : '');
+  document.getElementById('bubbles-contacts').style.display = v==='contacts' ? '' : 'none';
+  document.getElementById('bubbles-companies').style.display = v==='companies' ? '' : 'none';
+}
+function openModal() {
+  document.getElementById('overlay').classList.add('open');
+  resetModal();
+}
+function closeModal() {
+  document.getElementById('overlay').classList.remove('open');
+}
+function resetModal() {
+  goToStep(1);
+  switchTab('companies');
+  document.getElementById('company-urls').value = '';
+  document.getElementById('contact-urls').value = '';
+  document.getElementById('list-name').value = '';
+  document.getElementById('save-result').textContent = '';
+  document.getElementById('job-titles').value = '';
+  selectedCountries = [];
+  renderBubbles();
+  renderCountryList('');
+}
+function switchTab(tab) {
+  currentTab = tab;
+  document.getElementById('tab-companies').className = 'modal-tab' + (tab==='companies' ? ' active' : '');
+  document.getElementById('tab-contacts').className = 'modal-tab' + (tab==='contacts' ? ' active' : '');
+  document.getElementById('panel-companies').className = 'panel' + (tab==='companies' ? ' active' : '');
+  document.getElementById('panel-contacts').className = 'panel' + (tab==='contacts' ? ' active' : '');
+  if (tab==='companies') renderCountryList('');
+}
+function goToStep(n) {
+  currentStep = n;
+  document.getElementById('step-1').className = 'step' + (n===1 ? ' active' : '');
+  document.getElementById('step-2').className = 'step' + (n===2 ? ' active' : '');
+  document.getElementById('tab-companies').disabled = n===2;
+  document.getElementById('tab-contacts').disabled = n===2;
+  if (n===2) {
+    var isContacts = currentTab==='contacts';
+    document.getElementById('name-icon').textContent = isContacts ? '\uD83D\uDC65' : '\uD83C\uDFE2';
+    document.getElementById('name-sub').textContent = 'Give this ' + (isContacts ? 'contacts' : 'companies') + ' list a name';
+    document.getElementById('footer-btn').textContent = 'Save List';
+    setTimeout(function(){ document.getElementById('list-name').focus(); }, 50);
+  } else {
+    document.getElementById('footer-btn').textContent = 'Next \u2192';
+  }
+}
+function goBack() { goToStep(1); }
+function footerAction() {
+  if (currentStep===1) {
+    var urls = (currentTab==='contacts' ? document.getElementById('contact-urls').value : document.getElementById('company-urls').value).trim();
+    if (!urls) { return; }
+    goToStep(2);
+  } else {
+    saveList();
+  }
+}
+function saveList() {
+  var name = document.getElementById('list-name').value.trim();
+  if (!name) { document.getElementById('save-result').innerHTML = '<span class="result-err">Please enter a list name.</span>'; return; }
+  var btn = document.getElementById('footer-btn');
+  btn.disabled = true; btn.textContent = 'Saving...';
+  var isContacts = currentTab==='contacts';
+  var type = isContacts ? 'contacts' : 'companies';
+  fetch('/api/lists', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ workspace_id: parseInt(workspaceId), name: name, type: type })
+  }).then(function(r){ return r.json(); })
+  .then(function(list) {
+    if (list.error) throw new Error(list.error);
+    var listId = list.id;
+    var rawUrls = (isContacts ? document.getElementById('contact-urls').value : document.getElementById('company-urls').value).trim();
+    var lines = rawUrls.split('\n').map(function(l){ return l.trim(); }).filter(Boolean);
+    var keyword = isContacts ? '/in/' : '/company/';
+    var valid = lines.filter(function(u){ return u.indexOf(keyword) > -1; });
+    if (!valid.length) {
+      addBubble(listId, name, type, 0);
+      closeModal();
+      return;
+    }
+    var endpoint = '/api/lists/' + listId + '/' + type;
+    var bodyKey = isContacts ? 'contacts' : 'companies';
+    var items = valid.map(function(u) {
+      if (isContacts) return { li_profile_url: u };
+      return { li_company_url: u, company_name: u.split('/').filter(Boolean).pop() };
+    });
+    var payload = { workspace_id: parseInt(workspaceId) };
+    payload[bodyKey] = items;
+    return fetch(endpoint, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    }).then(function(r){ return r.json(); })
+    .then(function(res) {
+      addBubble(listId, name, type, res.added || valid.length);
+      closeModal();
+    });
+  })
+  .catch(function(e) {
+    document.getElementById('save-result').innerHTML = '<span class="result-err">Error: ' + e.message + '</span>';
+    btn.disabled = false; btn.textContent = 'Save List';
+  });
+}
+function addBubble(id, name, type, count) {
+  savedLists.push({ id: id, name: name, type: type, count: count });
+  renderAllBubbles();
+}
+function renderAllBubbles() {
+  var cRow = document.getElementById('bubbles-contacts');
+  var coRow = document.getElementById('bubbles-companies');
+  cRow.innerHTML = '';
+  coRow.innerHTML = '';
+  savedLists.forEach(function(l) {
+    var b = document.createElement('div');
+    b.className = 'list-bubble';
+    b.innerHTML = l.name + '<span class="count">' + l.count + '</span>';
+    if (l.type==='contacts') cRow.appendChild(b);
+    else coRow.appendChild(b);
+  });
+}
+function toggleCountry() {
+  var dd = document.getElementById('country-dropdown');
+  var tr = document.getElementById('country-trigger');
+  dd.classList.toggle('open');
+  tr.classList.toggle('open');
+  if (dd.classList.contains('open')) {
+    document.getElementById('country-search').value = '';
+    renderCountryList('');
+    document.getElementById('country-search').focus();
+  }
+}
+function filterCountries(q) { renderCountryList(q); }
+function renderCountryList(q) {
+  var list = document.getElementById('country-list');
+  if (!list) return;
+  var filtered = ALL_COUNTRIES.filter(function(c){ return !q || c.toLowerCase().indexOf(q.toLowerCase()) > -1; });
+  list.innerHTML = '';
+  filtered.forEach(function(c) {
+    var sel = selectedCountries.indexOf(c) > -1;
+    var div = document.createElement('div');
+    div.className = 'country-option' + (sel ? ' selected' : '');
+    div.innerHTML = '<input type="checkbox"' + (sel ? ' checked' : '') + '> ' + c;
+    div.onclick = function(){ toggleCountrySelect(c); };
+    list.appendChild(div);
+  });
+}
+function toggleCountrySelect(c) {
+  var idx = selectedCountries.indexOf(c);
+  if (idx > -1) selectedCountries.splice(idx, 1);
+  else selectedCountries.push(c);
+  renderCountryList(document.getElementById('country-search').value);
+  renderBubbles();
+  document.getElementById('trigger-label').textContent = selectedCountries.length ? selectedCountries.length + ' selected' : 'Select countries';
+}
+function renderBubbles() {
+  var wrap = document.getElementById('country-bubbles');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  selectedCountries.forEach(function(c) {
+    var b = document.createElement('span');
+    b.className = 'bubble';
+    b.innerHTML = c + '<button class="bubble-x">&times;</button>';
+    b.querySelector('.bubble-x').onclick = function(e){ e.stopPropagation(); toggleCountrySelect(c); };
+    wrap.appendChild(b);
+  });
+}
+document.addEventListener('click', function(e) {
+  var w = document.getElementById('country-wrapper');
+  if (w && !w.contains(e.target)) {
+    var dd = document.getElementById('country-dropdown');
+    var tr = document.getElementById('country-trigger');
+    if (dd) dd.classList.remove('open');
+    if (tr) tr.classList.remove('open');
+  }
+});
+document.getElementById('overlay').addEventListener('click', function(e){ if(e.target===this) closeModal(); });
+document.getElementById('list-name').addEventListener('keydown', function(e){ if(e.key==='Enter') footerAction(); });
+document.getElementById('btn-add').addEventListener('click', openModal);
+</script>
+</body>
+</html>

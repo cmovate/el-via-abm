@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>All Data</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #1a1a1a; font-size: 14px; }
+.page { padding: 28px; }
+.page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; gap: 16px; flex-wrap: wrap; }
+.page-title { font-size: 22px; font-weight: 600; }
+.page-sub { font-size: 14px; color: #666; margin-top: 4px; }
+.tab-bar { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 2px solid #e5e5e5; }
+.tab-btn { background: none; border: none; padding: 10px 20px; font-size: 13px; font-weight: 500; color: #888; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: color .15s, border-color .15s; }
+.tab-btn:hover { color: #333; }
+.tab-btn.active { color: #1D9E75; border-bottom-color: #1D9E75; }
+.tab-section { display: none; }
+.tab-section.active { display: block; }
+.toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+.search-input { padding: 8px 12px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 13px; width: 240px; font-family: inherit; background: white; }
+.search-input:focus { outline: none; border-color: #1D9E75; }
+.filter-select { padding: 8px 12px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 13px; background: white; font-family: inherit; cursor: pointer; }
+.toolbar-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.ghost-btn { background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 8px 14px; font-size: 13px; color: #555; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 6px; }
+.ghost-btn:hover { background: #f5f5f5; }
+.ghost-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.danger-btn { background: white; border: 1px solid #FECACA; border-radius: 8px; padding: 8px 14px; font-size: 13px; color: #DC2626; cursor: pointer; white-space: nowrap; }
+.danger-btn:hover { background: #FEF2F2; }
+.bulk-bar { display: flex; align-items: center; gap: 12px; background: #1D9E75; color: white; padding: 10px 16px; border-radius: 8px; margin-bottom: 12px; font-size: 13px; font-weight: 500; }
+.bulk-bar button { background: rgba(255,255,255,0.2); border: none; border-radius: 6px; padding: 5px 12px; font-size: 13px; color: white; cursor: pointer; }
+.bulk-bar button:hover { background: rgba(255,255,255,0.3); }
+.bulk-cancel { background: transparent !important; border: 1px solid rgba(255,255,255,0.4) !important; }
+.stats-row { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+.stat-chip { background: white; border: 1px solid #e5e5e5; border-radius: 8px; padding: 8px 14px; font-size: 12px; color: #555; white-space: nowrap; }
+.stat-chip strong { color: #1a1a1a; font-size: 14px; margin-right: 4px; }
+.live-badge { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #888; margin-left: auto; }
+.live-dot { width: 6px; height: 6px; border-radius: 50%; background: #1D9E75; animation: livepulse 2s ease-in-out infinite; }
+@keyframes livepulse { 0%,100%{opacity:0.3} 50%{opacity:1} }
+@keyframes rowflash { 0%{background:#E1F5EE} 100%{background:transparent} }
+.row-flash td { animation: rowflash 1.5s ease-out forwards; }
+.enrich-pill { display: flex; align-items: center; gap: 6px; font-size: 12px; padding: 5px 10px; border-radius: 999px; white-space: nowrap; }
+.enrich-pill.idle   { background: #f0f0f0; color: #888; }
+.enrich-pill.active { background: #E1F5EE; color: #0F6E56; }
+.enrich-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.enrich-dot.pulse { animation: pulse 1s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+.spin { display: inline-block; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.table-outer { background: white; border: 1px solid #e5e5e5; border-radius: 12px; overflow: hidden; }
+.table-scroll-wrap { overflow-x: auto; overflow-y: auto; max-height: calc(100vh - 320px); position: relative; }
+table { border-collapse: separate; border-spacing: 0; width: max-content; min-width: 100%; }
+thead th { position: sticky; top: 0; z-index: 3; background: #fafafa; border-bottom: 1px solid #e5e5e5; padding: 11px 14px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: #888; white-space: nowrap; text-align: left; }
+#contacts-table thead th:nth-child(1), #contacts-table tbody td:nth-child(1) { position: sticky; left: 0; z-index: 5; background: #fafafa; }
+#contacts-table tbody td:nth-child(1) { background: white; z-index: 2; }
+#contacts-table thead th:nth-child(2), #contacts-table tbody td:nth-child(2) { position: sticky; left: 44px; z-index: 5; background: #fafafa; }
+#contacts-table tbody td:nth-child(2) { background: white; z-index: 2; }
+#contacts-table thead th:nth-child(3), #contacts-table tbody td:nth-child(3) { position: sticky; left: 188px; z-index: 5; border-right: 1px solid #e0e0e0; background: #fafafa; }
+#contacts-table tbody td:nth-child(3) { background: white; z-index: 2; border-right: 1px solid #e0e0e0; }
+#companies-table thead th:nth-child(1), #companies-table tbody td:nth-child(1) { position: sticky; left: 0; z-index: 5; background: #fafafa; }
+#companies-table tbody td:nth-child(1) { background: white; z-index: 2; border-right: 1px solid #e0e0e0; }
+#companies-table thead th:nth-child(1) { border-right: 1px solid #e0e0e0; }
+tbody td { padding: 12px 14px; border-bottom: 1px solid #f5f5f5; white-space: nowrap; font-size: 13px; color: #333; vertical-align: middle; }
+tbody tr:hover td { background: #fafafa; }
+tbody tr.selected td { background: #F0FBF7; }
+tr:last-child td { border-bottom: none; }
+.check-col { width: 44px; text-align: center; padding: 12px 8px; }
+.bool-yes  { display:inline-block; background:#E1F5EE; color:#0F6E56; border-radius:999px; padding:2px 8px; font-size:11px; font-weight:500; }
+.bool-no   { display:inline-block; background:#f5f5f5; color:#aaa;    border-radius:999px; padding:2px 8px; font-size:11px; }
+.connected-yes { display:inline-block; background:#DBEAFE; color:#1D4ED8; border-radius:999px; padding:2px 10px; font-size:11px; font-weight:600; }
+.connected-no  { display:inline-block; background:#f5f5f5; color:#aaa; border-radius:999px; padding:2px 8px; font-size:11px; }
+.chat-yes { display:inline-block; background:#F0FDF4; color:#166534; border-radius:999px; padding:2px 10px; font-size:11px; font-weight:600; }
+.chat-no  { display:inline-block; background:#f5f5f5; color:#aaa; border-radius:999px; padding:2px 8px; font-size:11px; }
+.follow-confirmed { display:inline-block; background:#E1F5EE; color:#0F6E56; border-radius:999px; padding:2px 8px; font-size:11px; font-weight:600; }
+.follow-invited   { display:inline-block; background:#FEF9E7; color:#B7770D; border-radius:999px; padding:2px 8px; font-size:11px; font-weight:500; }
+.follow-none      { display:inline-block; background:#f5f5f5; color:#aaa;    border-radius:999px; padding:2px 8px; font-size:11px; }
+.pv-count { display:inline-block; background:#EEF2FF; color:#4338CA; border-radius:999px; padding:2px 10px; font-size:11px; font-weight:600; min-width:24px; text-align:center; }
+.pv-none  { display:inline-block; background:#f5f5f5; color:#aaa; border-radius:999px; padding:2px 8px; font-size:11px; }
+.msg-count { display:inline-block; background:#FDF4FF; color:#7E22CE; border-radius:999px; padding:2px 10px; font-size:11px; font-weight:600; min-width:24px; text-align:center; }
+.msg-count-none { display:inline-block; background:#f5f5f5; color:#aaa; border-radius:999px; padding:2px 8px; font-size:11px; }
+.msg-text-cell { font-size:11px; color:#374151; max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:inline-block; background:#F9FAFB; border:1px solid #E5E7EB; border-radius:4px; padding:2px 8px; cursor:help; }
+.msg-text-cell.va { background:#F5F3FF; border-color:#DDD6FE; color:#5B21B6; }
+.msg-text-cell.vb { background:#EFF6FF; border-color:#BFDBFE; color:#1E40AF; }
+.msg-text-cell.vc { background:#FFFBEB; border-color:#FDE68A; color:#92400E; }
+.provider-id { display:inline-block; font-family:'SFMono-Regular',Consolas,monospace; font-size:10px; background:#F3F4F6; color:#374151; border-radius:4px; padding:2px 6px; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; vertical-align:middle; }
+.provider-id-missing { display:inline-block; background:#FEF3C7; color:#92400E; border-radius:4px; padding:2px 6px; font-size:10px; }
+.company-id-badge { display:inline-block; font-family:'SFMono-Regular',Consolas,monospace; font-size:10px; background:#F3F4F6; color:#374151; border-radius:4px; padding:2px 6px; }
+.eng-engaged   { display:inline-block; background:#DCFCE7; color:#166534; border-radius:999px; padding:3px 10px; font-size:11px; font-weight:600; }
+.eng-average   { display:inline-block; background:#FEF9C3; color:#854D0E; border-radius:999px; padding:3px 10px; font-size:11px; font-weight:500; }
+.eng-unengaged { display:inline-block; background:#FEE2E2; color:#991B1B; border-radius:999px; padding:3px 10px; font-size:11px; font-weight:500; }
+.eng-pending   { display:inline-block; background:#f0f0f0; color:#aaa;    border-radius:999px; padding:3px 10px; font-size:11px; }
+.like-count { display:inline-block; background:#FFF7ED; color:#C2410C; border-radius:999px; padding:2px 10px; font-size:11px; font-weight:600; min-width:24px; text-align:center; }
+.like-none  { display:inline-block; background:#f5f5f5; color:#aaa; border-radius:999px; padding:2px 8px; font-size:11px; }
+.contact-count-badge { display:inline-block; background:#EEF2FF; color:#4338CA; border-radius:999px; padding:2px 10px; font-size:11px; font-weight:600; min-width:24px; text-align:center; }
+.posts14d-badge { display:inline-block; background:#F0FDF4; color:#166534; border-radius:999px; padding:2px 10px; font-size:11px; font-weight:600; min-width:24px; text-align:center; }
+.cooldown-badge { display:inline-block; background:#FEF9C3; color:#854D0E; border-radius:4px; padding:2px 6px; font-size:10px; }
+.cell-link  { color:#1D9E75; text-decoration:none; font-size:12px; }
+.cell-link:hover { text-decoration:underline; }
+.cell-muted { color:#aaa; font-size:12px; }
+.cell-title { font-size:12px; color:#555; max-width:200px; overflow:hidden; text-overflow:ellipsis; }
+.cell-loc   { font-size:12px; color:#666; max-width:160px; overflow:hidden; text-overflow:ellipsis; }
+.row-del-btn { background:none; border:none; color:#ddd; font-size:16px; cursor:pointer; padding:2px 6px; }
+.row-del-btn:hover { color:#DC2626; }
+input[type="checkbox"] { width:15px; height:15px; cursor:pointer; accent-color:#1D9E75; }
+.confirm-backdrop { position:fixed; inset:0; z-index:50; background:rgba(0,0,0,0.4); display:flex; align-items:center; justify-content:center; }
+.confirm-box { background:white; border-radius:12px; padding:24px; width:min(420px,90vw); box-shadow:0 20px 60px rgba(0,0,0,0.2); }
+.confirm-box h3 { font-size:16px; font-weight:600; margin-bottom:8px; }
+.confirm-box p  { font-size:13px; color:#555; margin-bottom:20px; line-height:1.5; }
+.confirm-actions { display:flex; justify-content:flex-end; gap:8px; }
+.empty-row td { text-align:center; color:#aaa; padding:48px 16px; font-size:13px; }
+
+/* ── Conversation stage badges ─────────────────────────────────────────────── */
+.conv-stage { display:inline-block; border-radius:999px; padding:3px 10px; font-size:11px; font-weight:600; white-space:nowrap; }
+.cs-no_reply       { background:#F3F4F6; color:#6B7280; }
+.cs-cold_reply     { background:#FEF9E7; color:#B7770D; }
+.cs-engaged        { background:#DBEAFE; color:#1D4ED8; }
+.cs-meeting_intent { background:#DCFCE7; color:#166534; }
+.cs-meeting_booked { background:#E1F5EE; color:#0F6E56; font-weight:700; }
+.cs-not_interested { background:#FEE2E2; color:#991B1B; }
+.cs-ghost          { background:#F3F4F6; color:#9CA3AF; font-style:italic; }
+
+/* ── Score badge ───────────────────────────────────────────────────────────── */
+.conv-score { display:inline-block; border-radius:999px; padding:2px 10px; font-size:12px; font-weight:700; min-width:28px; text-align:center; }
+.score-low  { background:#FEE2E2; color:#991B1B; }
+.score-mid  { background:#FEF9E7; color:#B7770D; }
+.score-good { background:#DBEAFE; color:#1D4ED8; }
+.score-high { background:#DCFCE7; color:#166534; }
+.score-top  { background:#E1F5EE; color:#0F6E56; }
+
+/* ── Analyze button ────────────────────────────────────────────────────────── */
+.analyze-btn { background:none; border:1px solid #e0e0e0; border-radius:6px; padding:3px 8px; font-size:11px; color:#555; cursor:pointer; white-space:nowrap; }
+.analyze-btn:hover { background:#F0FBF7; border-color:#1D9E75; color:#0F6E56; }
+
+/* ── Conversation analysis popup ──────────────────────────────────────────── */
+.conv-backdrop { position:fixed; inset:0; z-index:80; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; padding:20px; }
+.conv-modal { background:white; border-radius:14px; width:min(620px,100%); max-height:88vh; display:flex; flex-direction:column; box-shadow:0 24px 80px rgba(0,0,0,0.25); overflow:hidden; }
+.conv-head { display:flex; align-items:flex-start; justify-content:space-between; padding:18px 22px 14px; border-bottom:1px solid #f0f0f0; background:#fafafa; flex-shrink:0; }
+.conv-head-name { font-size:16px; font-weight:600; }
+.conv-head-meta { display:flex; align-items:center; gap:10px; margin-top:6px; flex-wrap:wrap; }
+.conv-close { background:none; border:none; font-size:22px; color:#999; cursor:pointer; flex-shrink:0; }
+.conv-body { padding:20px 22px; overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:18px; }
+.conv-section-label { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.07em; color:#aaa; margin-bottom:8px; }
+.conv-summary-box { background:#f8f9fa; border:1px solid #e5e5e5; border-radius:8px; padding:12px 14px; font-size:13px; color:#333; line-height:1.5; }
+.conv-signals { display:flex; flex-direction:column; gap:6px; }
+.signal-row { display:flex; align-items:flex-start; gap:8px; font-size:13px; }
+.signal-icon { flex-shrink:0; font-size:14px; margin-top:1px; }
+.signal-text { color:#374151; line-height:1.4; }
+.conv-action-box { background:#F0FBF7; border:1px solid #BBF7D0; border-radius:8px; padding:12px 14px; font-size:13px; color:#166534; line-height:1.5; display:flex; gap:10px; }
+.conv-action-icon { font-size:16px; flex-shrink:0; }
+.conv-stats-row { display:flex; gap:10px; flex-wrap:wrap; }
+.conv-stat { background:#f5f5f5; border-radius:8px; padding:8px 14px; font-size:12px; color:#555; }
+.conv-stat strong { color:#1a1a1a; font-size:14px; display:block; }
+.conv-footer { display:flex; align-items:center; justify-content:space-between; padding:14px 22px; border-top:1px solid #f0f0f0; background:#fafafa; flex-shrink:0; }
+.conv-analyzed-ts { font-size:11px; color:#aaa; }
+.reanalyze-btn { background:#1D9E75; border:none; border-radius:8px; padding:8px 16px; font-size:13px; font-weight:500; color:white; cursor:pointer; display:flex; align-items:center; gap:6px; }
+.reanalyze-btn:hover { background:#178f68; }
+.reanalyze-btn:disabled { opacity:0.6; cursor:not-allowed; }
+.conv-loading { text-align:center; padding:40px; color:#888; font-size:13px; }
+.conv-error   { text-align:center; padding:30px; color:#DC2626; font-size:13px; background:#FEF2F2; border-radius:8px; }
+.conv-no-data { text-align:center; padding:30px; color:#888; font-size:13px; background:#fafafa; border-radius:8px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="page-header">
+    <div><div class="page-title">All Data</div><div class="page-sub">All contacts and companies across campaigns in this workspace</div></div>
+  </div>
+  <div class="tab-bar">
+    <button class="tab-btn active" id="tab-contacts" onclick="switchTab('contacts')">&#x1F464; Contacts</button>
+    <button class="tab-btn" id="tab-companies" onclick="switchTab('companies')">&#x1F3E2; Companies</button>
+  </div>
+
+  <div class="tab-section active" id="section-contacts">
+    <div class="toolbar">
+      <input class="search-input" type="search" placeholder="Search by name, company, email..." oninput="applyContactFilters()" id="contact-search">
+      <select class="filter-select" id="campaign-filter" onchange="applyContactFilters()"><option value="">All campaigns</option></select>
+      <select class="filter-select" id="stage-filter" onchange="applyContactFilters()">
+        <option value="">All stages</option>
+        <option value="no_reply">No reply</option>
+        <option value="cold_reply">Cold reply</option>
+        <option value="engaged">Engaged</option>
+        <option value="meeting_intent">Meeting intent</option>
+        <option value="meeting_booked">Meeting booked</option>
+        <option value="not_interested">Not interested</option>
+        <option value="ghost">Ghost</option>
+      </select>
+      <div class="toolbar-right">
+        <div id="enrich-status" class="enrich-pill idle"></div>
+        <button class="ghost-btn" id="refresh-btn" onclick="manualRefresh()"><span id="refresh-icon">&#x21BB;</span> Refresh</button>
+        <button class="ghost-btn" onclick="exportContactsCSV()">Export CSV</button>
+      </div>
+    </div>
+    <div id="bulk-bar" style="display:none;" class="bulk-bar">
+      <span id="bulk-count"></span>
+      <button onclick="deleteSelected()">Delete selected</button>
+      <button onclick="selectAll()">Select all (<span id="bulk-total"></span>)</button>
+      <button class="bulk-cancel" onclick="clearSelection()">Cancel</button>
+    </div>
+    <div class="stats-row" id="contact-stats-row">
+      <div class="live-badge"><span class="live-dot"></span><span id="last-updated">Loading...</span></div>
+    </div>
+    <div class="table-outer"><div class="table-scroll-wrap">
+      <table id="contacts-table">
+        <thead id="contacts-thead"><tr id="contacts-header-row"></tr></thead>
+        <tbody id="contacts-body"></tbody>
+      </table>
+    </div></div>
+  </div>
+
+  <div class="tab-section" id="section-companies">
+    <div class="toolbar">
+      <input class="search-input" type="search" placeholder="Search by company name..." oninput="applyCompanyFilters()" id="company-search">
+      <select class="filter-select" id="company-campaign-filter" onchange="applyCompanyFilters()"><option value="">All campaigns</option></select>
+      <div class="toolbar-right">
+        <button class="ghost-btn" onclick="loadCompanies()"><span>&#x21BB;</span> Refresh</button>
+        <button class="ghost-btn" onclick="exportCompaniesCSV()">Export CSV</button>
+      </div>
+    </div>
+    <div class="stats-row" id="company-stats-row"></div>
+    <div class="table-outer"><div class="table-scroll-wrap">
+      <table id="companies-table">
+        <thead><tr>
+          <th style="min-width:220px;">Company</th>
+          <th style="min-width:160px;">Campaign</th>
+          <th style="min-width:90px;text-align:center;">Contacts</th>
+          <th style="min-width:80px;text-align:center;">LinkedIn ID</th>
+          <th style="min-width:140px;text-align:center;">Engagement</th>
+          <th style="min-width:90px;text-align:center;">Posts 14d</th>
+          <th style="min-width:150px;text-align:center;">Last scraped</th>
+          <th style="min-width:120px;text-align:center;">Post likes &#128077;</th>
+          <th style="min-width:150px;text-align:center;">Last liked</th>
+          <th style="min-width:160px;">LinkedIn company</th>
+        </tr></thead>
+        <tbody id="companies-body"></tbody>
+      </table>
+    </div></div>
+  </div>
+</div>
+
+<!-- Confirm delete modal -->
+<div id="confirm-modal" class="confirm-backdrop" style="display:none;">
+  <div class="confirm-box">
+    <h3 id="confirm-title">Confirm deletion</h3>
+    <p id="confirm-msg"></p>
+    <div class="confirm-actions">
+      <button class="ghost-btn" onclick="closeConfirm()">Cancel</button>
+      <button class="danger-btn" onclick="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Conversation analysis popup -->
+<div id="conv-backdrop" class="conv-backdrop" style="display:none;" onclick="closeConvPopup(event)">
+  <div class="conv-modal" onclick="event.stopPropagation()">
+    <div class="conv-head">
+      <div>
+        <div class="conv-head-name" id="conv-head-name">Conversation Analysis</div>
+        <div class="conv-head-meta" id="conv-head-meta"></div>
+      </div>
+      <button class="conv-close" onclick="closeConvPopup()">&times;</button>
+    </div>
+    <div class="conv-body" id="conv-body">
+      <div class="conv-loading">Loading analysis...</div>
+    </div>
+    <div class="conv-footer">
+      <div class="conv-analyzed-ts" id="conv-analyzed-ts"></div>
+      <button class="reanalyze-btn" id="conv-reanalyze-btn" onclick="reAnalyzeContact()">
+        &#x21BB; Re-analyze
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+const MAX_MSG_SLOTS = 20;
+const VARIANTS = ['A', 'B', 'C'];
+
+const params = new URLSearchParams(window.location.search);
+const workspaceId = params.get('workspace_id');
+let allContacts = [], campaigns = [], filteredContacts = [];
+let allCompanies = [], filteredCompanies = [];
+let selectedIds = new Set(), pendingDeleteIds = null;
+let enrichPollTimer = null, autoRefreshTimer = null, prevContactHash = '';
+let activeTab = 'contacts';
+let activeConvContactId = null;
+const AUTO_REFRESH_MS = 30000;
+
+// ── Conversation stage & score display ────────────────────────────────────────
+
+const STAGE_LABELS = {
+  no_reply:       'No reply',
+  cold_reply:     'Cold reply',
+  engaged:        'Engaged',
+  meeting_intent: 'Meeting intent',
+  meeting_booked: 'Meeting booked ✓',
+  not_interested: 'Not interested',
+  ghost:          'Ghost',
+};
+
+function stageBadge(stage) {
+  if (!stage) return '<span class="cell-muted">\u2014</span>';
+  const label = STAGE_LABELS[stage] || stage;
+  return `<span class="conv-stage cs-${stage}">${label}</span>`;
+}
+
+function scoreBadge(score) {
+  const n = parseInt(score);
+  if (!n) return '<span class="cell-muted">\u2014</span>';
+  const cls = n <= 3 ? 'score-low' : n <= 5 ? 'score-mid' : n <= 7 ? 'score-good' : n <= 9 ? 'score-high' : 'score-top';
+  return `<span class="conv-score ${cls}">${n}</span>`;
+}
+
+// ── Header builder ─────────────────────────────────────────────────────────────
+
+function buildContactsHeader() {
+  const row = document.getElementById('contacts-header-row');
+  const fixed = [
+    ['check-col', '', '44px', false],
+    ['', 'First name', '144px', false],
+    ['', 'Last name', '144px', false],
+    ['', 'Job title', '200px', false],
+    ['', 'Company', '160px', false],
+    ['', 'Location', '160px', false],
+    ['', 'LinkedIn profile', '160px', false],
+    ['', 'LinkedIn company', '160px', false],
+    ['', 'Email', '200px', false],
+    ['', 'Website', '180px', false],
+    ['', 'Campaign', '160px', false],
+    ['', 'Provider ID', '200px', false, 'LinkedIn internal ID'],
+    ['', 'Already connected', '140px', true, 'Already a 1st-degree LinkedIn connection'],
+    ['', 'Chat history', '130px', true, 'Existing chat history in LinkedIn messages'],
+    ['', 'Engagement', '130px', true],
+    ['', 'Last scraped', '150px', true, 'When engagement was last scraped'],
+    ['', 'Post likes \u{1F44D}', '120px', true, 'Post likes we sent'],
+    ['', 'Comment likes \u{1F44D}', '130px', true, 'Comment likes we sent'],
+    ['', 'Last liked', '150px', true, 'Last time we liked (lock = 3-day cooldown active)'],
+    ['', 'Invite sent', '100px', true],
+    ['', 'Invite approved', '110px', true],
+    ['', '# Msgs sent', '90px', true, 'Total messages sent to this contact'],
+  ];
+  let html = '';
+  fixed.forEach(([cls, label, w, center, title]) => {
+    const t = title ? ` title="${title}"` : '';
+    const a = center ? ';text-align:center' : '';
+    if (cls === 'check-col') {
+      html += `<th class="check-col"><input type="checkbox" id="check-all" onchange="toggleAll(this.checked)"></th>`;
+    } else {
+      html += `<th style="min-width:${w}${a};"${t}>${label}</th>`;
+    }
+  });
+  // 60 message columns: A / B / C per step
+  for (let i = 1; i <= MAX_MSG_SLOTS; i++) {
+    html += `<th style="min-width:220px;background:#FAF5FF;color:#6D28D9;" title="Msg ${i} — variant A text">Msg ${i} (A)</th>`;
+    html += `<th style="min-width:220px;background:#EFF6FF;color:#1D4ED8;" title="Msg ${i} — variant B text">Msg ${i} (B)</th>`;
+    html += `<th style="min-width:220px;background:#FFFBEB;color:#92400E;" title="Msg ${i} — variant C text">Msg ${i} (C)</th>`;
+  }
+  // Trailing + conversation columns
+  html += `<th style="min-width:90px;text-align:center;">Replied</th>`;
+  html += `<th style="min-width:100px;text-align:center;">Positive reply</th>`;
+  html += `<th style="min-width:110px;text-align:center;">Profile views</th>`;
+  html += `<th style="min-width:130px;text-align:center;">Company follow</th>`;
+  html += `<th style="min-width:150px;text-align:center;" title="AI-analyzed conversation stage">Conv. Stage</th>`;
+  html += `<th style="min-width:70px;text-align:center;" title="Conversion probability 1-10">Score</th>`;
+  html += `<th style="min-width:80px;text-align:center;">Analysis</th>`;
+  html += `<th style="min-width:60px;"></th>`;
+  row.innerHTML = html;
+}
+
+function switchTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.getElementById('section-' + tab).classList.add('active');
+  if (tab === 'companies') loadCompanies();
+}
+
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function pct(a,b) { const bn=parseInt(b)||0; return bn>0?Math.round((parseInt(a)||0)/bn*100)+'%':'—'; }
+function safeUrl(u) { if(!u)return''; u=u.trim(); return /^https?:\/\//i.test(u)?u:'https://'+u; }
+function fmtTime(d) { return d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'}); }
+function fmtDate(ts) {
+  if (!ts) return '<span class="cell-muted">\u2014</span>';
+  const d = new Date(ts);
+  return '<span style="font-size:11px;color:#666;">' + d.toLocaleDateString() + ' ' + d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) + '</span>';
+}
+function cooldownBadge(ts) {
+  if (!ts) return '<span class="cell-muted">\u2014</span>';
+  const d = new Date(ts);
+  const diff = d.getTime() + 3*24*60*60*1000 - Date.now();
+  const dateStr = d.toLocaleDateString();
+  if (diff > 0) { const h = Math.ceil(diff/3600000); return '<span class="cooldown-badge" title="Cooldown: '+h+'h remaining">'+dateStr+' \uD83D\uDD12</span>'; }
+  return '<span style="font-size:11px;color:#666;">'+dateStr+'</span>';
+}
+function pvBadge(n) { n=parseInt(n)||0; return n>0?'<span class="pv-count">'+n+'</span>':'<span class="pv-none">\u2014</span>'; }
+function msgCountBadge(n) { n=parseInt(n)||0; return n>0?'<span class="msg-count">'+n+'</span>':'<span class="msg-count-none">\u2014</span>'; }
+function variantMsgCell(text, variant) {
+  if (!text) return '<span class="cell-muted">\u2014</span>';
+  const cls = variant === 'A' ? 'va' : variant === 'B' ? 'vb' : 'vc';
+  return '<span class="msg-text-cell '+cls+'" title="'+esc(text)+'">'+esc(text)+'</span>';
+}
+function followBadge(inv,conf) {
+  if(conf) return '<span class="follow-confirmed">Following</span>';
+  if(inv)  return '<span class="follow-invited">Invited</span>';
+  return '<span class="follow-none">\u2014</span>';
+}
+function connectedBadge(v) { return v?'<span class="connected-yes">Connected</span>':'<span class="connected-no">\u2014</span>'; }
+function chatHistoryBadge(v, connected) {
+  if (!connected) return '<span class="cell-muted">\u2014</span>';
+  return v?'<span class="chat-yes">Yes</span>':'<span class="chat-no">No</span>';
+}
+function providerIdBadge(pid,pd) {
+  if(pid) return '<span class="provider-id" title="'+esc(pid)+'">'+esc(pid)+'</span>';
+  const has = pd&&typeof pd==='object'?Object.keys(pd).length>0:(typeof pd==='string'&&pd!==''&&pd!=='{}'&&pd!=='null');
+  return has?'<span class="provider-id-missing" title="Enriched but ID not found">\u26A0 not found</span>':'<span class="cell-muted">\u2014</span>';
+}
+function engBadge(level) {
+  if(!level) return '<span class="eng-pending">\u2014</span>';
+  if(level==='engaged') return '<span class="eng-engaged">Engaged</span>';
+  if(level==='average_engaged') return '<span class="eng-average">Avg engaged</span>';
+  if(level==='un_engaged') return '<span class="eng-unengaged">Un-engaged</span>';
+  return '<span class="eng-pending">\u2014</span>';
+}
+function likeBadge(n) { n=parseInt(n)||0; return n>0?'<span class="like-count">'+n+'</span>':'<span class="like-none">\u2014</span>'; }
+function posts14dBadge(engData) {
+  if (!engData) return '<span class="cell-muted">\u2014</span>';
+  const d = typeof engData==='string'?JSON.parse(engData):engData;
+  const n = d.posts_14d;
+  if (n == null) return '<span class="cell-muted">\u2014</span>';
+  return n>0?'<span class="posts14d-badge">'+n+'</span>':'<span class="like-none">0</span>';
+}
+
+function hashC(cs) {
+  return cs.map(c=>[
+    c.id,c.invite_sent?1:0,c.invite_approved?1:0,c.msg_sent?1:0,c.msg_replied?1:0,c.positive_reply?1:0,
+    c.profile_view_count||0,c.company_follow_invited?1:0,c.company_follow_confirmed?1:0,
+    c.provider_id||'',c.engagement_level||'',c.post_likes_sent||0,c.comment_likes_sent||0,
+    c.first_name,c.last_name,c.company,c.location||'',
+    c.already_connected?1:0,c.has_chat_history?1:0,c.msgs_sent_count||0,
+    c.conversation_stage||'',c.conversation_score||0,
+  ].join(':')).join('|');
+}
+
+async function load(silent) {
+  try {
+    const [cR,campR] = await Promise.all([
+      fetch('/api/contacts?workspace_id='+workspaceId),
+      fetch('/api/campaigns?workspace_id='+workspaceId)
+    ]);
+    const cD=await cR.json(), campD=await campR.json();
+    const nc=Array.isArray(cD.items)?cD.items:[];
+    const ng=Array.isArray(campD.items)?campD.items:[];
+    const changed=new Set();
+    if(allContacts.length>0) {
+      const pm=Object.fromEntries(allContacts.map(c=>[c.id,c]));
+      for(const c of nc) {
+        const p=pm[c.id];
+        if(p&&(p.invite_sent!==c.invite_sent||p.invite_approved!==c.invite_approved||
+          p.msg_sent!==c.msg_sent||p.msg_replied!==c.msg_replied||p.positive_reply!==c.positive_reply||
+          (p.profile_view_count||0)!==(c.profile_view_count||0)||
+          p.company_follow_invited!==c.company_follow_invited||p.company_follow_confirmed!==c.company_follow_confirmed||
+          (p.provider_id||'')!==(c.provider_id||'')||(p.engagement_level||'')!==(c.engagement_level||'')||
+          (p.post_likes_sent||0)!==(c.post_likes_sent||0)||(p.comment_likes_sent||0)!==(c.comment_likes_sent||0)||
+          p.first_name!==c.first_name||p.last_name!==c.last_name||p.company!==c.company||
+          (p.location||'')!==(c.location||'')||
+          !!p.already_connected!==!!c.already_connected||!!p.has_chat_history!==!!c.has_chat_history||
+          (p.msgs_sent_count||0)!==(c.msgs_sent_count||0)||
+          (p.conversation_stage||'')!==(c.conversation_stage||'')||
+          (p.conversation_score||0)!==(c.conversation_score||0)
+        )) changed.add(String(c.id));
+      }
+    }
+    const nh=hashC(nc), ch=nh!==prevContactHash;
+    allContacts=nc; campaigns=ng; prevContactHash=nh;
+    const opts='<option value="">All campaigns</option>'+ng.map(c=>'<option value="'+c.id+'">'+esc(c.name)+'</option>').join('');
+    ['campaign-filter','company-campaign-filter'].forEach(id=>{ const el=document.getElementById(id); const prev=el.value; el.innerHTML=opts; if(prev) el.value=prev; });
+    if(ch||!silent) applyContactFilters(changed);
+    document.getElementById('last-updated').textContent='Updated '+fmtTime(new Date());
+    if (activeTab === 'companies') loadCompanies();
+  } catch(e){console.error(e);}
+  updateEnrichStatus(); scheduleAutoRefresh();
+}
+function scheduleAutoRefresh() { clearTimeout(autoRefreshTimer); autoRefreshTimer=setTimeout(()=>load(true),AUTO_REFRESH_MS); }
+async function manualRefresh() {
+  const btn=document.getElementById('refresh-btn'),icon=document.getElementById('refresh-icon');
+  btn.disabled=true; icon.innerHTML='<span class="spin">&#x21BB;</span>';
+  await load(false); if (activeTab === 'companies') await loadCompanies();
+  btn.disabled=false; icon.innerHTML='&#x21BB;';
+}
+async function updateEnrichStatus() {
+  try {
+    const d=await fetch('/api/campaigns/enrichment-status').then(r=>r.json());
+    const pill=document.getElementById('enrich-status');
+    if(d.queued>0||d.running) {
+      pill.className='enrich-pill active';
+      pill.innerHTML='<span class="enrich-dot pulse"></span> Enriching '+d.queued+'\u2026';
+      clearTimeout(enrichPollTimer); enrichPollTimer=setTimeout(()=>load(true),8000);
+    } else { pill.className='enrich-pill idle'; pill.innerHTML='<span class="enrich-dot"></span> Enriched: '+d.processed; }
+  } catch(e){document.getElementById('enrich-status').innerHTML='';}
+}
+function applyContactFilters(flashIds) {
+  const q=document.getElementById('contact-search').value.trim().toLowerCase();
+  const cid=document.getElementById('campaign-filter').value;
+  const stg=document.getElementById('stage-filter').value;
+  filteredContacts=allContacts.filter(r=>{
+    if(cid&&String(r.campaign_id)!==String(cid)) return false;
+    if(stg&&(r.conversation_stage||'')!==stg) return false;
+    if(q) { const hay=[r.first_name,r.last_name,r.company,r.title,r.email,r.website,r.provider_id,r.location].join(' ').toLowerCase(); if(!hay.includes(q)) return false; }
+    return true;
+  });
+  selectedIds=new Set([...selectedIds].filter(id=>filteredContacts.find(r=>String(r.id)===String(id))));
+  renderContactStats(); renderContactsTable(flashIds); renderBulkBar();
+}
+function renderContactStats() {
+  const f=filteredContacts;
+  const inv=f.filter(r=>r.company_follow_invited).length, conf=f.filter(r=>r.company_follow_confirmed).length;
+  const fv=conf>0?(conf+' confirmed / '+inv+' invited'):(inv+' invited');
+  const tv=f.reduce((s,r)=>s+(parseInt(r.profile_view_count)||0),0);
+  const vc=f.filter(r=>(parseInt(r.profile_view_count)||0)>0).length;
+  const ec=f.filter(r=>r.provider_id).length;
+  const engC=f.filter(r=>r.engagement_level&&r.engagement_level!=='un_engaged').length;
+  const plC=f.reduce((s,r)=>s+(parseInt(r.post_likes_sent)||0),0);
+  const clC=f.reduce((s,r)=>s+(parseInt(r.comment_likes_sent)||0),0);
+  const likedC=f.filter(r=>r.likes_sent_at).length;
+  const coolC=f.filter(r=>r.likes_sent_at&&(Date.now()-new Date(r.likes_sent_at).getTime())<3*24*60*60*1000).length;
+  const connC=f.filter(r=>r.already_connected).length;
+  const chatC=f.filter(r=>r.has_chat_history).length;
+  const totalMsgsSent=f.reduce((s,r)=>s+(parseInt(r.msgs_sent_count)||0),0);
+  // Conversation stats
+  const analyzedC    = f.filter(r=>r.conversation_stage).length;
+  const meetingC     = f.filter(r=>['meeting_intent','meeting_booked'].includes(r.conversation_stage)).length;
+  const engagedC     = f.filter(r=>r.conversation_stage==='engaged').length;
+  const chips=[
+    {label:'Total contacts',val:f.length},
+    {label:'Already connected',val:connC},
+    {label:'With chat history',val:chatC},
+    {label:'Invites sent',val:f.filter(r=>r.invite_sent).length},
+    {label:'Approved',val:f.filter(r=>r.invite_approved).length+' ('+pct(f.filter(r=>r.invite_approved).length,f.filter(r=>r.invite_sent).length)+')'},
+    {label:'Messages sent',val:f.filter(r=>r.msg_sent).length},
+    {label:'Total msgs sent',val:totalMsgsSent},
+    {label:'Replied',val:f.filter(r=>r.msg_replied).length+' ('+pct(f.filter(r=>r.msg_replied).length,f.filter(r=>r.msg_sent).length)+')'},
+    {label:'Conversations analyzed',val:analyzedC},
+    {label:'Engaged',val:engagedC},
+    {label:'Meeting intent/booked',val:meetingC},
+    {label:'Profile views',val:tv+' / '+vc+' contacts'},
+    {label:'Company follow',val:fv},
+    {label:'Enriched',val:ec+' / '+f.length},
+    {label:'Post likes sent',val:plC},
+  ].map(s=>'<div class="stat-chip"><strong>'+s.val+'</strong>'+s.label+'</div>').join('');
+  const sr=document.getElementById('contact-stats-row'),badge=document.getElementById('last-updated')?.parentElement;
+  sr.innerHTML=chips; if(badge) sr.appendChild(badge);
+}
+
+// Total = 1 + 21 + MAX_MSG_SLOTS*3 + 4(replied/pos/views/follow) + 3(stage/score/analyze) + 1(del)
+const TOTAL_COLS = 1 + 21 + MAX_MSG_SLOTS * 3 + 4 + 3 + 1;
+
+function renderContactsTable(flashIds) {
+  const tbody=document.getElementById('contacts-body');
+  document.getElementById('check-all').checked=filteredContacts.length>0&&selectedIds.size===filteredContacts.length;
+  if(!filteredContacts.length) { tbody.innerHTML=`<tr class="empty-row"><td colspan="${TOTAL_COLS}">No contacts match your filters</td></tr>`; return; }
+  tbody.innerHTML=filteredContacts.map(r=>{
+    const sel=selectedIds.has(String(r.id)), camp=campaigns.find(c=>String(c.id)===String(r.campaign_id));
+    const bool=v=>v?'<span class="bool-yes">Yes</span>':'<span class="bool-no">No</span>';
+    const flash=flashIds&&flashIds.has(String(r.id));
+    const lip=r.li_profile_url?'<a class="cell-link" href="'+esc(safeUrl(r.li_profile_url))+'" target="_blank" rel="noopener">View profile</a>':'<span class="cell-muted">\u2014</span>';
+    const lic=r.li_company_url?'<a class="cell-link" href="'+esc(safeUrl(r.li_company_url))+'" target="_blank" rel="noopener">View company</a>':'<span class="cell-muted">\u2014</span>';
+    const web=r.website?'<a class="cell-link" href="'+esc(safeUrl(r.website))+'" target="_blank" rel="noopener">'+esc(r.website)+'</a>':'<span class="cell-muted">\u2014</span>';
+    let msgCols = '';
+    for (let i = 1; i <= MAX_MSG_SLOTS; i++) {
+      const txt = r['msg_'+i+'_text'] || null;
+      const v   = r['msg_'+i+'_variant'] || null;
+      msgCols += '<td>'+variantMsgCell(v === 'A' ? txt : null, 'A')+'</td>';
+      msgCols += '<td>'+variantMsgCell(v === 'B' ? txt : null, 'B')+'</td>';
+      msgCols += '<td>'+variantMsgCell(v === 'C' ? txt : null, 'C')+'</td>';
+    }
+    return '<tr class="'+(sel?'selected':'')+(flash?' row-flash':'')+'" id="row-'+r.id+'">'
+      +'<td class="check-col"><input type="checkbox" '+(sel?'checked':'')+' onchange="toggleRow(\''+r.id+'\',this.checked)"></td>'
+      +'<td style="font-weight:500;">'+esc(r.first_name)+'</td><td style="font-weight:500;">'+esc(r.last_name)+'</td>'
+      +'<td class="cell-title">'+(r.title?esc(r.title):'<span class="cell-muted">\u2014</span>')+'</td>'
+      +'<td>'+(r.company?esc(r.company):'<span class="cell-muted">\u2014</span>')+'</td>'
+      +'<td class="cell-loc">'+(r.location?esc(r.location):'<span class="cell-muted">\u2014</span>')+'</td>'
+      +'<td>'+lip+'</td><td>'+lic+'</td>'
+      +'<td>'+(r.email?esc(r.email):'<span class="cell-muted">\u2014</span>')+'</td><td>'+web+'</td>'
+      +'<td style="font-size:12px;color:#888;">'+esc(camp?.name||'\u2014')+'</td>'
+      +'<td>'+providerIdBadge(r.provider_id,r.profile_data)+'</td>'
+      +'<td style="text-align:center;">'+connectedBadge(r.already_connected)+'</td>'
+      +'<td style="text-align:center;">'+chatHistoryBadge(r.has_chat_history, r.already_connected)+'</td>'
+      +'<td style="text-align:center;">'+engBadge(r.engagement_level)+'</td>'
+      +'<td style="text-align:center;">'+fmtDate(r.engagement_scraped_at)+'</td>'
+      +'<td style="text-align:center;">'+likeBadge(r.post_likes_sent)+'</td>'
+      +'<td style="text-align:center;">'+likeBadge(r.comment_likes_sent)+'</td>'
+      +'<td style="text-align:center;">'+cooldownBadge(r.likes_sent_at)+'</td>'
+      +'<td style="text-align:center;">'+bool(r.invite_sent)+'</td><td style="text-align:center;">'+bool(r.invite_approved)+'</td>'
+      +'<td style="text-align:center;">'+msgCountBadge(r.msgs_sent_count)+'</td>'
+      + msgCols
+      +'<td style="text-align:center;">'+bool(r.msg_replied)+'</td>'
+      +'<td style="text-align:center;">'+bool(r.positive_reply)+'</td>'
+      +'<td style="text-align:center;">'+pvBadge(r.profile_view_count)+'</td>'
+      +'<td style="text-align:center;">'+followBadge(r.company_follow_invited,r.company_follow_confirmed)+'</td>'
+      +'<td style="text-align:center;">'+stageBadge(r.conversation_stage)+'</td>'
+      +'<td style="text-align:center;">'+scoreBadge(r.conversation_score)+'</td>'
+      +'<td style="text-align:center;"><button class="analyze-btn" onclick="openConvPopup('+r.id+')" title="View conversation analysis">\uD83D\uDCAC View</button></td>'
+      +'<td><button class="row-del-btn" onclick="askDeleteOne(\''+r.id+'\')" title="Delete">&times;</button></td></tr>';
+  }).join('');
+}
+
+// ── Conversation analysis popup ────────────────────────────────────────────────
+
+async function openConvPopup(contactId) {
+  activeConvContactId = contactId;
+  const contact = allContacts.find(c => String(c.id) === String(contactId));
+  const name = contact ? `${contact.first_name} ${contact.last_name}` : `Contact ${contactId}`;
+
+  document.getElementById('conv-head-name').textContent = name;
+  document.getElementById('conv-head-meta').innerHTML = '';
+  document.getElementById('conv-analyzed-ts').textContent = '';
+  document.getElementById('conv-body').innerHTML = '<div class="conv-loading">Loading analysis\u2026</div>';
+  document.getElementById('conv-backdrop').style.display = 'flex';
+
+  try {
+    const data = await fetch(`/api/contacts/${contactId}/conversation`).then(r => r.json());
+    renderConvPopup(data);
+  } catch (err) {
+    document.getElementById('conv-body').innerHTML =
+      `<div class="conv-error">Failed to load analysis: ${esc(err.message)}</div>`;
+  }
+}
+
+function closeConvPopup(e) {
+  if (e && e.target !== document.getElementById('conv-backdrop')) return;
+  document.getElementById('conv-backdrop').style.display = 'none';
+  activeConvContactId = null;
+}
+
+function renderConvPopup(data) {
+  // Header meta
+  const metaEl = document.getElementById('conv-head-meta');
+  metaEl.innerHTML = '';
+  if (data.stage) metaEl.innerHTML += stageBadge(data.stage);
+  if (data.score) metaEl.innerHTML += '&nbsp;' + scoreBadge(data.score);
+
+  // Timestamp
+  const tsEl = document.getElementById('conv-analyzed-ts');
+  tsEl.textContent = data.analyzed_at
+    ? 'Last analyzed: ' + new Date(data.analyzed_at).toLocaleString()
+    : 'Not yet analyzed';
+
+  if (!data.stage && !data.score) {
+    document.getElementById('conv-body').innerHTML =
+      `<div class="conv-no-data">
+         No analysis available yet.<br>
+         This contact will be analyzed automatically after their next reply,<br>
+         or you can trigger it manually using the Re-analyze button.
+       </div>`;
+    return;
+  }
+
+  const signals = data.signals || [];
+  const positive = signals.filter(s => s.type === 'positive');
+  const negative = signals.filter(s => s.type === 'negative');
+
+  let html = '';
+
+  // Summary
+  if (data.summary) {
+    html += `<div>
+      <div class="conv-section-label">Summary</div>
+      <div class="conv-summary-box">${esc(data.summary)}</div>
+    </div>`;
+  }
+
+  // Signals
+  if (signals.length) {
+    html += `<div><div class="conv-section-label">Signals detected</div><div class="conv-signals">`;
+    positive.forEach(s => {
+      html += `<div class="signal-row"><span class="signal-icon">\u2705</span><span class="signal-text">${esc(s.text)}</span></div>`;
+    });
+    negative.forEach(s => {
+      html += `<div class="signal-row"><span class="signal-icon">\uD83D\uDED1</span><span class="signal-text">${esc(s.text)}</span></div>`;
+    });
+    html += `</div></div>`;
+  }
+
+  // Suggested action
+  if (data.suggested_action) {
+    html += `<div>
+      <div class="conv-section-label">Suggested next action</div>
+      <div class="conv-action-box">
+        <span class="conv-action-icon">\uD83D\uDE80</span>
+        <span>${esc(data.suggested_action)}</span>
+      </div>
+    </div>`;
+  }
+
+  // Stats
+  const depth    = data.exchange_depth || 0;
+  const prospect = data.prospect_msgs  || 0;
+  const score    = parseInt(data.score) || 0;
+  html += `<div>
+    <div class="conv-section-label">Conversation metrics</div>
+    <div class="conv-stats-row">
+      <div class="conv-stat"><strong>${depth}</strong>Total messages</div>
+      <div class="conv-stat"><strong>${prospect}</strong>From prospect</div>
+      <div class="conv-stat"><strong>${depth - prospect}</strong>From you</div>
+      <div class="conv-stat"><strong>${score}/10</strong>Conversion score</div>
+    </div>
+  </div>`;
+
+  document.getElementById('conv-body').innerHTML = html;
+}
+
+async function reAnalyzeContact() {
+  const contactId = activeConvContactId;
+  if (!contactId) return;
+  const btn = document.getElementById('conv-reanalyze-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin">&#x21BB;</span> Analyzing\u2026';
+  document.getElementById('conv-body').innerHTML = '<div class="conv-loading">Fetching conversation and analyzing with AI\u2026<br><br><span style="font-size:11px;color:#aaa;">This usually takes 5\u201310 seconds</span></div>';
+  try {
+    await fetch(`/api/contacts/${contactId}/re-analyze`, { method: 'POST' });
+    // Poll for result (analysis runs async, check every 3s for up to 30s)
+    let attempts = 0;
+    const poll = setInterval(async () => {
+      attempts++;
+      try {
+        const data = await fetch(`/api/contacts/${contactId}/conversation`).then(r => r.json());
+        if (data.stage || attempts >= 10) {
+          clearInterval(poll);
+          renderConvPopup(data);
+          btn.disabled = false;
+          btn.innerHTML = '&#x21BB; Re-analyze';
+          // Also refresh the table row
+          await load(true);
+        }
+      } catch (e) {
+        clearInterval(poll);
+        btn.disabled = false;
+        btn.innerHTML = '&#x21BB; Re-analyze';
+      }
+    }, 3000);
+  } catch (err) {
+    document.getElementById('conv-body').innerHTML =
+      `<div class="conv-error">Re-analysis failed: ${esc(err.message)}</div>`;
+    btn.disabled = false;
+    btn.innerHTML = '&#x21BB; Re-analyze';
+  }
+}
+
+function toggleRow(id,checked) {
+  if(checked) selectedIds.add(String(id)); else selectedIds.delete(String(id));
+  document.getElementById('row-'+id)?.classList.toggle('selected',checked);
+  document.getElementById('check-all').checked=selectedIds.size===filteredContacts.length;
+  renderBulkBar();
+}
+function toggleAll(c){filteredContacts.forEach(r=>{if(c)selectedIds.add(String(r.id));else selectedIds.delete(String(r.id));});renderContactsTable();renderBulkBar();}
+function selectAll(){filteredContacts.forEach(r=>selectedIds.add(String(r.id)));renderContactsTable();renderBulkBar();}
+function clearSelection(){selectedIds.clear();renderContactsTable();renderBulkBar();}
+function renderBulkBar(){
+  const bar=document.getElementById('bulk-bar');
+  if(!selectedIds.size){bar.style.display='none';return;}
+  bar.style.display='flex';
+  document.getElementById('bulk-count').textContent=selectedIds.size+' selected';
+  document.getElementById('bulk-total').textContent=filteredContacts.length;
+}
+function askDeleteOne(id){
+  const r=allContacts.find(c=>String(c.id)===String(id)); pendingDeleteIds=[id];
+  document.getElementById('confirm-title').textContent='Delete contact';
+  document.getElementById('confirm-msg').textContent='Delete '+(r?.first_name||'')+' '+(r?.last_name||'')+' from All Data?';
+  document.getElementById('confirm-modal').style.display='flex';
+}
+function deleteSelected(){
+  if(!selectedIds.size) return; pendingDeleteIds=[...selectedIds];
+  const n=selectedIds.size;
+  document.getElementById('confirm-title').textContent='Delete '+n+' contact'+(n>1?'s':'');
+  document.getElementById('confirm-msg').textContent='Permanently delete '+n+' contact'+(n>1?'s':'')+' from All Data and their campaigns.';
+  document.getElementById('confirm-modal').style.display='flex';
+}
+function closeConfirm(){document.getElementById('confirm-modal').style.display='none';pendingDeleteIds=null;}
+async function confirmDelete(){
+  if(!pendingDeleteIds) return;
+  if(pendingDeleteIds.length===1) await fetch('/api/contacts/'+pendingDeleteIds[0],{method:'DELETE'});
+  else await fetch('/api/contacts',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids:pendingDeleteIds})});
+  pendingDeleteIds.forEach(id=>selectedIds.delete(String(id)));
+  pendingDeleteIds=null; closeConfirm(); await load(false);
+}
+
+function exportContactsCSV(){
+  const fixedLabels=['First name','Last name','Job title','Company','Location','LinkedIn profile','LinkedIn company',
+    'Email','Website','Campaign','Provider ID','Already connected','Chat history','Engagement','Last scraped',
+    'Post likes sent','Comment likes sent','Last liked','Invite sent','Invite approved','# Msgs sent'];
+  const msgLabels=[];
+  for(let i=1;i<=MAX_MSG_SLOTS;i++){ msgLabels.push('Msg '+i+' (A)','Msg '+i+' (B)','Msg '+i+' (C)'); }
+  const trailingLabels=['Replied','Positive reply','Profile views','Company follow invited','Company follow confirmed',
+    'Conv. Stage','Conv. Score'];
+  const labels=[...fixedLabels,...msgLabels,...trailingLabels];
+
+  const toExport=selectedIds.size>0?filteredContacts.filter(r=>selectedIds.has(String(r.id))):filteredContacts;
+  const rows=toExport.map(r=>{
+    const c=campaigns.find(c=>String(c.id)===String(r.campaign_id));
+    const fixedVals=[r.first_name||'',r.last_name||'',r.title||'',r.company||'',r.location||'',
+      r.li_profile_url||'',r.li_company_url||'',r.email||'',r.website||'',
+      c?c.name:'',r.provider_id||'',
+      r.already_connected?'Yes':'No',
+      r.already_connected?(r.has_chat_history?'Yes':'No'):'N/A',
+      r.engagement_level||'',r.engagement_scraped_at||'',
+      parseInt(r.post_likes_sent)||0,parseInt(r.comment_likes_sent)||0,r.likes_sent_at||'',
+      r.invite_sent?'Yes':'No',r.invite_approved?'Yes':'No',
+      parseInt(r.msgs_sent_count)||0];
+    const msgVals=[];
+    for(let i=1;i<=MAX_MSG_SLOTS;i++){
+      const t = r['msg_'+i+'_text']||'';
+      const v = r['msg_'+i+'_variant']||'';
+      msgVals.push(v==='A'?t:'', v==='B'?t:'', v==='C'?t:'');
+    }
+    const trailingVals=[r.msg_replied?'Yes':'No',r.positive_reply?'Yes':'No',
+      parseInt(r.profile_view_count)||0,
+      r.company_follow_invited?'Yes':'No',r.company_follow_confirmed?'Yes':'No',
+      r.conversation_stage||'', parseInt(r.conversation_score)||''];
+    return [...fixedVals,...msgVals,...trailingVals].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',');
+  });
+  downloadCSV('contacts-data.csv', labels, rows);
+}
+
+async function loadCompanies() {
+  try {
+    const cid = document.getElementById('company-campaign-filter').value;
+    const data = await fetch('/api/companies?workspace_id='+workspaceId+(cid?'&campaign_id='+cid:'')).then(r=>r.json());
+    allCompanies = Array.isArray(data.items) ? data.items : [];
+    applyCompanyFilters();
+  } catch(e) { console.error(e); }
+}
+function applyCompanyFilters() {
+  const q = document.getElementById('company-search').value.trim().toLowerCase();
+  const cid = document.getElementById('company-campaign-filter').value;
+  filteredCompanies = allCompanies.filter(c => {
+    if (cid && String(c.campaign_id) !== String(cid)) return false;
+    if (q && !((c.company_name||'').toLowerCase().includes(q))) return false;
+    return true;
+  });
+  renderCompanyStats(); renderCompaniesTable();
+}
+function renderCompanyStats() {
+  const f = filteredCompanies;
+  const engaged=f.filter(c=>c.engagement_level==='engaged').length;
+  const avgEngaged=f.filter(c=>c.engagement_level==='average_engaged').length;
+  const unEngaged=f.filter(c=>c.engagement_level==='un_engaged').length;
+  const notScraped=f.filter(c=>!c.engagement_level).length;
+  const totalPostLikes=f.reduce((s,c)=>s+(parseInt(c.post_likes_sent)||0),0);
+  const totalContacts=f.reduce((s,c)=>s+(parseInt(c.contact_count)||0),0);
+  const coolC=f.filter(c=>c.likes_sent_at&&(Date.now()-new Date(c.likes_sent_at).getTime())<3*24*60*60*1000).length;
+  const chips=[
+    {label:'Total companies',val:f.length},{label:'Total contacts covered',val:totalContacts},
+    {label:'Engaged',val:engaged},{label:'Avg engaged',val:avgEngaged},{label:'Un-engaged',val:unEngaged},
+    {label:'Not yet scraped',val:notScraped},{label:'Company post likes sent',val:totalPostLikes},{label:'On cooldown',val:coolC},
+  ].map(s=>'<div class="stat-chip"><strong>'+s.val+'</strong>'+s.label+'</div>').join('');
+  document.getElementById('company-stats-row').innerHTML = chips;
+}
+function renderCompaniesTable() {
+  const tbody = document.getElementById('companies-body');
+  if (!filteredCompanies.length) { tbody.innerHTML='<tr class="empty-row"><td colspan="10">No companies found \u2014 contacts need to be enriched first</td></tr>'; return; }
+  tbody.innerHTML = filteredCompanies.map(c => {
+    const camp = campaigns.find(camp => String(camp.id) === String(c.campaign_id));
+    const liUrl = c.li_company_url || (c.company_linkedin_id ? 'https://www.linkedin.com/company/'+c.company_linkedin_id : '');
+    const liLink = liUrl ? '<a class="cell-link" href="'+esc(safeUrl(liUrl))+'" target="_blank" rel="noopener">View company</a>' : '<span class="cell-muted">\u2014</span>';
+    return '<tr>'
+      +'<td style="font-weight:500;">'+(c.company_name?esc(c.company_name):'<span class="cell-muted">\u2014</span>')+'</td>'
+      +'<td style="font-size:12px;color:#888;">'+esc(camp?.name||c.campaign_name||'\u2014')+'</td>'
+      +'<td style="text-align:center;"><span class="contact-count-badge">'+(parseInt(c.contact_count)||1)+'</span></td>'
+      +'<td style="text-align:center;">'+(c.company_linkedin_id?'<span class="company-id-badge">'+esc(c.company_linkedin_id)+'</span>':'<span class="cell-muted">\u2014</span>')+'</td>'
+      +'<td style="text-align:center;">'+engBadge(c.engagement_level)+'</td>'
+      +'<td style="text-align:center;">'+posts14dBadge(c.engagement_data)+'</td>'
+      +'<td style="text-align:center;">'+fmtDate(c.engagement_scraped_at)+'</td>'
+      +'<td style="text-align:center;">'+likeBadge(c.post_likes_sent)+'</td>'
+      +'<td style="text-align:center;">'+cooldownBadge(c.likes_sent_at)+'</td>'
+      +'<td>'+liLink+'</td></tr>';
+  }).join('');
+}
+function exportCompaniesCSV() {
+  const labels=['Company','Campaign','Contacts','LinkedIn ID','Engagement','Posts 14d','Last scraped','Post likes sent','Last liked','LinkedIn URL'];
+  const rows = filteredCompanies.map(c => {
+    const camp=campaigns.find(camp=>String(camp.id)===String(c.campaign_id));
+    const d=c.engagement_data?(typeof c.engagement_data==='string'?JSON.parse(c.engagement_data):c.engagement_data):{};
+    return [c.company_name||'',camp?.name||c.campaign_name||'',parseInt(c.contact_count)||1,c.company_linkedin_id||'',
+      c.engagement_level||'',d.posts_14d??'',c.engagement_scraped_at||'',
+      parseInt(c.post_likes_sent)||0,c.likes_sent_at||'',c.li_company_url||'',
+    ].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',');
+  });
+  downloadCSV('companies-data.csv', labels, rows);
+}
+function downloadCSV(filename, labels, rows) {
+  const nl = String.fromCharCode(10);
+  const csv = '\uFEFF' + [labels.map(l=>'"'+l+'"').join(',')].concat(rows).join(nl);
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url);
+}
+
+buildContactsHeader();
+load(false);
+fetch('/api/contacts/re-extract?workspace_id='+workspaceId,{method:'POST'})
+  .then(r=>r.json()).then(d=>{if(d.updated>0)setTimeout(()=>load(true),3000);})
+  .catch(()=>{});
+</script>
+</body>
+</html>

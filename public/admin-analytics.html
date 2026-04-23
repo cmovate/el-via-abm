@@ -1,0 +1,1217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="stylesheet" href="/ds.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Analytics — El-Via ABM</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+* { box-sizing:border-box; margin:0; padding:0; }
+body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:#f5f6fa; color:#111; font-size:14px; }
+.topbar { display:flex; align-items:center; gap:10px; padding:0 20px; height:48px; background:#1a1a1a; position:sticky; top:0; z-index:10; }
+.topbar-logo  { font-size:13px; font-weight:700; color:#fff; }
+.topbar-back  { font-size:12px; color:#aaa; text-decoration:none; }
+.topbar-back:hover { color:#fff; }
+.topbar-title { font-size:13px; font-weight:600; color:#fff; }
+.topbar-space { flex:1; }
+.topbar-ts    { font-size:11px; color:#666; }
+.topbar-jump a { font-size:11px; color:#aaa; border:1px solid #444; border-radius:4px; padding:3px 8px; cursor:pointer; text-decoration:none; margin-left:4px; }
+.topbar-jump a:hover { color:#fff; border-color:#888; }
+.page { max-width:1280px; margin:0 auto; padding:16px 20px 40px; }
+.period-bar { background:#fff; border:1px solid #e5e7eb; border-radius:8px; padding:10px 16px; margin-bottom:16px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.period-btn { padding:5px 12px; border-radius:5px; border:1px solid #e5e7eb; background:#fff; font-size:12px; cursor:pointer; color:#555; }
+.period-btn.active { background:#1D9E75; border-color:#1D9E75; color:#fff; font-weight:600; }
+.period-date  { font-size:12px; padding:5px 8px; border:1px solid #e5e7eb; border-radius:5px; color:#555; }
+.period-apply { padding:5px 14px; border-radius:5px; background:#1D9E75; border:none; color:#fff; font-size:12px; cursor:pointer; font-weight:600; }
+.filter-input { font-size:12px; padding:5px 10px; border:1px solid #e5e7eb; border-radius:5px; width:140px; color:#555; }
+.card { background:#fff; border:1px solid #e5e7eb; border-radius:10px; margin-bottom:16px; }
+.card-head { padding:14px 18px 10px; border-bottom:1px solid #f0f0f0; display:flex; align-items:center; justify-content:space-between; }
+.card-title { font-size:13px; font-weight:600; color:#111; }
+.card-sub   { font-size:11px; color:#9ca3af; margin-top:2px; }
+.card-body  { padding:16px 18px; }
+#ai-card { background:#0f1822; border-color:#1e3a52; }
+#ai-card .card-head { border-bottom-color:#1e3a52; }
+#ai-card .card-title { color:#90cdf4; }
+#ai-card .card-sub   { color:#4a6278; }
+#ai-insights-content li { color:#cbd5e1; font-size:13px; margin-bottom:8px; line-height:1.5; list-style:none; padding-left:18px; position:relative; }
+#ai-insights-content li::before { content:"◆"; position:absolute; left:0; color:#378ADD; font-size:9px; top:3px; }
+.funnel-row { display:flex; align-items:stretch; overflow-x:auto; padding-bottom:4px; margin-bottom:12px; }
+.funnel-step { flex:1; min-width:88px; text-align:center; }
+.funnel-box  { padding:12px 8px; border:1.5px solid #e5e7eb; border-radius:8px; background:#fff; margin:0 3px; height:100%; }
+.funnel-box.hi   { border-color:#1D9E75; background:#f0fdf4; }
+.funnel-box.warn { border-color:#f59e0b; }
+.funnel-val   { font-size:22px; font-weight:700; color:#111; line-height:1; }
+.funnel-label { font-size:10px; color:#9ca3af; margin-top:4px; text-transform:uppercase; letter-spacing:.3px; }
+.funnel-rate  { font-size:13px; font-weight:700; margin-top:6px; }
+.funnel-arrow { display:flex; align-items:center; justify-content:center; padding-top:16px; color:#d1d5db; font-size:16px; min-width:20px; flex-shrink:0; }
+.warn-banner { display:flex; align-items:flex-start; gap:8px; padding:8px 12px; border-radius:6px; font-size:12px; margin-bottom:6px; }
+.warn-info { background:#eff6ff; border:1px solid #bfdbfe; color:#1e40af; }
+.warn-warn { background:#fffbeb; border:1px solid #fcd34d; color:#92400e; }
+.wow-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+.wow-card { border:1px solid #e5e7eb; border-radius:8px; padding:14px 16px; }
+.wow-label { font-size:10px; color:#9ca3af; text-transform:uppercase; letter-spacing:.3px; }
+.wow-val   { font-size:26px; font-weight:700; color:#111; margin-top:4px; line-height:1; }
+.wow-vs    { font-size:11px; color:#9ca3af; margin-top:2px; }
+.wow-pct   { font-size:13px; font-weight:700; margin-top:2px; }
+.up   { color:#059669; }
+.down { color:#dc2626; }
+.eng-grid { display:grid; grid-template-columns:1fr 1.8fr 80px 100px; gap:12px; align-items:center; padding:9px 0; border-bottom:1px solid #f3f4f6; }
+.eng-btn { padding:4px 12px; border-radius:5px; border:none; font-size:11px; cursor:pointer; font-weight:600; background:#1D9E75; color:#fff; }
+.eng-btn:hover { background:#17875f; }
+.pill { display:inline-block; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:600; }
+.pill-g  { background:#d1fae5; color:#065f46; }
+.pill-b  { background:#dbeafe; color:#1e40af; }
+.pill-a  { background:#fef3c7; color:#92400e; }
+.data-table { width:100%; border-collapse:collapse; font-size:12px; }
+.data-table th { padding:7px 10px; text-align:left; color:#6b7280; font-weight:600; text-transform:uppercase; font-size:10px; border-bottom:2px solid #e5e7eb; }
+.data-table td { padding:8px 10px; border-bottom:1px solid #f3f4f6; }
+.data-table td:not(:first-child), .data-table th:not(:first-child) { text-align:right; }
+#adv-toggle { cursor:pointer; user-select:none; display:flex; align-items:center; gap:6px; padding:10px 0 6px; color:#6b7280; font-size:12px; }
+#adv-toggle:hover { color:#374151; }
+#adv-panel { display:none; }
+#adv-panel.open { display:block; }
+@media(max-width:768px){ .wow-grid{ grid-template-columns:repeat(2,1fr); } }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="topbar-logo">El-Via ABM</span>
+  <span style="color:#444">|</span>
+  <a href="/" class="topbar-back">← Workspaces</a>
+  <span class="topbar-title" id="page-title">Analytics</span>
+  <div class="topbar-space"></div>
+  <div class="topbar-jump">
+    <a onclick="document.getElementById('funnel-card').scrollIntoView({behavior:'smooth'})">📊 Funnel</a>
+    <a onclick="document.getElementById('wow-section').scrollIntoView({behavior:'smooth'})">📅 Week</a>
+    <a onclick="document.getElementById('eng-card').scrollIntoView({behavior:'smooth'})">👁️ Signals</a>
+  </div>
+  <span class="topbar-ts" id="last-updated"></span>
+</div>
+
+<div class="page">
+
+  <!-- Period bar -->
+  <div class="period-bar">
+    <span style="font-size:12px;color:#6b7280;font-weight:600;margin-right:4px;">PERIOD</span>
+    <button class="period-btn" onclick="setPeriod('today',this)">Today</button>
+    <button class="period-btn" onclick="setPeriod('7d',this)">Last 7 days</button>
+    <button class="period-btn active" id="btn-30d" onclick="setPeriod('30d',this)">Last 30 days</button>
+    <button class="period-btn" onclick="setPeriod('90d',this)">Last 90 days</button>
+    <button class="period-btn" onclick="setPeriod('all',this)">All time</button>
+    <span style="color:#d1d5db">|</span>
+    <input type="date" id="from-date" class="period-date">
+    <span style="color:#9ca3af">—</span>
+    <input type="date" id="to-date" class="period-date">
+    <button class="period-apply" onclick="applyDates()">Apply</button>
+    <input type="text" id="filter-company" class="filter-input" placeholder="Company…" oninput="scheduleLoad()" style="margin-left:auto">
+  </div>
+
+  <!-- ① AI Insights — FIRST -->
+  <div class="card" id="ai-card">
+    <div class="card-head">
+      <div><div class="card-title">🤖 AI Campaign Insights</div><div class="card-sub">Generated from your funnel · refreshes on load</div></div>
+      <span id="ai-loading" style="font-size:11px;color:#4a6278"></span>
+    </div>
+    <div class="card-body"><ul id="ai-insights-content" style="padding:0"><li style="color:#4a6278">Loading…</li></ul></div>
+  </div>
+
+  <!-- ② Campaign funnel — CORRECT denominators -->
+  <div class="card" id="funnel-card">
+    <div class="card-head">
+      <div>
+        <div class="card-title">📊 Campaign Performance</div>
+        <div class="card-sub">Each rate = step ÷ previous step — not % of total contacts</div>
+      </div>
+      <span style="font-size:11px;color:#9ca3af" id="period-label"></span>
+    </div>
+    <div class="card-body">
+      <div class="funnel-row" id="funnel-row"><div style="color:#9ca3af;font-size:12px">Loading…</div></div>
+      <div id="warnings"></div>
+      <div id="journey-inline" style="margin-top:14px;padding-top:12px;border-top:1px solid #f3f4f6;display:flex;gap:24px;flex-wrap:wrap;"></div>
+    </div>
+  </div>
+
+  <!-- ③ This week + Best day -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;" id="wow-section">
+    <div class="card">
+      <div class="card-head"><div class="card-title">📅 This Week vs Last Week</div></div>
+      <div class="card-body"><div class="wow-grid" id="wow-grid"><div style="color:#9ca3af;font-size:12px;grid-column:1/-1">Loading…</div></div></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title">📅 Best Day for Approvals</div></div>
+      <div class="card-body" id="bestday-card"><div style="color:#9ca3af;font-size:12px">Loading…</div></div>
+    </div>
+  </div>
+
+  <!-- ④ Account Engagement Summary — profile views + post reactions per account -->
+  <div class="card" id="acct-eng-card" style="margin-top:16px;">
+    <div class="card-head">
+      <div><div class="card-title">📥 Inbound Engagement per Account</div><div class="card-sub">Profile views received and post reactions received, per LinkedIn account</div></div>
+    </div>
+    <div class="card-body" id="acct-eng-body"><div style="color:#9ca3af;font-size:12px">Loading…</div></div>
+  </div>
+
+  <!-- ④ Inbound interest from lists -->
+  <div class="card" id="eng-card" style="margin-top:16px;">
+    <div class="card-head">
+      <div>
+        <div class="card-title">👁️ Inbound Interest from Lists</div>
+        <div class="card-sub" id="eng-sub">People from your lists who engaged without being invited yet</div>
+      </div>
+      <div id="eng-pills" style="display:flex;gap:12px;font-size:12px;align-items:center;"></div>
+    </div>
+    <!-- tabs -->
+    <div style="display:flex;gap:0;border-bottom:2px solid #e5e7eb;margin:0 -20px;padding:0 20px;">
+      <button id="eng-tab-contacts" onclick="engSwitchTab('contacts')"
+        style="padding:8px 18px;border:none;border-bottom:2px solid #1D9E75;margin-bottom:-2px;background:none;font-size:13px;font-weight:600;color:#1D9E75;cursor:pointer;">
+        👤 By Contact
+      </button>
+      <button id="eng-tab-companies" onclick="engSwitchTab('companies')"
+        style="padding:8px 18px;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;background:none;font-size:13px;font-weight:500;color:#9ca3af;cursor:pointer;">
+        🏢 By Company
+      </button>
+    </div>
+    <!-- filter bar -->
+    <div id="eng-filters" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 0 6px;border-bottom:1px solid #f0f0f0;margin-bottom:4px;">
+      <span style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;">Sort</span>
+      <select id="eng-sort" onchange="engApplyFilters()" style="font-size:12px;border:1px solid #e5e7eb;border-radius:6px;padding:4px 8px;color:#374151;background:#fff;cursor:pointer;">
+        <option value="engaged">Most engaged</option>
+        <option value="recent">Most recent</option>
+        <option value="reactions">Reactions first</option>
+        <option value="views">Profile views first</option>
+      </select>
+      <span style="width:1px;height:16px;background:#e5e7eb;"></span>
+      <span style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;">Show</span>
+      <button id="eng-filter-all"    onclick="engSetFilter('all')"    style="font-size:12px;padding:4px 10px;border-radius:6px;border:1px solid #1D9E75;background:#1D9E75;color:#fff;cursor:pointer;font-weight:600;">All</button>
+      <button id="eng-filter-list"   onclick="engSetFilter('list')"   style="font-size:12px;padding:4px 10px;border-radius:6px;border:1px solid #e5e7eb;background:#fff;color:#374151;cursor:pointer;">✓ In list</button>
+      <button id="eng-filter-multi"  onclick="engSetFilter('multi')"  style="font-size:12px;padding:4px 10px;border-radius:6px;border:1px solid #e5e7eb;background:#fff;color:#374151;cursor:pointer;">🔥 Multi-action</button>
+      <button id="eng-filter-views"  onclick="engSetFilter('views')"  style="font-size:12px;padding:4px 10px;border-radius:6px;border:1px solid #e5e7eb;background:#fff;color:#374151;cursor:pointer;">👁 Views</button>
+      <button id="eng-filter-react"  onclick="engSetFilter('react')"  style="font-size:12px;padding:4px 10px;border-radius:6px;border:1px solid #e5e7eb;background:#fff;color:#374151;cursor:pointer;">👍 Reactions</button>
+      <span id="eng-filter-count" style="margin-left:auto;font-size:11px;color:#9ca3af;"></span>
+    </div>
+    <div class="card-body" id="eng-body-contacts"><div style="color:#9ca3af;font-size:12px">Loading…</div></div>
+    <div class="card-body" id="eng-body-companies" style="display:none;"><div style="color:#9ca3af;font-size:12px">Loading…</div></div>
+  </div>
+
+  <!-- Company people modal -->
+  <div id="eng-co-modal" onclick="if(event.target===this)document.getElementById('eng-co-modal').style.display='none'"
+    style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:14px;padding:24px 28px;width:500px;max-width:94vw;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <div>
+          <div id="eng-co-modal-title" style="font-size:16px;font-weight:700;color:#111;"></div>
+          <div id="eng-co-modal-sub" style="font-size:12px;color:#6b7280;margin-top:2px;"></div>
+        </div>
+        <button onclick="document.getElementById('eng-co-modal').style.display='none'" style="background:none;border:none;font-size:20px;color:#9ca3af;cursor:pointer;">×</button>
+      </div>
+      <div id="eng-co-modal-body"></div>
+    </div>
+  </div>
+
+  <!-- Advanced (collapsed) -->
+  <div id="adv-toggle" onclick="toggleAdv()"><span id="adv-arrow">▶</span> Advanced — Timeline, All Campaigns, Stale Pipeline</div>
+  <div id="adv-panel">
+    <div class="card">
+      <div class="card-head"><div class="card-title">Activity Timeline</div><div class="card-sub">Daily actions in selected period</div></div>
+      <div class="card-body"><canvas id="timeline-chart" height="80"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title">All Campaigns</div><div class="card-sub" id="camp-sub"></div></div>
+      <div class="card-body" style="overflow-x:auto"><table class="data-table" id="camp-table"></table></div>
+    </div>
+    <div id="stale-card" class="card"></div>
+    <div id="system-health" class="card"></div>
+  </div>
+</div>
+
+<script>
+const WSID = new URLSearchParams(location.search).get('workspace_id');
+const WSNAME = new URLSearchParams(location.search).get('workspace_name') || '';
+if (WSNAME) document.getElementById('page-title').textContent = WSNAME + ' — Analytics';
+
+let chartInst = null;
+let state = { from: null, to: null, data: null, health: null };
+
+const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const n   = v => parseInt(v)||0;
+const num = v => n(v).toLocaleString();
+const pct = (a,b) => b > 0 ? Math.round(a/b*100) : 0;
+const fmtD = d => { if (!d) return '—'; const x=Math.round(parseFloat(d)*10)/10; return x+'d'; };
+const today = () => new Date().toISOString().split('T')[0];
+const daysAgo = n => new Date(Date.now()-n*86400000).toISOString().split('T')[0];
+
+function setPeriod(p, btn) {
+  document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));
+  btn?.classList.add('active');
+  if (p==='today')  { state.from=state.to=today(); }
+  else if (p==='7d'){ state.from=daysAgo(7); state.to=today(); }
+  else if (p==='30d'){ state.from=daysAgo(30); state.to=today(); }
+  else if (p==='90d'){ state.from=daysAgo(90); state.to=today(); }
+  else              { state.from=state.to=null; }
+  document.getElementById('from-date').value = state.from||'';
+  document.getElementById('to-date').value   = state.to||'';
+  load();
+}
+function applyDates() {
+  state.from = document.getElementById('from-date').value||null;
+  state.to   = document.getElementById('to-date').value||null;
+  document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));
+  load();
+}
+let _deb;
+function scheduleLoad(){ clearTimeout(_deb); _deb=setTimeout(load,400); }
+
+async function load() {
+  const p = new URLSearchParams();
+  if (state.from) p.set('from',state.from);
+  if (state.to)   p.set('to',state.to);
+  const co = document.getElementById('filter-company')?.value;
+  if (co) p.set('company',co);
+  if (WSID) p.set('workspace_id',WSID);
+
+  const [data, health] = await Promise.all([
+    fetch('/api/admin/analytics?'+p).then(r=>r.json()).catch(()=>({})),
+    WSID ? fetch('/api/admin/analytics/health?workspace_id='+WSID).then(r=>r.json()).catch(()=>({})) : Promise.resolve({}),
+  ]);
+  state.data=data; state.health=health;
+
+  if (data.summary) { renderFunnel(data.summary); renderChart(data.timeline); renderCampTable(data.by_campaign); }
+  document.getElementById('period-label').textContent = (state.from&&state.to) ? state.from+' — '+state.to : 'All time';
+  document.getElementById('last-updated').textContent = 'Updated '+new Date().toLocaleTimeString();
+
+  loadAdvanced(p.toString());
+  loadEngagement();
+  loadAccountEngagement();
+}
+
+/* ─── FUNNEL — correct denominators ─────────────────────────────── */
+function renderFunnel(s) {
+  const h  = state.health || {};
+  const inv= n(s.invites_sent), apr=n(s.invites_approved), msg=n(s.messages_sent),
+        rep= n(s.messages_replied), pos=n(s.positive_replies);
+
+  // Real approval rate from contacts table (cumulative all-time)
+  const realApr = h.real_approval_rate || pct(apr,inv);
+  const msgR    = apr > 0 ? Math.round(msg/apr*100) : 0;
+  const repR    = pct(rep,msg);
+  const posR    = pct(pos,rep);
+
+  const steps = [
+    { val:inv, label:'Invited',    rate:null,    color:'#374151' },
+    { val:apr, label:'Approved',   rate:realApr, color:'#1D9E75', hi:true },
+    { val:msg, label:'Messaged',   rate:msgR,    color:msgR>100?'#f59e0b':'#3B82F6', warn:msgR>100 },
+    { val:rep, label:'Replied',    rate:repR,    color:'#8B5CF6' },
+    { val:pos, label:'Positive ⭐', rate:posR,    color:'#059669', hi:true },
+  ];
+
+  const row = document.getElementById('funnel-row');
+  row.innerHTML = steps.map((st,i) => {
+    const rateHtml = st.rate!==null
+      ? `<div class="funnel-rate" style="color:${st.color}">${st.rate}%</div>`
+      : `<div class="funnel-rate" style="color:#d1d5db">base</div>`;
+    return `<div class="funnel-step"><div class="funnel-box ${st.hi?'hi':''} ${st.warn?'warn':''}">
+        <div class="funnel-val">${num(st.val)}</div>
+        <div class="funnel-label">${esc(st.label)}</div>
+        ${rateHtml}
+      </div></div>${i<steps.length-1?'<div class="funnel-arrow">→</div>':''}`;
+  }).join('');
+
+  // Warnings from health check
+  const warns = document.getElementById('warnings');
+  const ws = [...(h.warnings||[])];
+  if (realApr && Math.abs(realApr-pct(apr,inv))>5) {
+    ws.unshift({ type:'info', msg:`Approval rate (${realApr}%) is cumulative all-time — more accurate than current-period snapshot` });
+  }
+  warns.innerHTML = ws.map(w=>`<div class="warn-banner warn-${w.type}">${w.type==='warn'?'⚠️':'ℹ️'} ${esc(w.msg)}</div>`).join('');
+}
+
+/* ─── Chart ─────────────────────────────────────────────────────── */
+function renderChart(tl) {
+  if (!tl?.length) return;
+  const labs = tl.map(r=>(r.d||r.date||'').slice(5));
+  const mk   = k => tl.map(r=>n(r[k]));
+  const ctx  = document.getElementById('timeline-chart');
+  if (!ctx) return;
+  if (chartInst) chartInst.destroy();
+  chartInst = new Chart(ctx, {
+    type:'line', data:{ labels:labs, datasets:[
+      {label:'Invites', data:mk('inv_cnt'),  borderColor:'#1D9E75',backgroundColor:'transparent',pointRadius:2,tension:.3},
+      {label:'Approved',data:mk('appr_cnt'), borderColor:'#3B82F6',backgroundColor:'transparent',pointRadius:2,tension:.3},
+      {label:'Messages',data:mk('msg_cnt'),  borderColor:'#8B5CF6',backgroundColor:'transparent',pointRadius:2,tension:.3},
+      {label:'Replied', data:mk('repl_cnt'), borderColor:'#f59e0b',backgroundColor:'transparent',pointRadius:2,tension:.3},
+      {label:'Positive',data:mk('pos_cnt'),  borderColor:'#059669',backgroundColor:'transparent',pointRadius:2,tension:.3},
+    ]},
+    options:{ responsive:true, maintainAspectRatio:true,
+      plugins:{ legend:{ labels:{ boxWidth:10, font:{size:11} } } },
+      scales:{ x:{ ticks:{maxTicksLimit:12,font:{size:10}}, grid:{display:false} },
+               y:{ ticks:{font:{size:10}}, grid:{color:'#f0f0f0'} } } }
+  });
+}
+
+/* ─── Campaigns table ───────────────────────────────────────────── */
+function renderCampTable(rows) {
+  if (!rows?.length) return;
+  document.getElementById('camp-sub').textContent = rows.length+' campaign'+(rows.length!==1?'s':'');
+  document.getElementById('camp-table').innerHTML = `<thead><tr>
+    <th>Campaign</th><th>Status</th><th>Contacts</th><th>Invited</th>
+    <th>Approved</th><th>Messaged</th><th>Replied</th><th>Positive</th></tr></thead>
+    <tbody>${rows.map(r=>{
+    const ar=pct(n(r.invites_approved),n(r.invites_sent)),
+          mr=n(r.invites_approved)?Math.round(n(r.messages_sent)/n(r.invites_approved)*100):0,
+          rr=pct(n(r.messages_replied),n(r.messages_sent)),
+          pr=pct(n(r.positive_replies),n(r.messages_replied));
+    return `<tr>
+      <td><div style="font-weight:600">${esc(r.campaign_name||'?')}</div><div style="font-size:11px;color:#9ca3af">${esc(r.account_name||'')}</div></td>
+      <td><span class="pill ${r.status==='active'?'pill-g':'pill-b'}">${esc(r.status||'')}</span></td>
+      <td>${num(r.contacts_added)}</td><td>${num(r.invites_sent)}</td>
+      <td>${num(r.invites_approved)} <span class="pill pill-g">${ar}%</span></td>
+      <td>${num(r.messages_sent)} ${mr>100?`<span class="pill pill-a">&gt;100%</span>`:''}</td>
+      <td>${num(r.messages_replied)} <span class="pill pill-b">${rr}%</span></td>
+      <td>${num(r.positive_replies)} <span class="pill pill-g">${pr}%</span></td></tr>`;
+  }).join('')}</tbody>`;
+}
+
+/* ─── Advanced: WoW, Journey, Best Day, Stale ───────────────────── */
+async function loadAdvanced(p) {
+  const safe = async (url) => { try { const r = await fetch(url); if (!r.ok) return null; return r.json(); } catch(e) { return null; } };
+  const [vel,jour,stale] = await Promise.all([
+    safe('/api/admin/analytics/velocity?'+p),
+    safe('/api/admin/analytics/journey?'+p),
+    safe('/api/admin/analytics/stale?'+p),
+  ]);
+  if (vel)   renderWoW(vel);
+  if (jour)  { renderJourney(jour); renderBestDay(jour); }
+  if (stale) renderStale(stale);
+  loadAI(vel||[],jour||{},stale||{});
+  // System health
+  fetch('/api/admin/env-keys').then(r=>r.json()).then(d=>{
+    document.getElementById('system-health').innerHTML = `<div class="card-head"><div class="card-title">System Health</div></div>
+      <div class="card-body" style="display:flex;gap:20px;flex-wrap:wrap">${
+        (d.keys||[]).map(k=>`<span style="font-size:12px;color:#374151">✅ ${esc(k)}</span>`).join('')
+      }</div>`;
+  }).catch(()=>{});
+}
+
+function renderWoW(vel) {
+  if (!vel) return;
+  // API returns either object {inv_this_week,...} or array [{invites_sent,...},{...}]
+  let cur, prv;
+  if (Array.isArray(vel)) {
+    cur = vel[0]||{}; prv = vel[1]||{};
+    cur = { inv: n(cur.invites_sent), apr: n(cur.invites_approved), msg: n(cur.messages_sent), rep: n(cur.messages_replied) };
+    prv = { inv: n(prv.invites_sent), apr: n(prv.invites_approved), msg: n(prv.messages_sent), rep: n(prv.messages_replied) };
+  } else {
+    cur = { inv: n(vel.inv_this_week), apr: n(vel.apr_this_week), msg: n(vel.msg_this_week), rep: n(vel.rep_this_week) };
+    prv = { inv: n(vel.inv_last_week), apr: n(vel.apr_last_week), msg: n(vel.msg_last_week), rep: n(vel.rep_last_week) };
+  }
+  const items=[
+    {label:'Invites (7d)',  cur:cur.inv, prv:prv.inv},
+    {label:'Approved (7d)', cur:cur.apr, prv:prv.apr},
+    {label:'Messages (7d)', cur:cur.msg, prv:prv.msg},
+    {label:'Replies (7d)',  cur:cur.rep, prv:prv.rep},
+  ];
+  document.getElementById('wow-grid').innerHTML = items.map(it=>{
+    const diff=it.cur-it.prv, pctW=it.prv>0?Math.round(diff/it.prv*100):(it.cur>0?100:0);
+    const cls=diff>=0?'up':'down', sign=diff>=0?'+':'';
+    return `<div class="wow-card">
+      <div class="wow-label">${esc(it.label)}</div>
+      <div class="wow-val">${it.cur.toLocaleString()}</div>
+      <div class="wow-vs">vs ${it.prv.toLocaleString()} prev week</div>
+      <div class="wow-pct ${cls}">${sign}${pctW}%</div>
+    </div>`;
+  }).join('');
+}
+
+function renderJourney(j) {
+  if (!j?.journey) return;
+  const jj=j.journey;
+  document.getElementById('journey-inline').innerHTML = [
+    {label:'Invite → Approved', val:jj.invite_to_approve_days, color:'#3B82F6'},
+    {label:'Approved → Message',val:jj.approve_to_message_days,color:'#8B5CF6'},
+    {label:'Message → Reply',   val:jj.message_to_reply_days,  color:'#f59e0b'},
+    {label:'Total end-to-end',  val:jj.total_days,             color:'#059669'},
+  ].map(ji=>`<div><span style="font-size:11px;color:#9ca3af;display:block">${esc(ji.label)}</span>
+    <span style="font-size:20px;font-weight:700;color:${ji.color}">${fmtD(ji.val)}</span></div>`).join('');
+}
+
+function renderBestDay(j) {
+  const el=document.getElementById('bestday-card');
+  if (!el||!j?.best_day?.length) return;
+  const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const max=Math.max(...j.best_day.map(d=>d.approvals),1);
+  el.innerHTML = j.best_day.map(d=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+    <span style="width:28px;font-size:11px;color:#6b7280">${days[d.dow]||d.dow}</span>
+    <div style="flex:1;height:10px;background:#f3f4f6;border-radius:5px;overflow:hidden;">
+      <div style="height:100%;width:${Math.round(d.approvals/max*100)}%;background:#1D9E75;border-radius:5px"></div>
+    </div>
+    <span style="width:24px;font-size:12px;font-weight:600;text-align:right">${d.approvals}</span>
+  </div>`).join('');
+}
+
+function renderStale(st) {
+  if (!st?.total_pending) return;
+  const el=document.getElementById('stale-card');
+  const p=st.total_pending, r=st.approval_rate||35;
+  el.innerHTML = `<div class="card-head"><div class="card-title">Stale Pipeline</div></div>
+    <div class="card-body" style="display:flex;gap:24px;flex-wrap:wrap">
+      <div><div style="font-size:11px;color:#9ca3af">Pending</div><div style="font-size:24px;font-weight:700">${num(p)}</div></div>
+      <div><div style="font-size:11px;color:#9ca3af">Projected approvals</div><div style="font-size:24px;font-weight:700;color:#1D9E75">~${num(Math.round(p*r/100))}</div></div>
+      ${st.stale_14d>0?`<div><div style="font-size:11px;color:#f59e0b">Stale >14d</div><div style="font-size:24px;font-weight:700;color:#f59e0b">${num(st.stale_14d)}</div></div>`:''}
+    </div>`;
+}
+
+/* ─── AI Insights ────────────────────────────────────────────────── */
+async function loadAI(vel,jour,stale) {
+  const el=document.getElementById('ai-insights-content');
+  document.getElementById('ai-loading').textContent='Generating…';
+  const s=state.data?.summary||{}, h=state.health||{};
+  // Normalise velocity — API may return object or array
+  const velCur = Array.isArray(vel) ? vel[0]||{} : vel||{};
+  const velPrv = Array.isArray(vel) ? vel[1]||{} : {};
+  const kpis={
+    invites_sent:n(s.invites_sent), invites_approved:n(s.invites_approved),
+    messages_sent:n(s.messages_sent), messages_replied:n(s.messages_replied),
+    positive_replies:n(s.positive_replies), approval_rate:h.real_approval_rate,
+    msg_reply_rate:pct(n(s.messages_replied),n(s.messages_sent)),
+    positive_rate:pct(n(s.positive_replies),n(s.messages_replied)),
+    total_journey:jour?.journey?.total_days,
+    invites_wow:   Array.isArray(vel)?n(velCur.invites_sent)   :n(vel?.inv_this_week),
+    invites_prv:   Array.isArray(vel)?n(velPrv.invites_sent)   :n(vel?.inv_last_week),
+    approved_wow:  Array.isArray(vel)?n(velCur.invites_approved):n(vel?.apr_this_week),
+    approved_prv:  Array.isArray(vel)?n(velPrv.invites_approved):n(vel?.apr_last_week),
+    messages_wow:  Array.isArray(vel)?n(velCur.messages_sent)   :n(vel?.msg_this_week),
+    messages_prv:  Array.isArray(vel)?n(velPrv.messages_sent)   :n(vel?.msg_last_week),
+    replies_wow:   Array.isArray(vel)?n(velCur.messages_replied):n(vel?.rep_this_week),
+    replies_prv:   Array.isArray(vel)?n(velPrv.messages_replied):n(vel?.rep_last_week),
+    direct_conns:h.direct_connections, reply_gap:h.reply_gap,
+    stale_pending:stale?.total_pending,
+  };
+  // Format kpis into readable data string for the insights endpoint
+  const dataStr = `LinkedIn Outreach KPIs (${state.from||'all time'}):
+- Invites sent: ${kpis.invites_sent} (this week: ${kpis.invites_wow}, prev: ${kpis.invites_prv}, WoW: ${kpis.invites_prv>0?Math.round((kpis.invites_wow-kpis.invites_prv)/kpis.invites_prv*100):'+100'}%)
+- Approved: ${kpis.invites_approved} (approval rate: ${kpis.approval_rate}%)
+- Messages sent: ${kpis.messages_sent} (${kpis.invites_approved>0?Math.round(kpis.messages_sent/kpis.invites_approved*100):0}% of approved)
+- Replied: ${kpis.messages_replied} (reply rate: ${kpis.msg_reply_rate}%, this week: ${kpis.replies_wow} vs ${kpis.replies_prv} prev)
+- Positive replies: ${kpis.positive_replies} (${kpis.positive_rate}% of replies)
+- Total journey time: ${kpis.total_journey||'?'}d end-to-end
+- Data quality: ${kpis.direct_conns||0} direct connections bypass invite step, ${kpis.reply_gap||0} replies not reflected in enrollment status
+- Stale pending: ${kpis.stale_pending||0}`;
+  try {
+    const r=await fetch('/api/admin/analytics/insights',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({data:dataStr, workspace:WSNAME||'CLY workspace'})
+    }).then(r=>r.json());
+    const raw = r.insights;
+    let items = [];
+    if (Array.isArray(raw)) {
+      items = raw;
+    } else if (typeof raw === 'string' && raw.trim()) {
+      // Split on newlines or bullet chars, filter blanks
+      items = raw.split(/\n+/).map(s=>s.replace(/^[-•◆*]+\s*/,'')).filter(s=>s.trim().length>10);
+    }
+    el.innerHTML = items.map(i=>`<li>${esc(i)}</li>`).join('')
+      || '<li style="color:#4a6278">No insights yet.</li>';
+  } catch(e) { el.innerHTML='<li style="color:#4a6278">Could not load insights.</li>'; }
+  document.getElementById('ai-loading').textContent='';
+}
+
+/* ─── Engagement ─────────────────────────────────────────────────── */
+// ── Inbound Interest tabs ────────────────────────────────────────
+let _engData             = null;
+let _engTab              = 'contacts';
+let _engContactsExpanded  = false;
+let _engCompaniesExpanded = false;
+let _cachedAllViewers    = null; // persists across reloads
+let _cachedPv            = null;
+let _engFilter           = 'all';  // 'all' | 'list' | 'multi' | 'views' | 'react'
+let _engSort             = 'engaged'; // 'engaged' | 'recent' | 'reactions' | 'views'
+
+function engSwitchTab(tab) {
+  _engTab = tab;
+  ['contacts','companies'].forEach(t => {
+    const btn = document.getElementById('eng-tab-' + t);
+    const body = document.getElementById('eng-body-' + t);
+    const active = t === tab;
+    if (btn) { btn.style.borderBottomColor = active ? '#1D9E75' : 'transparent'; btn.style.color = active ? '#1D9E75' : '#9ca3af'; btn.style.fontWeight = active ? '600' : '500'; }
+    if (body) body.style.display = active ? '' : 'none';
+  });
+}
+
+function engActionBadges(actions) {
+  // actions is either string[] (old) or { type, count }[] (new)
+  const badges = {
+    profile_view:  { icon: '👁',  label: 'Viewed profile',  bg: '#ede9fe', color: '#7c3aed' },
+    post_reaction: { icon: '👍',  label: 'Liked post',      bg: '#dbeafe', color: '#1d4ed8' },
+    post_praise:   { icon: '👏',  label: 'Praised post',    bg: '#dbeafe', color: '#1d4ed8' },
+    replied:       { icon: '💬',  label: 'Replied',         bg: '#d1fae5', color: '#065f46' },
+    messaged:      { icon: '📨',  label: 'Was messaged',    bg: '#fef9c3', color: '#92400e' },
+    connected:     { icon: '🤝',  label: 'Connected',       bg: '#f0fdf4', color: '#166534' },
+  };
+  // Normalize to {type, count} array
+  const normalized = actions.map(a => typeof a === 'string' ? {type:a, count:1} : a);
+  // Dedupe by type, summing counts
+  const map = {};
+  normalized.forEach(a => { map[a.type] = (map[a.type] || 0) + (a.count || 1); });
+  return Object.entries(map).map(([type, count]) => {
+    const b = badges[type] || { icon: '•', label: type, bg: '#f3f4f6', color: '#374151' };
+    const countStr = count > 1 ? ` ×${count}` : '';
+    return `<span title="${b.label}${count>1?' ('+count+'×)':''}" style="display:inline-flex;align-items:center;gap:3px;background:${b.bg};color:${b.color};font-size:11px;font-weight:600;padding:2px 7px;border-radius:10px;white-space:nowrap;">${b.icon} ${b.label}${countStr}</span>`;
+  }).join(' ');
+}
+
+// ── Add Contact Modal ─────────────────────────────────────────────────────────
+const ADD_AVATAR_COLORS = ['#EF4444','#F59E0B','#10B981','#3B82F6','#8B5CF6','#EC4899','#14B8A6','#F97316'];
+function addAvatarColor(n) { let h=0; for(const c of(n||''))h=(h*31+c.charCodeAt(0))%ADD_AVATAR_COLORS.length; return ADD_AVATAR_COLORS[h]; }
+function addInitials(n) { return (n||'?').split(/\s+/).filter(Boolean).map(w=>w[0]).join('').slice(0,2).toUpperCase(); }
+
+let _addContact = null; // { name, liUrl, title, company, contactId }
+let _addTab = 'list';
+
+function openAddModal(btn) {
+  const name    = btn.dataset.name    || '';
+  const liUrl   = btn.dataset.liUrl   || null;
+  const title   = btn.dataset.title   || '';
+  const company = btn.dataset.company || '';
+  _addContact = { name, liUrl, title, company };
+  _addTab = 'list';
+
+  // Avatar
+  const color = addAvatarColor(name);
+  const ini   = addInitials(name);
+  document.getElementById('add-modal-avatar').innerHTML =
+    `<div style="width:40px;height:40px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;">${ini}</div>`;
+  document.getElementById('add-modal-name').textContent = name || '—';
+  document.getElementById('add-modal-sub').textContent  = [title, company].filter(Boolean).join(' @ ').slice(0, 55) || 'LinkedIn contact';
+
+  // Reset tabs
+  addSwitchTab('list');
+  document.getElementById('add-list-status').textContent = '';
+  document.getElementById('add-camp-status').textContent = '';
+
+  // Load lists + campaigns
+  loadListsForModal();
+  loadCampsForModal();
+  loadPersonalMsg();
+
+  document.getElementById('add-contact-overlay').style.display = 'flex';
+}
+
+function closeAddModal() {
+  document.getElementById('add-contact-overlay').style.display = 'none';
+  _addContact = null;
+}
+
+function addSwitchTab(tab) {
+  _addTab = tab;
+  ['list','campaign','personal'].forEach(t => {
+    const btn  = document.getElementById('add-tab-' + t);
+    const body = document.getElementById('add-body-' + t);
+    const active = t === tab;
+    btn.style.borderBottom  = active ? '2px solid ' + (t==='personal'?'#1d4ed8':'#1D9E75') : '2px solid transparent';
+    btn.style.color         = active ? (t==='personal'?'#1d4ed8':'#1D9E75') : '#94a3b8';
+    btn.style.fontWeight    = active ? '600' : '500';
+    body.style.display      = active ? '' : 'none';
+  });
+}
+
+async function loadListsForModal() {
+  const wsId = new URLSearchParams(location.search).get('workspace_id');
+  const sel = document.getElementById('add-list-select');
+  sel.innerHTML = '<option value="">Loading…</option>';
+  const r = await fetch(`/api/lists?workspace_id=${wsId}`).then(r=>r.json()).catch(()=>({items:[]}));
+  const lists = (r.items||r||[]).filter(l=>l.type==='contacts');
+  if (!lists.length) { sel.innerHTML = '<option value="">No contacts lists found</option>'; return; }
+  sel.innerHTML = '<option value="">— Select a list —</option>' +
+    lists.map(l=>`<option value="${l.id}">${esc(l.name)} (${l.member_count||0} contacts)</option>`).join('');
+}
+
+async function loadCampsForModal() {
+  const wsId = new URLSearchParams(location.search).get('workspace_id');
+  const sel = document.getElementById('add-camp-select');
+  sel.innerHTML = '<option value="">Loading…</option>';
+  const r = await fetch(`/api/campaigns?workspace_id=${wsId}`).then(r=>r.json()).catch(()=>[]);
+  const camps = (Array.isArray(r)?r:r.items||[]).filter(c=>c.status==='active' && c.audience_type!=='personal');
+  if (!camps.length) { sel.innerHTML = '<option value="">No active campaigns found</option>'; return; }
+  sel.innerHTML = '<option value="">— Select a campaign —</option>' +
+    camps.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
+}
+
+async function loadPersonalMsg() {
+  const { name, title, company } = _addContact || {};
+  const ta  = document.getElementById('add-personal-msg-ta');
+  const lbl = document.getElementById('add-personal-msg-loading');
+  ta.style.display = 'none';
+  lbl.style.display = '';
+  lbl.textContent = 'Generating personalized message…';
+
+  try {
+    const wsId = new URLSearchParams(location.search).get('workspace_id');
+    const r = await fetch('/api/opportunities/generate-single-msg', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ workspace_id: parseInt(wsId), name, title, company })
+    }).then(r=>r.json());
+    ta.value = r.msg || `Hi ${(name||'').split(' ')[0]}, I noticed you viewed our profile. I\'d love to connect and see if there\'s a fit.`;
+  } catch {
+    ta.value = `Hi ${(name||'').split(' ')[0]}, I noticed you viewed our profile. I\'d love to connect and learn more about your work.`;
+  }
+  lbl.style.display = 'none';
+  ta.style.display = '';
+}
+
+async function doAddToList() {
+  const { liUrl, name, title, company } = _addContact || {};
+  if (!liUrl) { document.getElementById('add-list-status').innerHTML = '<span style="color:#ef4444">No LinkedIn URL available for this contact.</span>'; return; }
+  const listId = document.getElementById('add-list-select').value;
+  if (!listId) { document.getElementById('add-list-status').innerHTML = '<span style="color:#ef4444">Please select a list.</span>'; return; }
+  const wsId = new URLSearchParams(location.search).get('workspace_id');
+  const btn = document.getElementById('add-list-btn');
+  btn.disabled = true; btn.textContent = 'Adding…';
+  const r = await fetch(`/api/lists/${listId}/contacts`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ workspace_id: parseInt(wsId), contacts:[{ li_profile_url:liUrl, first_name:name?.split(' ')[0]||'', last_name:name?.split(' ').slice(1).join(' ')||'', company:company||'', title:title||'' }] })
+  }).then(r=>r.json()).catch(e=>({error:e.message}));
+  if (r.error) {
+    document.getElementById('add-list-status').innerHTML = `<span style="color:#ef4444">❌ ${esc(r.error)}</span>`;
+    btn.disabled=false; btn.textContent='Add to List';
+  } else {
+    document.getElementById('add-list-status').innerHTML = '<span style="color:#1D9E75">✅ Added to list!</span>';
+    btn.innerHTML = '✅ Added'; btn.style.background='#10b981';
+    setTimeout(closeAddModal, 1500);
+  }
+}
+
+async function doAddToCampaign() {
+  const { liUrl, name, title, company } = _addContact || {};
+  if (!liUrl) { document.getElementById('add-camp-status').innerHTML = '<span style="color:#ef4444">No LinkedIn URL for this contact.</span>'; return; }
+  const campId = document.getElementById('add-camp-select').value;
+  if (!campId) { document.getElementById('add-camp-status').innerHTML = '<span style="color:#ef4444">Please select a campaign.</span>'; return; }
+  const wsId = new URLSearchParams(location.search).get('workspace_id');
+  const btn = document.getElementById('add-camp-btn');
+  btn.disabled=true; btn.textContent='Adding…';
+  const r = await fetch(`/api/campaigns/${campId}/contacts`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ workspace_id: parseInt(wsId), contacts:[{ li_profile_url:liUrl, first_name:name?.split(' ')[0]||'', last_name:name?.split(' ').slice(1).join(' ')||'', company:company||'', title:title||'' }] })
+  }).then(r=>r.json()).catch(e=>({error:e.message}));
+  if (r.error) {
+    document.getElementById('add-camp-status').innerHTML = `<span style="color:#ef4444">❌ ${esc(r.error)}</span>`;
+    btn.disabled=false; btn.textContent='Add to Campaign';
+  } else {
+    document.getElementById('add-camp-status').innerHTML = `<span style="color:#1D9E75">✅ Added to campaign! (${r.added} new, ${r.skipped} skipped)</span>`;
+    btn.innerHTML = '✅ Added'; btn.style.background='#10b981';
+    setTimeout(closeAddModal, 1800);
+  }
+}
+
+function doOpenPersonalCampaign() {
+  const { name, liUrl, company } = _addContact || {};
+  const msg = document.getElementById('add-personal-msg-ta')?.value || '';
+  // Signal the parent workspace to open the campaign wizard
+  window.parent?.postMessage({
+    type:        'open-campaign-wizard',
+    personalMode: true,
+    aiMsg:        msg,
+    entityName:   name || '',
+    entityLiUrl:  liUrl || null,
+    company:      company || '',
+  }, '*');
+  closeAddModal();
+}
+
+async function loadEngagement() {
+  if (!WSID) return;
+  try {
+    // Fetch engagement + post reactions in parallel
+    const [data, pvData] = await Promise.all([
+      fetch(`/api/admin/analytics/engagement?workspace_id=${WSID}`).then(r=>r.json()),
+      fetch(`/api/profile-views?workspace_id=${WSID}&limit=1000`).then(r=>r.json()),
+    ]);
+    _engData = { data, pvData };
+
+    const listName = data.lists?.[0]?.name || 'List 1';
+    document.getElementById('eng-sub').textContent = `"${listName}" — who engaged without being invited yet`;
+
+    // Pills
+    const pv  = data.profile_views || {};
+    const rl  = data.reactions_list1 || {};
+    const totalR = (data.reactions || []).reduce((s,r2) => s + n(r2.total), 0);
+    const lv  = n(pv.from_list1_viewers);
+    document.getElementById('eng-pills').innerHTML = [
+      {n: lv,     label: 'viewed profile', c: '#7c3aed'},
+      {n: totalR, label: 'post reactions', c: '#2563eb'},
+      {n: lv + n(rl.from_list1_people), label: 'total from list', c: '#059669'},
+    ].map(pp => `<span><strong style="color:${pp.c}">${pp.n}</strong> <span style="color:#9ca3af;font-size:11px">${esc(pp.label)}</span></span>`).join(' · ');
+
+    // Build merged people list: profile viewers + post reactors
+    const reactorsList = pvData.reactorsList || [];
+
+    // Index reactors by: 1) li_profile_url, 2) name (normalized)
+    const reactorByUrl  = {};
+    const reactorByName = {};
+    reactorsList.forEach(r => {
+      if (r.liUrl) reactorByUrl[r.liUrl] = r;
+      const nk = (r.name || '').toLowerCase().replace(/\s+/g, ' ').trim();
+      if (nk) reactorByName[nk] = r;
+    });
+
+    // Build profile viewers list (deduplicated)
+    const seenKeys = new Set();
+    const allViewers = [
+      ...(data.list_viewers  || []).map(v => ({...v, inList: true})),
+      ...(data.recent_viewers || []).filter(v =>  v.in_list1).map(v => ({...v, inList: true})),
+      ...(data.recent_viewers || []).filter(v => !v.in_list1).map(v => ({...v, inList: false})),
+    ].filter(v => {
+      const key = v.li_profile_url || v.name;
+      if (!key || seenKeys.has(key)) return false;
+      seenKeys.add(key);
+      return true;
+    });
+
+    // Build actions for each viewer
+    allViewers.forEach(v => {
+      v._actions = [{ type: 'profile_view', count: v.profile_view_count || 1 }];
+      if (v.already_connected) v._actions.push({ type: 'connected', count: 1 });
+      if (v.msg_sent)          v._actions.push({ type: 'messaged',  count: 1 });
+      if (v.msg_replied)       v._actions.push({ type: 'replied',   count: 1 });
+      // Match reactor by URL then by name
+      const reactor = (v.li_profile_url && reactorByUrl[v.li_profile_url])
+        || reactorByName[(v.name||'').toLowerCase().replace(/\s+/g,' ').trim()];
+      if (reactor) {
+        reactor._merged = true;
+        (reactor.reactionTypes || ['LIKE']).forEach(rt => {
+          v._actions.push({
+            type: rt === 'PRAISE' ? 'post_praise' : 'post_reaction',
+            count: Math.round(reactor.reactionCount / (reactor.reactionTypes?.length || 1))
+          });
+        });
+      }
+    });
+
+    // Add reactors who are NOT already in allViewers (pure reactors)
+    reactorsList.forEach(r => {
+      if (r._merged) return; // already merged above
+      const key = r.liUrl || r.name;
+      if (!key || seenKeys.has(key)) return;
+      seenKeys.add(key);
+      const personActions = [];
+      (r.reactionTypes || ['LIKE']).forEach(rt => {
+        personActions.push({
+          type: rt === 'PRAISE' ? 'post_praise' : 'post_reaction',
+          count: Math.round(r.reactionCount / (r.reactionTypes?.length || 1))
+        });
+      });
+      allViewers.push({
+        name:               r.name || '',
+        title:              r.headline || '',
+        company:            r.company || '',
+        li_profile_url:     r.liUrl || null,
+        inList:             r.inAnyList || false,
+        viewed_our_profile_at: null,
+        last_profile_view_at:  null,
+        _actions:           personActions,
+      });
+    });
+
+    _engData._allViewers = allViewers;
+    _engData._pv = pv;
+    _cachedAllViewers = allViewers; // persistent cache for toggle
+    _cachedPv = pv;
+    engApplyFilters(); // apply current filter/sort and render
+    engSwitchTab(_engTab);
+  } catch(e) { console.warn('eng', e); }
+}
+
+// Engagement score for a person (for sorting)
+function engScore(v) {
+  let score = 0;
+  (v._actions || []).forEach(a => {
+    const t = a.type || a;
+    const c = a.count || 1;
+    if (t === 'profile_view')  score += 1 * c;
+    if (t === 'post_reaction') score += 3 * c;
+    if (t === 'post_praise')   score += 3 * c;
+    if (t === 'replied')       score += 5 * c;
+    if (t === 'connected')     score += 2 * c;
+    if (t === 'messaged')      score += 2 * c;
+  });
+  // Bonus for multiple action types
+  const types = new Set((v._actions||[]).map(a => a.type||a));
+  if (types.size > 1) score += 4;
+  // Bonus for being in list
+  if (v.inList) score += 2;
+  return score;
+}
+
+function engSetFilter(f) {
+  _engFilter = f;
+  ['all','list','multi','views','react'].forEach(id => {
+    const btn = document.getElementById('eng-filter-' + id);
+    if (!btn) return;
+    const active = id === f;
+    btn.style.background = active ? '#1D9E75' : '#fff';
+    btn.style.color       = active ? '#fff'    : '#374151';
+    btn.style.border      = active ? '1px solid #1D9E75' : '1px solid #e5e7eb';
+    btn.style.fontWeight  = active ? '600' : '400';
+  });
+  engApplyFilters();
+}
+
+function engApplyFilters() {
+  _engSort = document.getElementById('eng-sort')?.value || 'engaged';
+  if (!_cachedAllViewers) return;
+  // Filter
+  let filtered = _cachedAllViewers.filter(v => {
+    if (_engFilter === 'list')  return v.inList;
+    if (_engFilter === 'multi') {
+      const types = new Set((v._actions||[]).map(a => a.type||a));
+      return types.size > 1;
+    }
+    if (_engFilter === 'views') return (v._actions||[]).some(a => (a.type||a) === 'profile_view');
+    if (_engFilter === 'react') return (v._actions||[]).some(a => {
+      const t = a.type||a; return t === 'post_reaction' || t === 'post_praise';
+    });
+    return true; // 'all'
+  });
+  // Sort
+  filtered = [...filtered].sort((a, b) => {
+    if (_engSort === 'engaged')   return engScore(b) - engScore(a);
+    if (_engSort === 'reactions') {
+      const rA = (a._actions||[]).filter(x => (x.type||x).includes('reaction')||(x.type||x).includes('praise')).reduce((s,x)=>s+(x.count||1),0);
+      const rB = (b._actions||[]).filter(x => (x.type||x).includes('reaction')||(x.type||x).includes('praise')).reduce((s,x)=>s+(x.count||1),0);
+      return rB - rA;
+    }
+    if (_engSort === 'views') {
+      const pA = (a._actions||[]).find(x=>(x.type||x)==='profile_view')?.count||0;
+      const pB = (b._actions||[]).find(x=>(x.type||x)==='profile_view')?.count||0;
+      return pB - pA;
+    }
+    if (_engSort === 'recent') {
+      const dA = a.viewed_our_profile_at || a.last_profile_view_at || '';
+      const dB = b.viewed_our_profile_at || b.last_profile_view_at || '';
+      return dB.localeCompare(dA);
+    }
+    return 0;
+  });
+  // Update count label
+  const countEl = document.getElementById('eng-filter-count');
+  if (countEl) countEl.textContent = `${filtered.length} people`;
+  // Re-render
+  _engContactsExpanded = false;
+  renderEngContacts(filtered, _cachedPv);
+  renderEngCompanies(filtered);
+}
+
+function openCoModal(companyName, people) {
+  const modal = document.getElementById('eng-co-modal');
+  document.getElementById('eng-co-modal-title').textContent = companyName;
+  document.getElementById('eng-co-modal-sub').textContent = `${people.length} people from this company`;
+  document.getElementById('eng-co-modal-body').innerHTML = people.map(p => {
+    const nameHtml = p.li_profile_url
+      ? `<a href="${esc(p.li_profile_url)}" target="_blank" style="color:#2563eb;font-weight:600;font-size:13px;text-decoration:none;">${esc(p.name||'')}</a>`
+      : `<span style="font-weight:600;font-size:13px;">${esc(p.name||'')}</span>`;
+    const titleHtml = p.title ? `<div style="font-size:11px;color:#6b7280;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:340px">${esc(p.title)}</div>` : '';
+    const listBadge = p.inList ? '<span style="background:#d1fae5;color:#065f46;font-size:10px;padding:1px 5px;border-radius:8px;margin-left:6px">✓ List</span>' : '';
+    return `<div style="display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid #f5f5f5;">
+      <div style="flex:1;overflow:hidden;">
+        <div style="display:flex;align-items:center;">${nameHtml}${listBadge}</div>
+        ${titleHtml}
+      </div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;flex-shrink:0;">${engActionBadges(p._actions||[])}</div>
+    </div>`;
+  }).join('');
+  modal.style.display = 'flex';
+}
+
+function renderEngContacts(viewers, pv) {
+  const el = document.getElementById('eng-body-contacts');
+  const listOnly = viewers.filter(v => v.inList);
+  const all      = viewers;
+  const shown    = listOnly.length ? listOnly : all;
+
+  if (!shown.length) {
+    el.innerHTML = '<div style="color:#9ca3af;font-size:12px;padding:8px 0">No profile views from list contacts yet.</div>';
+    return;
+  }
+
+  const hdr = (t, center) => `<span style="font-size:10px;color:#9ca3af;font-weight:600;text-transform:uppercase;${center?'text-align:center':''}">${t}</span>`;
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1.2fr auto auto auto;gap:6px 12px;padding:6px 0;border-bottom:2px solid #e5e7eb;margin-bottom:4px;">
+      ${hdr('Name')} ${hdr('Title / Company')} ${hdr('Seen',1)} ${hdr('Actions',1)} ${hdr('',1)}
+    </div>
+    ${(_engContactsExpanded ? all : shown.slice(0, 20)).map(v => {
+      const sub = [v.title, v.company].filter(Boolean).join(' @ ').slice(0, 55) || v.title?.slice(0,55) || '';
+      const dt  = v.viewed_our_profile_at || v.last_profile_view_at;
+      const ds  = dt ? new Date(dt).toLocaleDateString('en-GB',{day:'2-digit',month:'short'}) : '—';
+      const listBadge = v.inList ? '<span style="background:#d1fae5;color:#065f46;font-size:10px;padding:1px 5px;border-radius:8px;margin-left:4px">✓</span>' : '';
+      return `<div style="display:grid;grid-template-columns:1fr 1.2fr auto auto auto;gap:6px 12px;padding:6px 0;border-bottom:1px solid #f5f5f5;align-items:center;">
+        <div style="overflow:hidden;">
+          ${v.li_profile_url ? `<a href="${esc(v.li_profile_url)}" target="_blank" style="color:#2563eb;font-weight:600;font-size:13px;text-decoration:none;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(v.name||'')}</a>` : `<span style="font-weight:600;font-size:13px">${esc(v.name||'')}</span>`}${listBadge}
+        </div>
+        <div style="font-size:11px;color:#6b7280;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(sub)}</div>
+        <div style="text-align:center;font-size:12px;color:#9ca3af;white-space:nowrap">${ds}</div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:center">${engActionBadges(v._actions||[])}</div>
+        <div>
+          <button class="eng-btn"
+            data-name="${esc(v.name||'')}"
+            data-li-url="${esc(v.li_profile_url||'')}"
+            data-title="${esc(v.title||'')}"
+            data-company="${esc(v.company||'')}"
+            onclick="openAddModal(this)">Add ▸</button></div>
+      </div>`;
+    }).join('')}
+    ${(shown.length > 20 || (listOnly.length && all.length > listOnly.length)) ? `
+      <div style="text-align:center;padding:10px 0;">
+        <button onclick="engToggleContacts()" style="background:none;border:1px solid #e5e7eb;border-radius:8px;padding:6px 18px;font-size:12px;color:#374151;cursor:pointer;">
+          ${_engContactsExpanded
+            ? '▲ Show list contacts only'
+            : `▼ Show all ${all.length} viewers`}
+        </button>
+      </div>` :
+      `<div style="text-align:center;padding:10px 0;font-size:12px;color:#9ca3af">Showing ${shown.length} contacts</div>`
+    }
+  `;
+}
+
+function engToggleContacts() {
+  _engContactsExpanded = !_engContactsExpanded;
+  if (_cachedAllViewers) renderEngContacts(_cachedAllViewers, _cachedPv);
+}
+
+function renderEngCompanies(viewers) {
+  const el = document.getElementById('eng-body-companies');
+  
+  // Group by company — extract from viewer.company or from title (" at X")
+  const coMap = {};
+  viewers.forEach(v => {
+    let co = v.company?.trim();
+    if (!co && v.title) {
+      const atIdx = v.title.lastIndexOf(' at ');
+      if (atIdx > 0) co = v.title.substring(atIdx + 4).trim();
+    }
+    if (!co) co = '(Unknown company)';
+    if (!coMap[co]) coMap[co] = { name: co, people: [], actions: new Set(), lastSeen: null };
+    coMap[co].people.push(v);
+    (v._actions||[]).forEach(a => coMap[co].actions.add(a));
+    const dt = v.viewed_our_profile_at || v.last_profile_view_at;
+    if (dt && (!coMap[co].lastSeen || dt > coMap[co].lastSeen)) coMap[co].lastSeen = dt;
+  });
+
+  const companies = Object.values(coMap)
+    .filter(c => {
+      if (c.name === '(Unknown company)') return false;
+      if (c.name.length < 3) return false; // skip "yes", "no", junk
+      if (/^\d+$/.test(c.name)) return false; // skip pure numbers
+      return true;
+    })
+    .sort((a,b) => (b.lastSeen||'').localeCompare(a.lastSeen||''));
+
+  if (!companies.length) {
+    el.innerHTML = '<div style="color:#9ca3af;font-size:12px;padding:8px 0">No company data available.</div>';
+    return;
+  }
+
+  const hdr = (t, center) => `<span style="font-size:10px;color:#9ca3af;font-weight:600;text-transform:uppercase;${center?'text-align:center':''}">${t}</span>`;
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:1.2fr 80px auto auto;gap:6px 16px;padding:6px 0;border-bottom:2px solid #e5e7eb;margin-bottom:4px;">
+      ${hdr('Company')} ${hdr('People',1)} ${hdr('Actions',1)} ${hdr('Last seen',1)}
+    </div>
+    ${(_engCompaniesExpanded ? companies : companies.slice(0, 10)).map(c => {
+      const ds = c.lastSeen ? new Date(c.lastSeen).toLocaleDateString('en-GB',{day:'2-digit',month:'short'}) : '—';
+      const names = c.people.map(p => esc(p.name||'')).slice(0,3).join(', ') + (c.people.length > 3 ? ` +${c.people.length-3}` : '');
+      // Build people array for modal
+      const coPeople = c.people.map(p => ({
+        name: p.name, title: p.title||p.headline||'', 
+        li_profile_url: p.li_profile_url || null,
+        inList: p.inList || false,
+        _actions: p._actions || [{ type: 'profile_view', count: 1 }]
+      }));
+      const modalData = JSON.stringify(coPeople).replace(/'/g,"\\'").replace(/"/g,'&quot;');
+      return `<div style="display:grid;grid-template-columns:1.2fr 80px auto auto;gap:6px 16px;padding:8px 0;border-bottom:1px solid #f5f5f5;align-items:center;">
+        <div>
+          <div style="font-weight:600;font-size:13px;color:#111">${esc(c.name)}</div>
+          <div style="font-size:11px;color:#9ca3af;margin-top:1px">${names}</div>
+        </div>
+        <div style="text-align:center;">
+          <button onclick="openCoModal(this.dataset.company, JSON.parse(this.dataset.people))"
+            data-company="${esc(c.name)}"
+            data-people="${modalData}"
+            style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:3px 10px;font-size:12px;font-weight:700;color:#065f46;cursor:pointer;"
+            title="View people from ${esc(c.name)}">${c.people.length} people</button>
+        </div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap">${engActionBadges([...c.actions])}</div>
+        <div style="text-align:center;font-size:12px;color:#9ca3af;white-space:nowrap">${ds}</div>
+      </div>`;
+    }).join('')}
+    ${companies.length > 10 ? `
+      <div style="text-align:center;padding:10px 0;">
+        <button onclick="engToggleCompanies()" style="background:none;border:1px solid #e5e7eb;border-radius:8px;padding:6px 18px;font-size:12px;color:#374151;cursor:pointer;">
+          ${_engCompaniesExpanded ? '▲ Show less' : `▼ Show all ${companies.length} companies`}
+        </button>
+      </div>` :
+      `<div style="text-align:center;padding:10px 0;font-size:12px;color:#9ca3af">${companies.length} companies identified</div>`
+    }
+  `;
+}
+
+function engToggleCompanies() {
+  _engCompaniesExpanded = !_engCompaniesExpanded;
+  if (_cachedAllViewers) renderEngCompanies(_cachedAllViewers);
+}
+
+/* ─── Account Engagement Summary ─────────────────────────────────── */
+async function loadAccountEngagement() {
+  const el = document.getElementById('acct-eng-body');
+  if (!el || !WSID) return;
+  try {
+    const d = await fetch(`/api/profile-views?workspace_id=${WSID}&limit=1`).then(r=>r.json());
+    const summary = d.engagementSummary || [];
+
+    if (!summary.length) {
+      el.innerHTML = '<div style="color:#9ca3af;font-size:12px">No engagement data yet.</div>';
+      return;
+    }
+
+    // Get account names
+    const accts = await fetch(`/api/workspaces/${WSID}/accounts`).then(r=>r.json()).catch(()=>({items:[]}));
+    const acctMap = {};
+    (accts.items||[]).forEach(a => { acctMap[a.account_id] = a.display_name || a.full_name || a.account_id; });
+
+    el.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:0;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;font-size:12px;">
+        <div style="background:#f9fafb;padding:8px 12px;font-weight:600;color:#6b7280;font-size:10px;text-transform:uppercase;border-bottom:1px solid #e5e7eb;">Account</div>
+        <div style="background:#f9fafb;padding:8px 12px;font-weight:600;color:#6b7280;font-size:10px;text-transform:uppercase;border-bottom:1px solid #e5e7eb;text-align:center;">Total profile views</div>
+        <div style="background:#f9fafb;padding:8px 12px;font-weight:600;color:#6b7280;font-size:10px;text-transform:uppercase;border-bottom:1px solid #e5e7eb;text-align:center;">Identified viewers</div>
+        <div style="background:#f9fafb;padding:8px 12px;font-weight:600;color:#6b7280;font-size:10px;text-transform:uppercase;border-bottom:1px solid #e5e7eb;text-align:center;">Post reactions received</div>
+        <div style="background:#f9fafb;padding:8px 12px;font-weight:600;color:#6b7280;font-size:10px;text-transform:uppercase;border-bottom:1px solid #e5e7eb;text-align:center;">Unique reactors</div>
+        ${summary.map((row, i) => {
+          const name = acctMap[row.account_id] || row.account_id;
+          const bg = i % 2 === 0 ? 'white' : '#fafafa';
+          const bdr = i < summary.length - 1 ? 'border-bottom:1px solid #f0f0f0;' : '';
+          const num = (v, color) => v > 0
+            ? `<strong style="color:${color}">${v}</strong>`
+            : `<span style="color:#d1d5db">0</span>`;
+          return `
+            <div style="background:${bg};padding:10px 12px;${bdr}font-weight:500">${esc(name)}</div>
+            <div style="background:${bg};padding:10px 12px;${bdr}text-align:center">${num(row.total_views,'#374151')} <span style="color:#9ca3af;font-size:10px">(${row.anonymous_views} anon)</span></div>
+            <div style="background:${bg};padding:10px 12px;${bdr}text-align:center">${num(row.identified_views,'#2563eb')}</div>
+            <div style="background:${bg};padding:10px 12px;${bdr}text-align:center">${num(row.total_reactions,'#7c3aed')}</div>
+            <div style="background:${bg};padding:10px 12px;${bdr}text-align:center">${num(row.unique_reactors,'#059669')}</div>`;
+        }).join('')}
+      </div>
+      <div style="font-size:11px;color:#9ca3af;margin-top:8px;">
+        💡 "Identified viewers" = LinkedIn showed us who viewed (not anonymous). 
+        Reactions = likes/praise on posts scraped from each account.
+      </div>
+    `;
+  } catch(e) { el.innerHTML = `<div style="color:#ef4444;font-size:12px">Failed to load: ${e.message}</div>`; }
+}
+
+function toggleAdv() {
+  const p=document.getElementById('adv-panel'), open=p.classList.toggle('open');
+  document.getElementById('adv-arrow').textContent=open?'▼':'▶';
+}
+
+/* ─── Init ───────────────────────────────────────────────────────── */
+(function(){
+  state.from=daysAgo(30); state.to=today();
+  document.getElementById('from-date').value=state.from;
+  document.getElementById('to-date').value=state.to;
+  load();
+})();
+</script>
+
+<!-- ── Add Contact Action Modal ────────────────────────────────────────────── -->
+<div id="add-contact-overlay"
+  onclick="if(event.target===this)closeAddModal()"
+  style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:16px;width:460px;max-width:94vw;box-shadow:0 24px 64px rgba(0,0,0,.18);overflow:hidden;">
+    <!-- Header -->
+    <div style="padding:18px 22px 14px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:12px;">
+      <div id="add-modal-avatar" style="flex-shrink:0;"></div>
+      <div style="flex:1;min-width:0;">
+        <div id="add-modal-name" style="font-size:15px;font-weight:700;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
+        <div id="add-modal-sub"  style="font-size:12px;color:#94a3b8;margin-top:2px;"></div>
+      </div>
+      <button onclick="closeAddModal()" style="background:none;border:none;font-size:20px;color:#94a3b8;cursor:pointer;line-height:1;">×</button>
+    </div>
+
+    <!-- Tab switcher -->
+    <div style="display:flex;border-bottom:1px solid #f1f5f9;">
+      <button id="add-tab-list" onclick="addSwitchTab('list')"
+        style="flex:1;padding:10px;border:none;font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid #1D9E75;color:#1D9E75;background:#fff;">
+        ➕ Add to List
+      </button>
+      <button id="add-tab-campaign" onclick="addSwitchTab('campaign')"
+        style="flex:1;padding:10px;border:none;font-size:13px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;color:#94a3b8;background:#fff;">
+        📋 Existing Campaign
+      </button>
+      <button id="add-tab-personal" onclick="addSwitchTab('personal')"
+        style="flex:1;padding:10px;border:none;font-size:13px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;color:#94a3b8;background:#fff;">
+        🎯 Personal Campaign
+      </button>
+    </div>
+
+    <!-- Body -->
+    <div style="padding:18px 22px 20px;">
+
+      <!-- List tab -->
+      <div id="add-body-list">
+        <div style="font-size:12px;color:#64748b;margin-bottom:10px;">Choose a contacts list to add this person to:</div>
+        <select id="add-list-select"
+          style="width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;font-size:13px;color:#0f172a;background:#fff;outline:none;cursor:pointer;">
+          <option value="">Loading lists…</option>
+        </select>
+        <div id="add-list-status" style="margin-top:8px;font-size:12px;min-height:18px;"></div>
+        <div style="display:flex;justify-content:flex-end;margin-top:14px;">
+          <button onclick="doAddToList()" id="add-list-btn"
+            style="background:#1D9E75;color:#fff;border:none;border-radius:8px;padding:9px 20px;font-size:13px;font-weight:600;cursor:pointer;transition:background .15s;"
+            onmouseover="this.style.background='#188a65'" onmouseout="this.style.background='#1D9E75'">
+            Add to List
+          </button>
+        </div>
+      </div>
+
+      <!-- Existing Campaign tab -->
+      <div id="add-body-campaign" style="display:none;">
+        <div style="font-size:12px;color:#64748b;margin-bottom:10px;">Add to an existing active campaign:</div>
+        <select id="add-camp-select"
+          style="width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;font-size:13px;color:#0f172a;background:#fff;outline:none;cursor:pointer;">
+          <option value="">Loading campaigns…</option>
+        </select>
+        <div id="add-camp-status" style="margin-top:8px;font-size:12px;min-height:18px;"></div>
+        <div style="display:flex;justify-content:flex-end;margin-top:14px;">
+          <button onclick="doAddToCampaign()" id="add-camp-btn"
+            style="background:#1D9E75;color:#fff;border:none;border-radius:8px;padding:9px 20px;font-size:13px;font-weight:600;cursor:pointer;transition:background .15s;"
+            onmouseover="this.style.background='#188a65'" onmouseout="this.style.background='#1D9E75'">
+            Add to Campaign
+          </button>
+        </div>
+      </div>
+
+      <!-- Personal Campaign tab -->
+      <div id="add-body-personal" style="display:none;">
+        <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:14px;margin-bottom:14px;">
+          <div style="font-size:13px;font-weight:700;color:#1d4ed8;margin-bottom:4px;">🎯 Create Personal Campaign</div>
+          <div style="font-size:12px;color:#3b82f6;line-height:1.5;">Opens the campaign wizard with an AI-drafted message for this specific contact. You can review and edit it before the campaign launches.</div>
+        </div>
+        <div id="add-personal-msg-wrap">
+          <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;">AI-drafted message</div>
+          <div id="add-personal-msg-loading" style="color:#94a3b8;font-size:12px;">Generating personalized message…</div>
+          <textarea id="add-personal-msg-ta" style="display:none;width:100%;min-height:90px;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-size:13px;font-family:inherit;resize:vertical;outline:none;color:#1e293b;line-height:1.5;" placeholder="Personalized message…"></textarea>
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-top:14px;">
+          <button onclick="doOpenPersonalCampaign()" id="add-personal-btn"
+            style="background:#1d4ed8;color:#fff;border:none;border-radius:8px;padding:9px 20px;font-size:13px;font-weight:600;cursor:pointer;transition:background .15s;"
+            onmouseover="this.style.background='#1e40af'" onmouseout="this.style.background='#1d4ed8'">
+            Open Campaign Wizard ▸
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

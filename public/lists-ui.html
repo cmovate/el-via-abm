@@ -1,0 +1,3180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="stylesheet" href="/ds.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lists</title>
+<link rel="stylesheet" href="/elvia.css">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-size: 14px; font-family: var(--font); }
+.page { padding: 28px; }
+.page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; gap: 16px; flex-wrap: wrap; }
+.page-title { font-size: 22px; font-weight: 600; }
+.page-sub { font-size: 14px; color: #666; margin-top: 4px; }
+.tab-bar { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 2px solid #e5e5e5; }
+.tab-btn { background: none; border: none; padding: 10px 20px; font-size: 13px; font-weight: 500; color: #888; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: color .15s, border-color .15s; }
+.tab-btn:hover { color: #333; }
+.tab-btn.active { color: #1D9E75; border-bottom-color: #1D9E75; }
+.tab-section { display: none; }
+.tab-section.active { display: block; }
+.toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+.search-input { padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; width: 240px; font-family: inherit; background: white; }
+.search-input:focus { outline: none; border-color: #1D9E75; }
+.filter-select { padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; background: white; font-family: inherit; cursor: pointer; }
+.toolbar-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.ghost-btn { background: white; border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; font-size: 13px; color: #555; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 6px; }
+.ghost-btn:hover { background: var(--c-bg); }
+.ghost-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.danger-btn { background: white; border: 1px solid #FECACA; border-radius: 8px; padding: 8px 14px; font-size: 13px; color: #DC2626; cursor: pointer; white-space: nowrap; }
+.danger-btn:hover { background: #FEF2F2; }
+.bulk-bar { display: flex; align-items: center; gap: 12px; background: #1D9E75; color: white; padding: 10px 16px; border-radius: 8px; margin-bottom: 12px; font-size: 13px; font-weight: 500; }
+.bulk-bar button { background: rgba(255,255,255,0.2); border: none; border-radius: 6px; padding: 5px 12px; font-size: 13px; color: white; cursor: pointer; }
+.bulk-bar button:hover { background: rgba(255,255,255,0.3); }
+.bulk-cancel { background: transparent !important; border: 1px solid rgba(255,255,255,0.4) !important; }
+.stats-row { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+.stat-chip { background: white; border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; font-size: 12px; color: #555; white-space: nowrap; }
+.stat-chip strong { color: #1a1a1a; font-size: 14px; margin-right: 4px; }
+.live-badge { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #888; margin-left: auto; }
+.live-dot { width: 6px; height: 6px; border-radius: 50%; background: #1D9E75; animation: livepulse 2s ease-in-out infinite; }
+@keyframes livepulse { 0%,100%{opacity:0.3} 50%{opacity:1} }
+@keyframes rowflash { 0%{background:#E1F5EE} 100%{background:transparent} }
+.row-flash td { animation: rowflash 1.5s ease-out forwards; }
+.enrich-pill { display: flex; align-items: center; gap: 6px; font-size: 12px; padding: 5px 10px; border-radius: 999px; white-space: nowrap; }
+.enrich-pill.idle   { background: #f0f0f0; color: #888; }
+.enrich-pill.active { background: #E1F5EE; color: #0F6E56; }
+.enrich-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.enrich-dot.pulse { animation: pulse 1s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+.spin { display: inline-block; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.table-outer { background: white; border: 1px solid var(--border); border-radius: var(--r-lg); overflow: hidden; }
+.table-scroll-wrap { overflow-x: auto; overflow-y: auto; max-height: calc(100vh - 320px); position: relative; }
+table { border-collapse: separate; border-spacing: 0; width: max-content; min-width: 100%; }
+thead th { position: sticky; top: 0; z-index: 3; background: #fafafa; border-bottom: 1px solid #e5e5e5; padding: 11px 14px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: #888; white-space: nowrap; text-align: left; }
+#contacts-table thead th:nth-child(1), #contacts-table tbody td:nth-child(1) { position: sticky; left: 0; z-index: 5; background: #fafafa; }
+#contacts-table tbody td:nth-child(1) { background: white; z-index: 2; }
+#contacts-table thead th:nth-child(2), #contacts-table tbody td:nth-child(2) { position: sticky; left: 44px; z-index: 5; background: #fafafa; }
+#contacts-table tbody td:nth-child(2) { background: white; z-index: 2; }
+#contacts-table thead th:nth-child(3), #contacts-table tbody td:nth-child(3) { position: sticky; left: 188px; z-index: 5; border-right: 1px solid #e0e0e0; background: #fafafa; }
+#contacts-table tbody td:nth-child(3) { background: white; z-index: 2; border-right: 1px solid #e0e0e0; }
+#companies-table thead th:nth-child(1), #companies-table tbody td:nth-child(1) { position: sticky; left: 0; z-index: 5; background: #fafafa; }
+#companies-table tbody td:nth-child(1) { background: white; z-index: 2; border-right: 1px solid #e0e0e0; }
+#companies-table thead th:nth-child(1) { border-right: 1px solid #e0e0e0; }
+tbody td { padding: 12px 14px; border-bottom: 1px solid #f5f5f5; white-space: nowrap; font-size: 13px; color: #333; vertical-align: middle; }
+tbody tr:hover td { background: #fafafa; }
+tbody tr.selected td { background: #F0FBF7; }
+tr:last-child td { border-bottom: none; }
+.check-col { width: 44px; text-align: center; padding: 12px 8px; }
+.bool-yes  { display:inline-block; background:#E1F5EE; color:#0F6E56; border-radius:999px; padding:2px 8px; font-size:11px; font-weight:500; }
+.bool-no   { display:inline-block; background:#f5f5f5; color:#aaa;    border-radius:999px; padding:2px 8px; font-size:11px; }
+.connected-yes { display:inline-block; background:#DBEAFE; color:#1D4ED8; border-radius:999px; padding:2px 10px; font-size:11px; font-weight:600; }
+.connected-no  { display:inline-block; background:#f5f5f5; color:#aaa; border-radius:999px; padding:2px 8px; font-size:11px; }
+.chat-yes { display:inline-block; background:#F0FDF4; color:#166534; border-radius:999px; padding:2px 10px; font-size:11px; font-weight:600; }
+.chat-no  { display:inline-block; background:#f5f5f5; color:#aaa; border-radius:999px; padding:2px 8px; font-size:11px; }
+.follow-confirmed { display:inline-block; background:#E1F5EE; color:#0F6E56; border-radius:999px; padding:2px 8px; font-size:11px; font-weight:600; }
+.follow-invited   { display:inline-block; background:#FEF9E7; color:#B7770D; border-radius:999px; padding:2px 8px; font-size:11px; font-weight:500; }
+.follow-none      { display:inline-block; background:#f5f5f5; color:#aaa;    border-radius:999px; padding:2px 8px; font-size:11px; }
+.pv-count { display:inline-block; background:#EEF2FF; color:#4338CA; border-radius:999px; padding:2px 10px; font-size:11px; font-weight:600; min-width:24px; text-align:center; }
+.pv-none  { display:inline-block; background:#f5f5f5; color:#aaa; border-radius:999px; padding:2px 8px; font-size:11px; }
+.msg-count { display:inline-block; background:#FDF4FF; color:#7E22CE; border-radius:999px; padding:2px 10px; font-size:11px; font-weight:600; min-width:24px; text-align:center; }
+.msg-count-none { display:inline-block; background:#f5f5f5; color:#aaa; border-radius:999px; padding:2px 8px; font-size:11px; }
+.msg-text-cell { font-size:11px; color:#374151; max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:inline-block; background:#F9FAFB; border:1px solid #E5E7EB; border-radius:4px; padding:2px 8px; cursor:help; }
+.msg-text-cell.va { background:#F5F3FF; border-color:#DDD6FE; color:#5B21B6; }
+.msg-text-cell.vb { background:#EFF6FF; border-color:#BFDBFE; color:#1E40AF; }
+.msg-text-cell.vc { background:#FFFBEB; border-color:#FDE68A; color:#92400E; }
+.provider-id { display:inline-block; font-family:'SFMono-Regular',Consolas,monospace; font-size:10px; background:#F3F4F6; color:#374151; border-radius:4px; padding:2px 6px; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; vertical-align:middle; }
+.provider-id-missing { display:inline-block; background:#FEF3C7; color:#92400E; border-radius:4px; padding:2px 6px; font-size:10px; }
+.company-id-badge { display:inline-block; font-family:'SFMono-Regular',Consolas,monospace; font-size:10px; background:#F3F4F6; color:#374151; border-radius:4px; padding:2px 6px; }
+.eng-engaged   { display:inline-block; background:#DCFCE7; color:#166534; border-radius:999px; padding:3px 10px; font-size:11px; font-weight:600; }
+.eng-average   { display:inline-block; background:#FEF9C3; color:#854D0E; border-radius:999px; padding:3px 10px; font-size:11px; font-weight:500; }
+.eng-unengaged { display:inline-block; background:#FEE2E2; color:#991B1B; border-radius:999px; padding:3px 10px; font-size:11px; font-weight:500; }
+.eng-pending   { display:inline-block; background:#f0f0f0; color:#aaa;    border-radius:999px; padding:3px 10px; font-size:11px; }
+.like-count { display:inline-block; background:#FFF7ED; color:#C2410C; border-radius:999px; padding:2px 10px; font-size:11px; font-weight:600; min-width:24px; text-align:center; }
+.like-none  { display:inline-block; background:#f5f5f5; color:#aaa; border-radius:999px; padding:2px 8px; font-size:11px; }
+.contact-count-badge { display:inline-block; background:#EEF2FF; color:#4338CA; border-radius:999px; padding:2px 10px; font-size:11px; font-weight:600; min-width:24px; text-align:center; }
+.posts14d-badge { display:inline-block; background:#F0FDF4; color:#166534; border-radius:999px; padding:2px 10px; font-size:11px; font-weight:600; min-width:24px; text-align:center; }
+.cooldown-badge { display:inline-block; background:#FEF9C3; color:#854D0E; border-radius:4px; padding:2px 6px; font-size:10px; }
+.cell-link  { color:#1D9E75; text-decoration:none; font-size:12px; }
+.cell-link:hover { text-decoration:underline; }
+.cell-muted { color:#aaa; font-size:12px; }
+.cell-title { font-size:12px; color:#555; max-width:200px; overflow:hidden; text-overflow:ellipsis; }
+.cell-loc   { font-size:12px; color:#666; max-width:160px; overflow:hidden; text-overflow:ellipsis; }
+.row-del-btn { background:none; border:none; color:#ddd; font-size:16px; cursor:pointer; padding:2px 6px; }
+.row-del-btn:hover { color:#DC2626; }
+input[type="checkbox"] { width:15px; height:15px; cursor:pointer; accent-color:#1D9E75; }
+.confirm-backdrop { position:fixed; inset:0; z-index:50; background:rgba(0,0,0,0.4); display:flex; align-items:center; justify-content:center; }
+.confirm-box { background:white; border-radius: var(--r-lg); padding:24px; width:min(420px,90vw); box-shadow:0 20px 60px rgba(0,0,0,0.2); }
+.confirm-box h3 { font-size:16px; font-weight:600; margin-bottom:8px; }
+.confirm-box p  { font-size:13px; color:#555; margin-bottom:20px; line-height:1.5; }
+.confirm-actions { display:flex; justify-content:flex-end; gap:8px; }
+.empty-row td { text-align:center; color:#aaa; padding:48px 16px; font-size:13px; }
+
+/* ââ Conversation stage badges âââââââââââââââââââââââââââââââââââââââââââââââ */
+.conv-stage { display:inline-block; border-radius:999px; padding:3px 10px; font-size:11px; font-weight:600; white-space:nowrap; }
+.cs-no_reply       { background:#F3F4F6; color:#6B7280; }
+.cs-cold_reply     { background:#FEF9E7; color:#B7770D; }
+.cs-engaged        { background:#DBEAFE; color:#1D4ED8; }
+.cs-meeting_intent { background:#DCFCE7; color:#166534; }
+.cs-meeting_booked { background:#E1F5EE; color:#0F6E56; font-weight:700; }
+.cs-not_interested { background:#FEE2E2; color:#991B1B; }
+.cs-ghost          { background:#F3F4F6; color:#9CA3AF; font-style:italic; }
+
+/* ââ Score badge âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ */
+.conv-score { display:inline-block; border-radius:999px; padding:2px 10px; font-size:12px; font-weight:700; min-width:28px; text-align:center; }
+.score-low  { background:#FEE2E2; color:#991B1B; }
+.score-mid  { background:#FEF9E7; color:#B7770D; }
+.score-good { background:#DBEAFE; color:#1D4ED8; }
+.score-high { background:#DCFCE7; color:#166534; }
+.score-top  { background:#E1F5EE; color:#0F6E56; }
+
+/* ââ Analyze button ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ */
+.analyze-btn { background:none; border: 1px solid var(--border); border-radius:6px; padding:3px 8px; font-size:11px; color:#555; cursor:pointer; white-space:nowrap; }
+.analyze-btn:hover { background:#F0FBF7; border-color:#1D9E75; color:#0F6E56; }
+
+/* ââ Conversation analysis popup ââââââââââââââââââââââââââââââââââââââââââââ */
+.conv-backdrop { position:fixed; inset:0; z-index:80; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; padding:20px; }
+.conv-modal { background:white; border-radius: var(--r-lg); width:min(620px,100%); max-height:88vh; display:flex; flex-direction:column; box-shadow:0 24px 80px rgba(0,0,0,0.25); overflow:hidden; }
+.conv-head { display:flex; align-items:flex-start; justify-content:space-between; padding:18px 22px 14px; border-bottom:1px solid #f0f0f0; background:#fafafa; flex-shrink:0; }
+.conv-head-name { font-size:16px; font-weight:600; }
+.conv-head-meta { display:flex; align-items:center; gap:10px; margin-top:6px; flex-wrap:wrap; }
+.conv-close { background:none; border:none; font-size:22px; color:#999; cursor:pointer; flex-shrink:0; }
+.conv-body { padding:20px 22px; overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:18px; }
+.conv-section-label { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.07em; color:#aaa; margin-bottom:8px; }
+.conv-summary-box { background:#f8f9fa; border: 1px solid var(--border); border-radius:8px; padding:12px 14px; font-size:13px; color:#333; line-height:1.5; }
+.conv-signals { display:flex; flex-direction:column; gap:6px; }
+.signal-row { display:flex; align-items:flex-start; gap:8px; font-size:13px; }
+.signal-icon { flex-shrink:0; font-size:14px; margin-top:1px; }
+.signal-text { color:#374151; line-height:1.4; }
+.conv-action-box { background:#F0FBF7; border:1px solid #BBF7D0; border-radius:8px; padding:12px 14px; font-size:13px; color:#166534; line-height:1.5; display:flex; gap:10px; }
+.conv-action-icon { font-size:16px; flex-shrink:0; }
+.conv-stats-row { display:flex; gap:10px; flex-wrap:wrap; }
+.conv-stat { background:#f5f5f5; border-radius:8px; padding:8px 14px; font-size:12px; color:#555; }
+.conv-stat strong { color:#1a1a1a; font-size:14px; display:block; }
+.conv-footer { display:flex; align-items:center; justify-content:space-between; padding:14px 22px; border-top:1px solid #f0f0f0; background:#fafafa; flex-shrink:0; }
+.conv-analyzed-ts { font-size:11px; color:#aaa; }
+.reanalyze-btn { background:#1D9E75; border:none; border-radius:8px; padding:8px 16px; font-size:13px; font-weight:500; color:white; cursor:pointer; display:flex; align-items:center; gap:6px; }
+.reanalyze-btn:hover { background:#178f68; }
+.reanalyze-btn:disabled { opacity:0.6; cursor:not-allowed; }
+.conv-loading { text-align:center; padding:40px; color:#888; font-size:13px; }
+.conv-error   { text-align:center; padding:30px; color:#DC2626; font-size:13px; background:#FEF2F2; border-radius:8px; }
+.conv-no-data { text-align:center; padding:30px; color:#888; font-size:13px; background:#fafafa; border-radius:8px; }
+
+/* ══ LISTS PANEL ═══════════════════════════════════════════════════ */
+#lists-panel {
+  padding: 20px 28px 0;
+  border-bottom: 2px solid #e5e7eb;
+  margin-bottom: 0;
+  background: white;
+}
+.lists-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 16px; margin-bottom: 16px; flex-wrap: wrap;
+}
+.lists-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+.lists-subtitle { font-size: 13px; color: #6b7280; max-width: 600px; line-height: 1.5; }
+.btn-new-list {
+  padding: 8px 18px; background: #16a34a; color: white; border: none;
+  border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;
+  white-space: nowrap; flex-shrink: 0;
+}
+.btn-new-list:hover { background: #15803d; }
+.lists-grid {
+  display: flex; gap: 10px; flex-wrap: wrap; padding-bottom: 16px;
+}
+.lists-loading { font-size: 13px; color: #9ca3af; padding: 8px 0; }
+.list-card {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 14px; border-radius: 20px; border: 1.5px solid #e5e7eb;
+  cursor: pointer; transition: all .15s; background: white; font-size: 13px;
+}
+.list-card:hover { border-color: #9ca3af; background: var(--bg); }
+.list-card.active { border-color: #16a34a; background: #f0fdf4; }
+.list-card .lc-icon { font-size: 14px; }
+.list-card .lc-name { font-weight: 600; color: #111827; }
+.list-card .lc-count {
+  background: #f3f4f6; border-radius: var(--r-lg); padding: 1px 7px;
+  font-size: 11px; font-weight: 600; color: #6b7280;
+}
+.list-card.active .lc-count { background: #dcfce7; color: #16a34a; }
+.list-card .lc-type {
+  font-size: 10px; color: #9ca3af; text-transform: uppercase; letter-spacing: .06em;
+}
+.list-card-actions { display: flex; gap: 4px; opacity: 0; transition: opacity .12s; }
+.list-card:hover .list-card-actions { opacity: 1; }
+.btn-lc-action {
+  background: none; border: none; cursor: pointer; color: #9ca3af;
+  font-size: 13px; padding: 0 3px; line-height: 1;
+}
+.btn-lc-action:hover { color: #ef4444; }
+
+/* Filter bar */
+.lists-filter-bar {
+  padding: 10px 0 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.lists-filter-label { font-size: 12px; color: #9ca3af; }
+.lists-filter-btn {
+  padding: 4px 12px; border-radius: var(--r-lg); border: 1px solid var(--border);
+  font-size: 12px; cursor: pointer; background: white; color: #6b7280;
+}
+.lists-filter-btn.active { background: #f0fdf4; border-color: #16a34a; color: #16a34a; font-weight: 600; }
+.lists-filter-active {
+  font-size: 13px; font-weight: 600; color: #16a34a;
+  background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px;
+  padding: 3px 10px;
+}
+.btn-clear-filter {
+  background: none; border: none; color: #6b7280; cursor: pointer;
+  font-size: 12px; padding: 0;
+}
+.btn-clear-filter:hover { color: #ef4444; }
+
+/* Modals */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 1000;
+  display: flex; align-items: center; justify-content: center;
+}
+.modal-box {
+  background: white; border-radius: var(--r-lg); padding: 28px 32px;
+  min-width: 380px; max-width: 480px; width: 90%;
+  box-shadow: 0 20px 60px rgba(0,0,0,.2);
+}
+.modal-title { font-size: 18px; font-weight: 700; margin-bottom: 20px; }
+.modal-field { margin-bottom: 16px; }
+.modal-field label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px; }
+.modal-field input[type=text] {
+  width: 100%; border: 1.5px solid #e5e7eb; border-radius: 8px;
+  padding: 9px 12px; font-size: 14px; font-family: inherit; outline: none;
+  transition: border .15s;
+}
+.modal-field input:focus { border-color: #16a34a; }
+.type-toggle { display: flex; gap: 8px; }
+.type-btn {
+  flex: 1; padding: 10px; border: 1.5px solid #e5e7eb; border-radius: 8px;
+  font-size: 13px; font-weight: 500; cursor: pointer; background: white;
+  transition: all .15s;
+}
+.type-btn.active { border-color: #16a34a; background: #f0fdf4; color: #16a34a; font-weight: 700; }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+.btn-cancel-modal {
+  padding: 9px 20px; background: white; border: 1.5px solid #e5e7eb;
+  border-radius: 8px; font-size: 14px; cursor: pointer; color: #6b7280;
+}
+.btn-cancel-modal:hover { background: var(--bg); }
+.btn-create-list {
+  padding: 9px 24px; background: #16a34a; color: white; border: none;
+  border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.btn-create-list:hover { background: #15803d; }
+
+
+#ul-urls { font-family: monospace; font-size: 12px; }
+.lca-u { color: #2563eb !important; }
+
+/* list filter dropdown in toolbar */
+#list-filter-contacts,
+#list-filter-companies {
+  max-width: 180px;
+  min-width: 110px;
+  font-size: 12px;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  color: #374151;
+  cursor: pointer;
+}
+#list-filter-contacts:focus,
+#list-filter-companies:focus { outline: none; border-color: #1D9E75; }
+
+/* active list bar — flex when shown, hidden by default via inline style */
+#active-list-bar[style*="flex"] {
+  display: flex !important;
+}
+#active-list-bar {
+  padding: 6px 0 4px;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+
+/* sortable column headers */
+.th-sortable {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+.th-sortable:hover {
+  background: #f0fdf4;
+  color: #15803d;
+}
+.th-sort-active {
+  background: #f0fdf4 !important;
+  color: #15803d !important;
+}
+.sort-arrow {
+  font-size: 10px;
+  opacity: 0.5;
+  margin-left: 3px;
+}
+.th-sort-active .sort-arrow {
+  opacity: 1;
+}
+
+
+/* ── Lists overview cards ─────────────────────────────────────────── */
+.list-overview-card {
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 16px 18px;
+  background: #fff;
+  cursor: pointer;
+  transition: all .15s;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+}
+.list-overview-card:hover { border-color: #1D9E75; box-shadow: 0 4px 16px rgba(29,158,117,.1); }
+.list-overview-card .loc-name { font-size: 14px; font-weight: 700; color: #111827; }
+.list-overview-card .loc-count { font-size: 24px; font-weight: 800; color: #111827; line-height: 1.1; }
+.list-overview-card .loc-sub { font-size: 12px; color: #9ca3af; }
+.list-overview-card .loc-actions { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.loc-btn {
+  padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border);
+  font-size: 12px; font-weight: 600; cursor: pointer; background: #fff;
+  color: #374151; transition: all .12s;
+}
+.loc-btn:hover { background: var(--bg); border-color: #9ca3af; }
+.loc-btn.primary { background: #1D9E75; color: #fff; border-color: #1D9E75; }
+.loc-btn.primary:hover { background: #188a65; }
+.loc-btn.danger { color: #ef4444; }
+.loc-btn.danger:hover { background: #fef2f2; border-color: #fca5a5; }
+/* ── List wizard ──────────────────────────────────────────────────── */
+.wizard-type-card {
+  border: 2px solid #e5e7eb; border-radius: var(--r-lg); padding: 18px 20px;
+  cursor: pointer; transition: all .15s; flex: 1;
+}
+.wizard-type-card:hover { border-color: #1D9E75; background: #f0fdf4; }
+.wizard-type-card.selected { border-color: #1D9E75; background: #f0fdf4; }
+.wizard-type-card .wtc-icon { font-size: 28px; margin-bottom: 8px; }
+.wizard-type-card .wtc-label { font-size: 14px; font-weight: 700; color: #111827; }
+.wizard-type-card .wtc-desc { font-size: 12px; color: #6b7280; margin-top: 3px; line-height: 1.4; }
+
+
+/* When in overview mode, hide tabs and sections regardless of JS class state */
+body.mode-overview .tab-bar       { display: none !important; }
+body.mode-overview .tab-section   { display: none !important; }
+body.mode-overview #active-list-bar { display: none !important; }
+body.mode-overview #lists-overview-grid { display: block !important; }
+body.mode-overview #lists-overview-header { display: flex !important; }
+body.mode-overview #list-detail-header { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="page">
+  
+<!-- ══ LISTS OVERVIEW HEADER (shown when no list selected) ═════════ -->
+<div id="lists-overview-header" class="page-header" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0;padding-bottom:16px;border-bottom:1px solid #f1f5f9;">
+  <div>
+    <div class="page-title">Lists</div>
+    <div class="page-sub">Your target audiences — contacts and companies for outreach campaigns</div>
+  </div>
+  <button class="btn-new-list" onclick="openNewListWizard()" style="display:flex;align-items:center;gap:6px;padding:9px 18px;background:#1D9E75;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">＋ New List</button>
+</div>
+
+<!-- ══ LIST DETAIL HEADER (shown when a list is selected) ════════════ -->
+<div id="list-detail-header" style="display:none;padding-bottom:12px;border-bottom:1px solid #f1f5f9;margin-bottom:0;">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+    <button onclick="backToListsOverview()" style="background:none;border:none;color:#6b7280;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:4px;padding:0;">
+      ← <span style="text-decoration:underline;text-underline-offset:2px;">All Lists</span>
+    </button>
+    <span style="color:#d1d5db;font-size:13px;">/</span>
+    <span id="detail-list-name" style="font-size:13px;font-weight:600;color:#111827;"></span>
+    <span id="detail-list-type-badge" style="font-size:10px;font-weight:700;padding:2px 8px;border-radius: var(--r-lg);margin-left:4px;"></span>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;" id="detail-list-actions">
+    <!-- Actions injected by showListDetail() -->
+  </div>
+</div>
+  <!-- Active list filter indicator — shown in list detail mode -->
+  <div id="active-list-bar" style="display:none;">
+    <span style="color:#6b7280;">Filtered by list:</span>
+    <span id="active-list-name" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:20px;padding:2px 10px;color:#15803d;font-weight:600;"></span>
+    <button onclick="clearListFilter()" style="background:none;border:none;color:#9ca3af;cursor:pointer;font-size:13px;padding:0 4px;" title="Clear filter">✕</button>
+  </div>
+  <div class="tab-bar">
+    <button class="tab-btn active" id="tab-contacts" onclick="switchTab('contacts')">&#x1F464; Contacts</button>
+    <button class="tab-btn" id="tab-companies" onclick="switchTab('companies')">&#x1F3E2; Companies</button>
+    <button class="tab-btn" id="tab-opportunities" onclick="switchTab('opportunities')">🎯 Opportunities</button>
+  </div>
+
+  <div class="tab-section active" id="section-contacts">
+    <div class="toolbar">
+      <input class="search-input" type="search" placeholder="Search by name, company, email..." oninput="applyContactFilters()" id="contact-search">
+      <select class="filter-select" id="campaign-filter" onchange="applyContactFilters()"><option value="">All campaigns</option></select>
+      <select class="filter-select" id="stage-filter" onchange="applyContactFilters()">
+        <option value="">All stages</option>
+        <option value="no_reply">No reply</option>
+        <option value="cold_reply">Cold reply</option>
+        <option value="engaged">Engaged</option>
+        <option value="meeting_intent">Meeting intent</option>
+        <option value="meeting_booked">Meeting booked</option>
+        <option value="not_interested">Not interested</option>
+        <option value="ghost">Ghost</option>
+      </select>
+      <select class="filter-select" id="list-filter-contacts" onchange="onListFilterChange('contacts')" title="Filter by list">
+        <option value="">All lists</option>
+      </select>
+      <div class="toolbar-right">
+        <div id="enrich-status" class="enrich-pill idle"></div>
+        <button class="ghost-btn" onclick="openUploadModal(null,'','contacts')">&#x2B06; Upload contacts</button>
+        <button class="ghost-btn" onclick="openUploadModal(null,'','companies')" style="margin-left:4px;">🏢 Upload companies</button>
+        <button class="ghost-btn" id="refresh-btn" onclick="manualRefresh()"><span id="refresh-icon">&#x21BB;</span> Refresh</button>
+        <button class="ghost-btn" onclick="exportContactsCSV()">Export CSV</button>
+      </div>
+    </div>
+    <div id="bulk-bar" style="display:none;" class="bulk-bar">
+      <span id="bulk-count"></span>
+      <button onclick="deleteSelected()">Delete selected</button>
+      <button onclick="selectAll()">Select all (<span id="bulk-total"></span>)</button>
+      <button class="bulk-cancel" onclick="clearSelection()">Cancel</button>
+    </div>
+    <div class="stats-row" id="contact-stats-row">
+      <div class="live-badge"><span class="live-dot"></span><span id="last-updated">Loading...</span></div>
+    </div>
+    <div class="table-outer"><div class="table-scroll-wrap">
+      <table id="contacts-table">
+        <thead id="contacts-thead"><tr id="contacts-header-row"></tr></thead>
+        <tbody id="contacts-body"></tbody>
+      </table>
+    </div></div>
+  </div>
+
+  <div class="tab-section" id="section-companies">
+    <div class="toolbar">
+      <input class="search-input" type="search" placeholder="Search by company name..." oninput="applyCompanyFilters()" id="company-search">
+      <select class="filter-select" id="company-campaign-filter" onchange="applyCompanyFilters()"><option value="">All campaigns</option></select>
+      <select class="filter-select" id="list-filter-companies" onchange="onListFilterChange('companies')" title="Filter by list">
+        <option value="">All lists</option>
+      </select>
+      <div class="toolbar-right">
+        <button class="ghost-btn" onclick="openUploadModal(null,'','companies')">&#x2B06; Upload companies</button>
+        <button class="ghost-btn" id="icp-search-btn" onclick="openIcpFromToolbar()"
+          style="background:#1D9E75;color:#fff;border-color:#1D9E75;font-weight:600;">🎯 Find Contacts (ICP)</button>
+        <button class="ghost-btn" onclick="loadCompanies()"><span>&#x21BB;</span> Refresh</button>
+        <button class="ghost-btn" onclick="exportCompaniesCSV()">Export CSV</button>
+      </div>
+    </div>
+    <div class="stats-row" id="company-stats-row"></div>
+    <div class="table-outer"><div class="table-scroll-wrap">
+      <table id="companies-table">
+        <thead><tr id="companies-header-row"></tr></thead>
+        <tbody id="companies-body"></tbody>
+      </table>
+    </div></div>
+  </div>
+
+  <!-- Opportunities tab — 1st-degree connections at target companies -->
+  <div class="tab-section" id="section-opportunities">
+    <div id="opp-iframe-wrap" style="height:calc(100vh - 180px);border-radius:8px;overflow:hidden;"></div>
+  </div>
+</div>
+
+<!-- Confirm delete modal -->
+<div id="confirm-modal" class="confirm-backdrop" style="display:none;">
+  <div class="confirm-box">
+    <h3 id="confirm-title">Confirm deletion</h3>
+    <p id="confirm-msg"></p>
+    <div class="confirm-actions">
+      <button class="ghost-btn" onclick="closeConfirm()">Cancel</button>
+      <button class="danger-btn" onclick="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Conversation analysis popup -->
+<div id="conv-backdrop" class="conv-backdrop" style="display:none;" onclick="closeConvPopup(event)">
+  <div class="conv-modal" onclick="event.stopPropagation()">
+    <div class="conv-head">
+      <div>
+        <div class="conv-head-name" id="conv-head-name">Conversation Analysis</div>
+        <div class="conv-head-meta" id="conv-head-meta"></div>
+      </div>
+      <button class="conv-close" onclick="closeConvPopup()">&times;</button>
+    </div>
+    <div class="conv-body" id="conv-body">
+      <div class="conv-loading">Loading analysis...</div>
+    </div>
+    <div class="conv-footer">
+      <div class="conv-analyzed-ts" id="conv-analyzed-ts"></div>
+      <button class="reanalyze-btn" id="conv-reanalyze-btn" onclick="reAnalyzeContact()">
+        &#x21BB; Re-analyze
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══ Upload Modal — full-featured ═══════════════════════════════════════ -->
+<div id="upload-modal" onclick="if(event.target===this)closeUploadModal()"
+  style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius: var(--r-lg);width:640px;max-width:96vw;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,.2);">
+
+    <!-- Header -->
+    <div style="padding:18px 24px 14px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+      <div>
+        <div id="ul-modal-title" style="font-size:16px;font-weight:700;color:#0f172a;"></div>
+        <div id="ul-list-name" style="font-size:12px;color:#94a3b8;margin-top:2px;"></div>
+      </div>
+      <button onclick="closeUploadModal()" style="background:none;border:none;font-size:22px;color:#94a3b8;cursor:pointer;line-height:1;padding:0;">×</button>
+    </div>
+
+    <!-- List selector -->
+    <div id="ul-list-selector" style="padding:12px 24px 0;flex-shrink:0;">
+      <label style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:5px;">Add to list</label>
+      <select id="ul-list-select" style="width:100%;padding:8px 10px;border: 1px solid var(--border);border-radius:8px;font-size:13px;color:#0f172a;background:#fff;outline:none;">
+        <option value="">— select a list —</option>
+      </select>
+    </div>
+
+    <!-- Method tabs -->
+    <div style="display:flex;gap:0;border-bottom:1px solid #e2e8f0;padding:0 24px;margin-top:14px;flex-shrink:0;">
+      <button id="ul-tab-url"    onclick="ulSwitchTab('url')"    style="padding:8px 16px;border:none;border-bottom:2px solid #1D9E75;font-size:13px;font-weight:600;color:#1D9E75;background:none;cursor:pointer;margin-bottom:-1px;">🔗 URLs</button>
+      <button id="ul-tab-csv"    onclick="ulSwitchTab('csv')"    style="padding:8px 16px;border:none;border-bottom:2px solid transparent;font-size:13px;font-weight:500;color:#94a3b8;background:none;cursor:pointer;margin-bottom:-1px;">📁 CSV / Excel</button>
+      <button id="ul-tab-paste"  onclick="ulSwitchTab('paste')"  style="padding:8px 16px;border:none;border-bottom:2px solid transparent;font-size:13px;font-weight:500;color:#94a3b8;background:none;cursor:pointer;margin-bottom:-1px;">📋 Paste table</button>
+      <button id="ul-tab-manual" onclick="ulSwitchTab('manual')" style="padding:8px 16px;border:none;border-bottom:2px solid transparent;font-size:13px;font-weight:500;color:#94a3b8;background:none;cursor:pointer;margin-bottom:-1px;">✍️ Manual</button>
+    </div>
+
+    <!-- Scrollable body -->
+    <div style="flex:1;overflow-y:auto;padding:16px 24px;">
+
+      <!-- ── Tab: URLs ──────────────────────────────────────────────── -->
+      <div id="ul-body-url">
+        <div style="font-size:12px;color:#64748b;margin-bottom:8px;" id="ul-url-hint"></div>
+        <textarea id="ul-urls" rows="10"
+          style="width:100%;padding:10px 12px;border: 1px solid var(--border);border-radius:8px;font-family:monospace;font-size:12px;resize:vertical;outline:none;line-height:1.6;"
+          placeholder="" oninput="ulUrlCountUpdate()"></textarea>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
+          <span id="ul-url-count" style="font-size:11px;color:#94a3b8;"></span>
+          <span style="font-size:11px;color:#94a3b8;">URLs are auto-detected — extra text is ignored</span>
+        </div>
+      </div>
+
+      <!-- ── Tab: CSV / File ────────────────────────────────────────── -->
+      <div id="ul-body-csv" style="display:none;">
+        <!-- Drop zone -->
+        <div id="ul-drop-zone"
+          ondragover="event.preventDefault();this.style.borderColor='#1D9E75';this.style.background='#f0fdf4';"
+          ondragleave="this.style.borderColor='#e2e8f0';this.style.background='#f8fafc';"
+          ondrop="ulHandleDrop(event)"
+          onclick="document.getElementById('ul-file-input').click()"
+          style="border:2px dashed #e2e8f0;border-radius: var(--r-lg);padding:32px 20px;text-align:center;cursor:pointer;background:#f8fafc;transition:all .15s;margin-bottom:14px;">
+          <div style="font-size:32px;margin-bottom:8px;">📁</div>
+          <div style="font-size:14px;font-weight:600;color:#374151;margin-bottom:4px;">Drop CSV or Excel file here</div>
+          <div style="font-size:12px;color:#94a3b8;">or click to browse · .csv, .xlsx, .xls, .txt</div>
+        </div>
+        <input type="file" id="ul-file-input" accept=".csv,.xlsx,.xls,.txt" style="display:none;" onchange="ulHandleFile(this.files[0])">
+
+        <!-- Column mapper (shown after file loaded) -->
+        <div id="ul-col-mapper" style="display:none;">
+          <div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:8px;">Map columns <span style="font-weight:400;color:#94a3b8;">(optional — auto-detected)</span></div>
+          <div id="ul-col-mapper-rows" style="display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;margin-bottom:12px;"></div>
+          <div id="ul-csv-preview" style="font-size:11px;color:#64748b;background:#f8fafc;border-radius:8px;padding:10px;max-height:120px;overflow:auto;font-family:monospace;white-space:pre;"></div>
+        </div>
+      </div>
+
+      <!-- ── Tab: Paste table ───────────────────────────────────────── -->
+      <div id="ul-body-paste" style="display:none;">
+        <div style="font-size:12px;color:#64748b;margin-bottom:8px;">Paste rows from Excel or Google Sheets. First row can be headers — it will be auto-detected.</div>
+        <textarea id="ul-paste-area" rows="12"
+          style="width:100%;padding:10px 12px;border: 1px solid var(--border);border-radius:8px;font-family:monospace;font-size:11px;resize:vertical;outline:none;line-height:1.5;"
+          placeholder="Paste from Excel / Google Sheets here…&#10;&#10;Example:&#10;First Name	Last Name	Company	LinkedIn URL&#10;John	Doe	Acme Inc	https://linkedin.com/in/johndoe"
+          oninput="ulPastePreview()"></textarea>
+        <div id="ul-paste-preview" style="margin-top:10px;"></div>
+      </div>
+
+      <!-- ── Tab: Manual ────────────────────────────────────────────── -->
+      <div id="ul-body-manual" style="display:none;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;" id="ul-manual-form">
+          <div>
+            <label style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.3px;display:block;margin-bottom:4px;">First Name</label>
+            <input id="ul-m-first" type="text" style="width:100%;padding:8px 10px;border: 1px solid var(--border);border-radius:7px;font-size:13px;outline:none;" placeholder="John">
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.3px;display:block;margin-bottom:4px;">Last Name</label>
+            <input id="ul-m-last" type="text" style="width:100%;padding:8px 10px;border: 1px solid var(--border);border-radius:7px;font-size:13px;outline:none;" placeholder="Doe">
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.3px;display:block;margin-bottom:4px;">Company</label>
+            <input id="ul-m-company" type="text" style="width:100%;padding:8px 10px;border: 1px solid var(--border);border-radius:7px;font-size:13px;outline:none;" placeholder="Acme Inc">
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.3px;display:block;margin-bottom:4px;">Job Title</label>
+            <input id="ul-m-title" type="text" style="width:100%;padding:8px 10px;border: 1px solid var(--border);border-radius:7px;font-size:13px;outline:none;" placeholder="VP Sales">
+          </div>
+          <div style="grid-column:1/-1;">
+            <label style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.3px;display:block;margin-bottom:4px;">LinkedIn URL <span id="ul-m-li-req" style="color:#1D9E75;">(required for contacts)</span></label>
+            <input id="ul-m-li" type="url" style="width:100%;padding:8px 10px;border: 1px solid var(--border);border-radius:7px;font-size:13px;outline:none;" placeholder="https://www.linkedin.com/in/johndoe">
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.3px;display:block;margin-bottom:4px;">Email <span style="color:#94a3b8;font-weight:400;">(optional)</span></label>
+            <input id="ul-m-email" type="email" style="width:100%;padding:8px 10px;border: 1px solid var(--border);border-radius:7px;font-size:13px;outline:none;" placeholder="john@acme.com">
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.3px;display:block;margin-bottom:4px;">Phone <span style="color:#94a3b8;font-weight:400;">(optional)</span></label>
+            <input id="ul-m-phone" type="tel" style="width:100%;padding:8px 10px;border: 1px solid var(--border);border-radius:7px;font-size:13px;outline:none;" placeholder="+1 555 000 0000">
+          </div>
+        </div>
+        <!-- Company-specific fields -->
+        <div id="ul-m-company-fields" style="display:none;margin-top:10px;">
+          <label style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.3px;display:block;margin-bottom:4px;">LinkedIn Company URL <span style="color:#1D9E75;">(required)</span></label>
+          <input id="ul-m-li-co" type="url" style="width:100%;padding:8px 10px;border: 1px solid var(--border);border-radius:7px;font-size:13px;outline:none;" placeholder="https://www.linkedin.com/company/acme">
+        </div>
+      </div>
+
+    </div><!-- /scrollable body -->
+
+    <!-- Footer -->
+    <div style="padding:14px 24px;border-top:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:8px;">
+      <span id="ul-result" style="font-size:12px;flex:1;"></span>
+      <button onclick="closeUploadModal()" style="padding:8px 16px;border: 1px solid var(--border);border-radius:8px;background:#fff;cursor:pointer;font-size:13px;color:#374151;">Cancel</button>
+      <button id="ul-btn" onclick="ulDoUpload()"
+        style="padding:8px 20px;border:none;border-radius:8px;background:#1D9E75;color:#fff;font-weight:600;cursor:pointer;font-size:13px;min-width:90px;">Upload</button>
+    </div>
+
+  </div>
+</div><!-- /upload-modal -->
+
+<script>
+const MAX_MSG_SLOTS = 20;
+const VARIANTS = ['A', 'B', 'C'];
+
+const params = new URLSearchParams(window.location.search);
+const workspaceId = params.get('workspace_id');
+let allContacts = [], campaigns = [], filteredContacts = [];
+let currentListFilter = null; // {id, name, type} or null
+let sortCol = null;   // field key currently sorted by
+let sortDir = 'asc';  // 'asc' | 'desc'
+let sortCompanyCol = null;
+let sortCompanyDir = 'asc';
+let allCompanies = [], filteredCompanies = [];
+let selectedIds = new Set(), pendingDeleteIds = null;
+let enrichPollTimer = null, autoRefreshTimer = null, prevContactHash = '';
+let activeTab = 'contacts';
+let activeConvContactId = null;
+const AUTO_REFRESH_MS = 60000; // 60s — was 30s, reduces API chatter
+
+// ââ Conversation stage & score display ââââââââââââââââââââââââââââââââââââââââ
+
+const STAGE_LABELS = {
+  no_reply:       'No reply',
+  cold_reply:     'Cold reply',
+  engaged:        'Engaged',
+  meeting_intent: 'Meeting intent',
+  meeting_booked: 'Meeting booked â',
+  not_interested: 'Not interested',
+  ghost:          'Ghost',
+};
+
+function stageBadge(stage) {
+  if (!stage) return '<span class="cell-muted">\u2014</span>';
+  const label = STAGE_LABELS[stage] || stage;
+  return `<span class="conv-stage cs-${stage}">${label}</span>`;
+}
+
+function scoreBadge(score) {
+  const n = parseInt(score);
+  if (!n) return '<span class="cell-muted">\u2014</span>';
+  const cls = n <= 3 ? 'score-low' : n <= 5 ? 'score-mid' : n <= 7 ? 'score-good' : n <= 9 ? 'score-high' : 'score-top';
+  return `<span class="conv-score ${cls}">${n}</span>`;
+}
+
+// ââ Header builder âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+
+// Map column labels to contact field keys for sorting
+const SORT_FIELDS = {
+  'First name':        'first_name',
+  'Last name':         'last_name',
+  'Job title':         'title',
+  'Company':           'company',
+  'Location':          'location',
+  'Campaign':          'campaign_name',
+  'Already connected': 'already_connected',
+  'Chat history':      'has_chat_history',
+  'Engagement':        'engagement_level',
+  '# Msgs sent':       'msgs_sent_count',
+  'Invite sent':       'invite_sent',
+  'Invite approved':   'invite_approved',
+  'Replied':           'msg_replied',
+  'Positive reply':    'positive_reply',
+  'Profile views':     'profile_view_count',
+  'Score':             'conversation_score',
+  'Last scraped':      'engagement_scraped_at',
+  'Last liked':        'likes_sent_at',
+  'Post likes':        'post_likes_sent',
+  'Comment likes':     'comment_likes_sent',
+};
+
+const CO_SORT_FIELDS = {
+  'Company':       'company_name',
+  'Campaign':      'campaign_name',
+  'Contacts':      'contact_count',
+  'Engagement':    'engagement_level',
+  'Posts 14d':     'posts_14d',
+  'Last scraped':  'engagement_scraped_at',
+  'Post likes':    'post_likes_sent',
+  'Last liked':    'likes_sent_at',
+};
+
+function sortByCompany(field) {
+  if (sortCompanyCol === field) {
+    sortCompanyDir = sortCompanyDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    sortCompanyCol = field;
+    sortCompanyDir = 'asc';
+  }
+  filteredCompanies.sort((a, b) => {
+    let va = a[field], vb = b[field];
+    const nullA = (va === null || va === undefined || va === '');
+    const nullB = (vb === null || vb === undefined || vb === '');
+    if (nullA && nullB) return 0;
+    if (nullA) return 1;
+    if (nullB) return -1;
+    const na = parseFloat(va), nb = parseFloat(vb);
+    if (!isNaN(na) && !isNaN(nb)) return sortCompanyDir === 'asc' ? na - nb : nb - na;
+    const sa = String(va).toLowerCase(), sb = String(vb).toLowerCase();
+    if (sa < sb) return sortCompanyDir === 'asc' ? -1 : 1;
+    if (sa > sb) return sortCompanyDir === 'asc' ? 1 : -1;
+    return 0;
+  });
+  buildCompaniesHeader();
+  renderCompaniesTable();
+}
+
+function buildCompaniesHeader() {
+  const row = document.getElementById('companies-header-row');
+  if (!row) return;
+  const thCo = (label, w, center) => {
+    const f = CO_SORT_FIELDS[label];
+    const a = center ? ';text-align:center' : '';
+    if (f) {
+      const active = sortCompanyCol === f;
+      const arrow  = active ? (sortCompanyDir === 'asc' ? '↑' : '↓') : '↕';
+      const cls    = 'th-sortable' + (active ? ' th-sort-active' : '');
+      return `<th class="${cls}" style="min-width:${w}${a};" onclick="sortByCompany('${f}')">${label} <span class="sort-arrow">${arrow}</span></th>`;
+    }
+    return `<th style="min-width:${w}${a};">${label}</th>`;
+  };
+  let html = '';
+  html += thCo('Company',      '220px', false);
+  html += thCo('Campaign',     '160px', false);
+  html += thCo('Contacts',     '90px',  true);
+  html += `<th style="min-width:80px;text-align:center;">LinkedIn ID</th>`;
+  html += thCo('Engagement',   '140px', true);
+  html += thCo('Posts 14d',    '90px',  true);
+  html += thCo('Last scraped', '150px', true);
+  html += thCo('Post likes',   '120px', true);
+  html += thCo('Last liked',   '150px', true);
+  // inbound-user-cols placeholder (filled dynamically elsewhere)
+  html += `<th style="min-width:160px;">LinkedIn company</th>`;
+  row.innerHTML = html;
+}
+
+function sortBy(field) {
+  if (sortCol === field) {
+    sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    sortCol = field;
+    sortDir = 'asc';
+  }
+  tablePage = 0;
+  applySortAndRender();
+  buildContactsHeader(); // refresh arrows
+}
+
+function applySortAndRender() {
+  if (!sortCol) { renderContactsTable(); return; }
+  filteredContacts.sort((a, b) => {
+    let va = a[sortCol], vb = b[sortCol];
+    const nullA = (va === null || va === undefined || va === '');
+    const nullB = (vb === null || vb === undefined || vb === '');
+    if (nullA && nullB) return 0;
+    if (nullA) return 1;
+    if (nullB) return -1;
+    if (typeof va === 'boolean') { va = va ? 1 : 0; vb = vb ? 1 : 0; }
+    const na = parseFloat(va), nb = parseFloat(vb);
+    if (!isNaN(na) && !isNaN(nb)) return sortDir === 'asc' ? na - nb : nb - na;
+    const sa = String(va).toLowerCase(), sb = String(vb).toLowerCase();
+    if (sa < sb) return sortDir === 'asc' ? -1 : 1;
+    if (sa > sb) return sortDir === 'asc' ? 1 : -1;
+    return 0;
+  });
+  renderContactsTable();
+}
+
+function buildContactsHeader() {
+  const row = document.getElementById('contacts-header-row');
+  const th = (label, w, center, title, fieldOverride) => {
+    const f = fieldOverride || SORT_FIELDS[label];
+    const a = center ? ';text-align:center' : '';
+    const t = title ? ` title="${title}"` : '';
+    if (f) {
+      const active = sortCol === f;
+      const arrow  = active ? (sortDir === 'asc' ? '\u2191' : '\u2193') : '\u2195';
+      const cls    = 'th-sortable' + (active ? ' th-sort-active' : '');
+      return `<th class="${cls}" style="min-width:${w}${a};"${t} onclick="sortBy('${f}')">${label} <span class="sort-arrow">${arrow}</span></th>`;
+    }
+    return `<th style="min-width:${w}${a};"${t}>${label}</th>`;
+  };
+
+  let html = `<th class="check-col"><input type="checkbox" id="check-all" onchange="toggleAll(this.checked)"></th>`;
+  html += th('First name',       '144px', false);
+  if (workspaceId === '2') html += `<th style="min-width:144px;">\u05e9\u05dd \u05e4\u05e8\u05d8\u05d9 (\u05e2\u05d1\u05e8\u05d9\u05ea)</th>`;
+  html += th('Last name',        '144px', false);
+  html += th('Job title',        '200px', false);
+  html += th('Company',          '160px', false);
+  html += th('Location',         '160px', false);
+  html += `<th style="min-width:160px;">LinkedIn profile</th>`;
+  html += `<th style="min-width:160px;">LinkedIn company</th>`;
+  html += `<th style="min-width:200px;">Email</th>`;
+  html += `<th style="min-width:180px;">Website</th>`;
+  html += th('Campaign',         '160px', false);
+  html += `<th style="min-width:200px;" title="LinkedIn internal ID">Provider ID</th>`;
+  html += th('Already connected','140px', true, 'Already a 1st-degree LinkedIn connection');
+  html += th('Chat history',     '130px', true, 'Existing chat history in LinkedIn messages');
+  html += th('Engagement',       '130px', true);
+  html += th('Last scraped',     '150px', true, 'When engagement was last scraped');
+  html += th('Post likes \ud83d\udc4d', '120px', true, 'Post likes we sent', 'post_likes_sent');
+  html += th('Comment likes \ud83d\udc4d', '130px', true, 'Comment likes we sent', 'comment_likes_sent');
+  html += th('Last liked',       '150px', true, 'Last time we liked (lock = 3-day cooldown active)');
+  html += th('Invite sent',      '100px', true);
+  html += th('Invite approved',  '110px', true);
+  html += th('# Msgs sent',      '90px',  true, 'Total messages sent to this contact');
+  html += `<th style="min-width:150px;">List</th>`;
+  for (let i = 1; i <= MAX_MSG_SLOTS; i++) {
+    html += `<th style="min-width:220px;background:#FAF5FF;color:#6D28D9;">Msg ${i} (A)</th>`;
+    html += `<th style="min-width:220px;background:#EFF6FF;color:#1D4ED8;">Msg ${i} (B)</th>`;
+    html += `<th style="min-width:220px;background:#FFFBEB;color:#92400E;">Msg ${i} (C)</th>`;
+  }
+  html += th('Replied',         '90px',  true, null);
+  html += th('Positive reply',  '100px', true, null);
+  html += th('Profile views',   '110px', true, null, 'profile_view_count');
+  html += `<th style="min-width:130px;text-align:center;">Company follow</th>`;
+  html += `<th style="min-width:150px;text-align:center;" title="AI-analyzed conversation stage">Conv. Stage</th>`;
+  html += th('Score', '70px', true, 'Conversion probability 1-10');
+  html += `<th style="min-width:80px;text-align:center;">Analysis</th>`;
+  html += `<th style="min-width:60px;"></th>`;
+  row.innerHTML = html;
+}
+
+function switchTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.getElementById('section-' + tab).classList.add('active');
+  if (tab === 'companies') {
+    const lSel = document.getElementById('list-filter-companies');
+    updateActiveListBar(lSel?.value ? (lSel.options[lSel.selectedIndex]?.dataset?.name||'') : '');
+    loadCompanies();
+  }
+  if (tab === 'opportunities') {
+    const wrap = document.getElementById('opp-iframe-wrap');
+    if (!wrap.querySelector('iframe')) {
+      const iframe = document.createElement('iframe');
+      iframe.style.cssText = 'width:100%;height:100%;border:none;';
+      iframe.src = '/opportunities.html?workspace_id=' + workspaceId + '&workspace_name=' + encodeURIComponent(new URLSearchParams(location.search).get('workspace_name')||'');
+      wrap.appendChild(iframe);
+    }
+  }
+}
+
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function pct(a,b) { const bn=parseInt(b)||0; return bn>0?Math.round((parseInt(a)||0)/bn*100)+'%':'—'; }
+function safeUrl(u) { if(!u)return''; u=u.trim(); return /^https?:\/\//i.test(u)?u:'https://'+u; }
+function fmtTime(d) { return d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'}); }
+function fmtDate(ts) {
+  if (!ts) return '<span class="cell-muted">\u2014</span>';
+  const d = new Date(ts);
+  return '<span style="font-size:11px;color:#666;">' + d.toLocaleDateString() + ' ' + d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) + '</span>';
+}
+function cooldownBadge(ts) {
+  if (!ts) return '<span class="cell-muted">\u2014</span>';
+  const d = new Date(ts);
+  const diff = d.getTime() + 3*24*60*60*1000 - Date.now();
+  const dateStr = d.toLocaleDateString();
+  if (diff > 0) { const h = Math.ceil(diff/3600000); return '<span class="cooldown-badge" title="Cooldown: '+h+'h remaining">'+dateStr+' \uD83D\uDD12</span>'; }
+  return '<span style="font-size:11px;color:#666;">'+dateStr+'</span>';
+}
+function pvBadge(n) { n=parseInt(n)||0; return n>0?'<span class="pv-count">'+n+'</span>':'<span class="pv-none">\u2014</span>'; }
+function msgCountBadge(n) { n=parseInt(n)||0; return n>0?'<span class="msg-count">'+n+'</span>':'<span class="msg-count-none">\u2014</span>'; }
+function variantMsgCell(text, variant) {
+  if (!text) return '<span class="cell-muted">\u2014</span>';
+  const cls = variant === 'A' ? 'va' : variant === 'B' ? 'vb' : 'vc';
+  return '<span class="msg-text-cell '+cls+'" title="'+esc(text)+'">'+esc(text)+'</span>';
+}
+function followBadge(inv,conf) {
+  if(conf) return '<span class="follow-confirmed">Following</span>';
+  if(inv)  return '<span class="follow-invited">Invited</span>';
+  return '<span class="follow-none">\u2014</span>';
+}
+function connectedBadge(v) { return v?'<span class="connected-yes">Connected</span>':'<span class="connected-no">\u2014</span>'; }
+function chatHistoryBadge(v, connected) {
+  if (!connected) return '<span class="cell-muted">\u2014</span>';
+  return v?'<span class="chat-yes">Yes</span>':'<span class="chat-no">No</span>';
+}
+function providerIdBadge(pid,pd) {
+  if(pid) return '<span class="provider-id" title="'+esc(pid)+'">'+esc(pid)+'</span>';
+  const has = pd&&typeof pd==='object'?Object.keys(pd).length>0:(typeof pd==='string'&&pd!==''&&pd!=='{}'&&pd!=='null');
+  return has?'<span class="provider-id-missing" title="Enriched but ID not found">\u26A0 not found</span>':'<span class="cell-muted">\u2014</span>';
+}
+function engBadge(level) {
+  if(!level) return '<span class="eng-pending">\u2014</span>';
+  if(level==='engaged') return '<span class="eng-engaged">Engaged</span>';
+  if(level==='average_engaged') return '<span class="eng-average">Avg engaged</span>';
+  if(level==='un_engaged') return '<span class="eng-unengaged">Un-engaged</span>';
+  return '<span class="eng-pending">\u2014</span>';
+}
+function likeBadge(n) { n=parseInt(n)||0; return n>0?'<span class="like-count">'+n+'</span>':'<span class="like-none">\u2014</span>'; }
+function posts14dBadge(engData) {
+  if (!engData) return '<span class="cell-muted">\u2014</span>';
+  const d = typeof engData==='string'?JSON.parse(engData):engData;
+  const n = d.posts_14d;
+  if (n == null) return '<span class="cell-muted">\u2014</span>';
+  return n>0?'<span class="posts14d-badge">'+n+'</span>':'<span class="like-none">0</span>';
+}
+
+function hashC(cs) {
+  return cs.map(c=>[
+    c.id,c.invite_sent?1:0,c.invite_approved?1:0,c.msg_sent?1:0,c.msg_replied?1:0,c.positive_reply?1:0,
+    c.profile_view_count||0,c.company_follow_invited?1:0,c.company_follow_confirmed?1:0,
+    c.provider_id||'',c.engagement_level||'',c.post_likes_sent||0,c.comment_likes_sent||0,
+    c.first_name,c.last_name,c.company,c.location||'',
+    c.already_connected?1:0,c.has_chat_history?1:0,c.msgs_sent_count||0,
+    c.conversation_stage||'',c.conversation_score||0,
+  ].join(':')).join('|');
+}
+
+// Fetches all contacts across pages (handles workspaces with >5000 contacts)
+async function fetchAllContacts(wsId, listId) {
+  const listParam = listId ? '&list_id=' + listId : '';
+  const first = await fetch('/api/contacts?workspace_id=' + wsId + '&limit=5000&page=1' + listParam).then(r => r.json());
+  if (!first.pages || first.pages <= 1) return first;
+  const rest = await Promise.all(
+    Array.from({length: first.pages - 1}, (_, i) =>
+      fetch('/api/contacts?workspace_id=' + wsId + '&limit=5000&page=' + (i + 2) + listParam).then(r => r.json())
+    )
+  );
+  return {
+    items: [...first.items, ...rest.flatMap(p => p.items || [])],
+    total: first.total,
+    page: 1,
+    pages: first.pages
+  };
+}
+
+async function load(silent) {
+  if (!silent) {
+    const sr = document.getElementById('contact-stats-row');
+    if (sr) sr.innerHTML = '<div style="padding:6px 0;color:#9ca3af;font-size:12px;">⏳ Loading contacts…</div>';
+  }
+  try {
+    const [cR,campR] = await Promise.all([
+      fetchAllContacts(workspaceId, currentListFilter?.id || null),
+      fetch('/api/campaigns?workspace_id='+workspaceId)
+    ]);
+    const cD=cR, campD=await campR.json(); // cR already parsed by fetchAllContacts
+    const nc=Array.isArray(cD.items)?cD.items:[];
+    const ng=Array.isArray(campD.items)?campD.items:[];
+    window._contactsTotal = cD.total || nc.length;
+    const changed=new Set();
+    if(allContacts.length>0) {
+      const pm=Object.fromEntries(allContacts.map(c=>[c.id,c]));
+      for(const c of nc) {
+        const p=pm[c.id];
+        if(p&&(p.invite_sent!==c.invite_sent||p.invite_approved!==c.invite_approved||
+          p.msg_sent!==c.msg_sent||p.msg_replied!==c.msg_replied||p.positive_reply!==c.positive_reply||
+          (p.profile_view_count||0)!==(c.profile_view_count||0)||
+          p.company_follow_invited!==c.company_follow_invited||p.company_follow_confirmed!==c.company_follow_confirmed||
+          (p.provider_id||'')!==(c.provider_id||'')||(p.engagement_level||'')!==(c.engagement_level||'')||
+          (p.post_likes_sent||0)!==(c.post_likes_sent||0)||(p.comment_likes_sent||0)!==(c.comment_likes_sent||0)||
+          p.first_name!==c.first_name||p.last_name!==c.last_name||p.company!==c.company||
+          (p.location||'')!==(c.location||'')||
+          !!p.already_connected!==!!c.already_connected||!!p.has_chat_history!==!!c.has_chat_history||
+          (p.msgs_sent_count||0)!==(c.msgs_sent_count||0)||
+          (p.conversation_stage||'')!==(c.conversation_stage||'')||
+          (p.conversation_score||0)!==(c.conversation_score||0)
+        )) changed.add(String(c.id));
+      }
+    }
+    const nh=hashC(nc), ch=nh!==prevContactHash;
+    allContacts=nc; campaigns=ng; prevContactHash=nh;
+    const opts='<option value="">All campaigns</option>'+ng.map(c=>'<option value="'+c.id+'">'+esc(c.name)+'</option>').join('');
+    ['campaign-filter','company-campaign-filter'].forEach(id=>{ const el=document.getElementById(id); const prev=el.value; el.innerHTML=opts; if(prev) el.value=prev; });
+    if(ch||!silent) applyContactFilters(changed);
+    const luEl = document.getElementById('last-updated'); if (luEl) luEl.textContent='Updated '+fmtTime(new Date());
+    if (activeTab === 'companies') loadCompanies();
+  } catch(e){console.error(e);}
+  updateEnrichStatus(); scheduleAutoRefresh();
+}
+function scheduleAutoRefresh() { clearTimeout(autoRefreshTimer); autoRefreshTimer=setTimeout(()=>load(true),AUTO_REFRESH_MS); }
+async function manualRefresh() {
+  const btn=document.getElementById('refresh-btn'),icon=document.getElementById('refresh-icon');
+  btn.disabled=true; icon.innerHTML='<span class="spin">&#x21BB;</span>';
+  await load(false); if (activeTab === 'companies') await loadCompanies();
+  btn.disabled=false; icon.innerHTML='&#x21BB;';
+}
+async function updateEnrichStatus() {
+  try {
+    const d=await fetch('/api/campaigns/enrichment-status').then(r=>r.json());
+    const pill=document.getElementById('enrich-status');
+    if(d.queued>0||d.running) {
+      pill.className='enrich-pill active';
+      pill.innerHTML='<span class="enrich-dot pulse"></span> Enriching '+d.queued+'\u2026';
+      clearTimeout(enrichPollTimer); enrichPollTimer=setTimeout(()=>load(true),15000); // was 8s
+    } else { pill.className='enrich-pill idle'; pill.innerHTML='<span class="enrich-dot"></span> Enriched: '+d.processed; }
+  } catch(e){document.getElementById('enrich-status').innerHTML='';}
+}
+function applyContactFilters(flashIds) {
+  const q=document.getElementById('contact-search').value.trim().toLowerCase();
+  const cid=document.getElementById('campaign-filter').value;
+  const stg=document.getElementById('stage-filter').value;
+  filteredContacts=allContacts.filter(r=>{
+    if(cid&&String(r.campaign_id)!==String(cid)) return false;
+    if(stg&&(r.conversation_stage||'')!==stg) return false;
+    if(q) { const hay=[r.first_name,r.last_name,r.company,r.title,r.email,r.website,r.provider_id,r.location].join(' ').toLowerCase(); if(!hay.includes(q)) return false; }
+    // List filter — each contact has list_names (comma-separated list names)
+    if(currentListFilter) {
+      const names = (r.list_names||'').split(',').map(s=>s.trim());
+      if(!names.includes(currentListFilter.name)) return false;
+    }
+    return true;
+  });
+  selectedIds=new Set([...selectedIds].filter(id=>filteredContacts.find(r=>String(r.id)===String(id)))); tablePage=0;
+  renderContactStats(); tablePage = 0; (sortCol ? applySortAndRender() : renderContactsTable(flashIds)); renderBulkBar();
+}
+function renderContactStats() {
+  const f=filteredContacts;
+  const inv=f.filter(r=>r.company_follow_invited).length, conf=f.filter(r=>r.company_follow_confirmed).length;
+  const fv=conf>0?(conf+' confirmed / '+inv+' invited'):(inv+' invited');
+  const tv=f.reduce((s,r)=>s+(parseInt(r.profile_view_count)||0),0);
+  const vc=f.filter(r=>(parseInt(r.profile_view_count)||0)>0).length;
+  const ec=f.filter(r=>r.provider_id).length;
+  const engC=f.filter(r=>r.engagement_level&&r.engagement_level!=='un_engaged').length;
+  const plC=f.reduce((s,r)=>s+(parseInt(r.post_likes_sent)||0),0);
+  const clC=f.reduce((s,r)=>s+(parseInt(r.comment_likes_sent)||0),0);
+  const likedC=f.filter(r=>r.likes_sent_at).length;
+  const coolC=f.filter(r=>r.likes_sent_at&&(Date.now()-new Date(r.likes_sent_at).getTime())<3*24*60*60*1000).length;
+  const connC=f.filter(r=>r.already_connected).length;
+  const chatC=f.filter(r=>r.has_chat_history).length;
+  const totalMsgsSent=f.reduce((s,r)=>s+(parseInt(r.msgs_sent_count)||0),0);
+  // Conversation stats
+  const analyzedC    = f.filter(r=>r.conversation_stage).length;
+  const meetingC     = f.filter(r=>['meeting_intent','meeting_booked'].includes(r.conversation_stage)).length;
+  const engagedC     = f.filter(r=>r.conversation_stage==='engaged').length;
+  const chips=[
+    {label:'Total contacts',val:(window._contactsTotal&&window._contactsTotal>f.length)?window._contactsTotal.toLocaleString()+' (showing '+f.length+')':f.length},
+    {label:'Already connected',val:connC},
+    {label:'With chat history',val:chatC},
+    {label:'Invites sent',val:f.filter(r=>r.invite_sent).length},
+    {label:'Approved',val:f.filter(r=>r.invite_approved).length+' ('+pct(f.filter(r=>r.invite_approved).length,f.filter(r=>r.invite_sent).length)+')'},
+    {label:'Messages sent',val:f.filter(r=>r.msg_sent).length},
+    {label:'Total msgs sent',val:totalMsgsSent},
+    {label:'Replied',val:f.filter(r=>r.msg_replied).length+' ('+pct(f.filter(r=>r.msg_replied).length,f.filter(r=>r.msg_sent).length)+')'},
+    {label:'Conversations analyzed',val:analyzedC},
+    {label:'Engaged',val:engagedC},
+    {label:'Meeting intent/booked',val:meetingC},
+    {label:'Profile views',val:tv+' / '+vc+' contacts'},
+    {label:'Company follow',val:fv},
+    {label:'Enriched',val:ec+' / '+f.length},
+    {label:'Post likes sent',val:plC},
+  ].map(s=>{
+    const isKey=['Total contacts','Invites sent','Approved','Replied','Enriched'].includes(s.label);
+    const isEmpty = (String(s.val)==='0'||s.val===0||s.val==='0 (—)');
+    if(isEmpty && !isKey) return '';  // hide zero non-key chips
+    const dim = isEmpty ? 'opacity:0.45;' : '';
+    return '<div class="stat-chip" style="'+dim+'" title="'+s.label+'"><strong>'+s.val+'</strong>'+s.label+'</div>';
+  }).filter(Boolean).join('');
+  const sr=document.getElementById('contact-stats-row'),badge=document.getElementById('last-updated')?.parentElement;
+  sr.innerHTML=chips; if(badge) sr.appendChild(badge);
+}
+
+// Total = 1 + 21 + MAX_MSG_SLOTS*3 + 4(replied/pos/views/follow) + 3(stage/score/analyze) + 1(del)
+const TOTAL_COLS = 1 + 22 + MAX_MSG_SLOTS * 3 + 4 + 3 + 1 + (workspaceId==='2'?1:0);
+
+
+// ── Hebrew first name translation (CLY workspace only) ──────────────
+const _HE_MAP = {"A":"א","Abed":"עבד","Abdallah":"עבדאללה","Adam":"אדם","Adar":"אדר","Adi":"עדי","Adir":"עדיר","Adva":"אדוה","Afek":"אפק","Afik":"אפיק","Aharon":"אהרון","Ahmad":"אחמד","Ahmed":"אחמד","Ahuva":"אהובה","Alex":"אלכס","Alexander":"אלכסנדר","Alexandra":"אלכסנדרה","Ali":"עלי","Alice":"אליס","Alik":"אליק","Almog":"אלמוג","Alon":"אלון","Alona":"אלונה","Ami":"עמי","Amiel":"עמיאל","Amir":"אמיר","Amira":"אמירה","Amit":"עמית","Amitai":"עמיתי","Amnon":"אמנון","Amos":"עמוס","Anat":"ענת","Ariel":"אריאל","Ariela":"אריאלה","Arik":"אריק","Asaf":"אסף","Asher":"אשר","Asi":"אסי","Atar":"עתר","Avia":"אביה","Aviad":"אביעד","Avichai":"אביחי","Aviel":"אביאל","Avigail":"אביגיל","Avigdor":"אביגדור","Avihai":"אביחי","Aviram":"אבירם","Avishay":"אבישי","Aviva":"אביבה","Aviv":"אביב","Avital":"אביטל","Avner":"אבנר","Avraham":"אברהם","Avi":"אבי","Aya":"איה","Ayala":"איילה","Ayelet":"אילת","Bar":"בר","Barak":"ברק","Baruch":"ברוך","Bat-hen":"בת-חן","Batchen":"בת-חן","Batel":"בטל","Benny":"בני","Beny":"בני","Boaz":"בועז","Bracha":"ברכה","Callia":"קליה","Carmel":"כרמל","Carmela":"כרמלה","Carmit":"כרמית","Caroline":"קרולין","Chagit":"חגית","Chaim":"חיים","Chemi":"חמי","Dana":"דנה","Dan":"דן","Dani":"דני","Daniel":"דניאל","Daniella":"דניאלה","Danielle":"דניאל","Danit":"דנית","Danny":"דני","Dalit":"דלית","David":"דוד","Dekel":"דקל","Dganit":"דגנית","Diana":"דיאנה","Dina":"דינה","Dikla":"דקלה","Dor":"דור","Doran":"דורן","Dorit":"דורית","Doron":"דורון","Dov":"דב","Dror":"דרור","Dubi":"דובי","Dudi":"דודי","Dudu":"דודו","Dvir":"דביר","Eden":"עדן","Efrat":"אפרת","Efi":"אפי","Ehud":"אהוד","Eilon":"אילון","Einat":"עינת","Einav":"עינב","Eitan":"איתן","Elad":"אלעד","Eldad":"אלדד","Eldar":"אלדר","Elhanan":"אלחנן","Eli":"אלי","Eliana":"אליאנה","Eliezer":"אליעזר","Elinor":"אלינור","Elior":"אליאור","Eliran":"אלירן","Eliraz":"אלירז","Elisheva":"אלישבע","Emanuel":"עמנואל","Eran":"ערן","Erez":"ארז","Eshel":"אשל","Esther":"אסתר","Esti":"אסתי","Etai":"עתאי","Etay":"עתאי","Eti":"אתי","Ettie":"אתי","Ety Elbaz":"אתי","Eyal":"אייל","Gabi":"גבי","Gabriel":"גבריאל","Gadi":"גדי","Gal":"גל","Galit":"גלית","Gali":"גילי","Galia":"גליה","Geffen":"גפן","Gideon":"גדעון","Gidi":"גידי","Gil":"גיל","Gila":"גילה","Gili":"גילי","Gilad":"גלעד","Gilat":"גלית","Gill":"גיל","Golan":"גולן","Gonen":"גונן","Gur":"גור","Guy":"גיא","Hagai":"חגי","Hagay":"חגי","Hadas":"הדס","Hadass":"הדס","Hadar":"הדר","Hagar":"הגר","Hagit":"חגית","Haleli":"הללי","Hanan":"חנן","Hanit":"חנית","Haim":"חיים","Haviv":"חביב","Helen":"הלן","Heli":"חלי","Hen":"חן","Hertzel":"הרצל","Herzel":"הרצל","Hezi":"חזי","Hilit":"הילית","Hila":"הילה","Hilla":"הילה","Hillel":"הלל","Hovav":"חובב","Idan":"עידן","Ido":"עידו","Ifat":"יפעת","Igal":"יגאל","Ilan":"אילן","Ilanit":"אילנית","Ilana":"אילנה","Ilya":"איליה","Inbal":"ענבל","Inbar":"ענבר","Inon":"ענן","Iris":"אירית","Irit":"אירית","Ishay":"ישי","Israel":"ישראל","Israela":"ישראלה","Itamar":"איתמר","Itai":"איתי","Itzik":"יצחק","Izchak":"יצחק","Izhak":"יצחק","James":"ג'יימס","Jean":"ז'אן","Joel":"יואל","Jonathan":"יונתן","Josef":"יוסף","Joseph":"יוסף","Judith":"יהודית","Julia":"יוליה","Karen":"קרן","Karin":"קרין","Kfir":"כפיר","Kobi":"קובי","Koby":"קובי","Koren":"קורן","Koral":"קורל","Larisa":"לריסה","Lavi":"לביא","Lea":"לאה","Leah":"לאה","Lee":"לי","Leonid":"לאוניד","Levi":"לוי","Levy":"לוי","Liam":"ליאם","Liat":"ליאת","Liav":"ליאב","Lilach":"לילך","Limor":"לימור","Linor":"לינור","Lior":"ליאור","Liora":"ליאורה","Liran":"לירן","Liron":"לירון","Lital":"ליטל","Lotem":"לותם","Lucas":"לוקאס","Maayan":"מעיין","Maor":"מאור","Mali":"מלי","Malka":"מלכה","Malki":"מלכי","Matan":"מתן","May":"מאי","Maya":"מאיה","Meir":"מאיר","Meirav":"מירב","Meital":"מיטל","Menachem":"מנחם","Meni":"מני","Merav":"מירב","Michael":"מיכאל","Michal":"מיכל","Miki":"מיקי","Mili":"מילי","Mira":"מירה","Mirit":"מירית","Mor":"מור","Moran":"מורן","Mordechai":"מרדכי","Moriah":"מוריה","Moshe":"משה","Moti":"מוטי","Motty":"מוטי","Motti":"מוטי","Muki":"מוקי","Naama":"נעמה","Nadav":"נדב","Nahum":"נחום","Naomi":"נעמי","Naor":"נאור","Natan":"נתן","Nathan":"נתן","Natali":"נטלי","Nataly":"נטלי","Natalie":"נטלי","Nathalie":"נטלי","Nati":"נתי","Nativ":"נתיב","Nava":"נבה","Neil":"ניל","Neta":"נטע","Netanel":"נתנאל","Nevo":"נבו","Nimrod":"נמרוד","Nir":"ניר","Nirit":"נירית","Nisan":"ניסן","Nitzan":"ניצן","Niv":"ניב","Noa":"נועה","Noam":"נועם","Nofar":"נופר","Noga":"נגה","Noi":"נוי","Noy":"נוי","Nurit":"נורית","Odelia":"אודליה","Odelya":"אודליה","Ofek":"אופק","Ofer":"עופר","Ohad":"אוהד","Omri":"עומרי","On":"און","Omer":"עומר","Ophir":"אופיר","Ofir":"אופיר","Or":"אור","Ora":"אורה","Orel":"אוראל","Oren":"אורן","Oran":"אורן","Ori":"אורי","Orit":"אורית","Oron":"אורון","Oshrat":"אושרת","Osnat":"אוסנת","Osher":"אושר","Oved":"עובד","Oz":"עוז","Paul":"פול","Paz":"פז","Pazit":"פזית","Pinchas":"פינחס","Pini":"פיני","Pnina":"פנינה","Raanan":"ראנן","Rachel":"רחל","Rachela":"רחלה","Racheli":"רחלי","Rafael":"רפאל","Rafi":"רפי","Rakefet":"רקפת","Ram":"רם","Ran":"רן","Rani":"רני","Raz":"רז","Refael":"רפאל","Reut":"רעות","Reuven":"ראובן","Revital":"רביטל","Rinat":"רינת","Rina":"רינה","Rivi":"ריבי","Rivka":"רבקה","Robert":"רוברט","Roee":"רועי","Roei":"רועי","Roey":"רועי","Roi":"רועי","roie":"רועי","Ron":"רון","Ronen":"רונן","Ronit":"רונית","Roni":"רוני","Ronnie":"רוני","Rony":"רוני","Rotem":"רותם","Roy":"רועי","Ruthy":"רותי","Ruti":"רותי","Saar":"שער","Sagi":"שגיא","Sagit":"שגית","Sagiv":"שגיב","Sapir":"ספיר","Sarah":"שרה","Sarit":"שרית","Sasson":"ששון","Savion":"שביון","Sefi":"שפי","Shai":"שי","Shachar":"שחר","Shahaf":"שהף","Shahar":"שחר","Shaked":"שקד","Shalom":"שלום","Shamir":"שמיר","Shani":"שני","Shelly":"שלי","Shlomi":"שלומי","Shlomit":"שלומית","Shlomo":"שלמה","Shmuel":"שמואל","Shmulik":"שמוליק","Shoham":"שוהם","Shosh":"שוש","Shoshana":"שושנה","Shir":"שיר","Shiran":"שירן","Shiri":"שירי","Shirley":"שירלי","Shirly":"שירלי","Shimon":"שמעון","Shiko":"שיקו","Sigal":"סיגל","Sima":"סימה","Simon":"שמעון","Sivan":"סיוון","Stav":"סתיו","Tal":"טל","Tamar":"תמר","Tamir":"תמיר","Tali":"טלי","Talia":"טליה","Tami":"טמי","Tomer":"תומר","Tsvika":"צביקה","Tsahi":"צחי","Tsur":"צור","Tsofit":"צופית","Tuval":"תובל","Tzachi":"צחי","Tzahi":"צחי","Tzafrir":"צפריר","Tzion":"ציון","Tzippy":"ציפי","Udi":"אודי","Uri":"אורי","Uzi":"עוזי","Vardit":"ורדית","Vered":"ורד","Vicky":"ויקי","Yanai":"ינאי","Yaniv":"יניב","Yanir":"יניר","Yarden":"ירדן","Yarin":"ירין","Yariv":"יריב","Yael":"יעל","Yaffa":"יפה","Yafit":"יפית","Yahav":"יהב","Yair":"יאיר","Yakov":"יעקב","Yamit":"ימית","Yasmin":"יסמין","Yehonatan":"יהונתן","Yehudit":"יהודית","Yehuda":"יהודה","Yiftah":"יפתח","Yigal":"יגאל","Yisrael":"ישראל","Yochai":"יוחאי","Yochi":"יוחי","Yoav":"יואב","Yoel":"יואל","Yohai":"יוחאי","Yogev":"יוגב","Yonatan":"יונתן","Yoram":"יורם","Yosef":"יוסף","Yosi":"יוסי","Yossi":"יוסי","Yotam":"יותם","Yuval":"יובל","Zeev":"זאב","Zahi":"זהי","Zion":"ציון","Zipi":"ציפי","Ziv":"זיו","Ziva":"זיוה","Zlil":"צליל","Zohar":"זוהר","Zoharit":"זוהרית","Zvi":"צבי","Zvika":"צביקה"};
+function HE_NAMES(n){if(!n)return '';var r=_HE_MAP[n]||_HE_MAP[n.charAt(0).toUpperCase()+n.slice(1).toLowerCase()]||_HE_MAP[n.toLowerCase()];return r||n;}
+// ────────────────────────────────────────────────────────────────────
+
+const TABLE_PAGE_SIZE = 200;
+let tablePage = 0;
+
+function renderContactsTable(flashIds) {
+  const tbody=document.getElementById('contacts-body');
+  document.getElementById('check-all').checked=filteredContacts.length>0&&selectedIds.size===filteredContacts.length;
+  if(!filteredContacts.length) { tbody.innerHTML=`<tr class="empty-row"><td colspan="${TOTAL_COLS}">No contacts match your filters</td></tr>`; renderTablePager(); return; }
+  // Paginate: render only TABLE_PAGE_SIZE rows at a time
+  const start = tablePage * TABLE_PAGE_SIZE;
+  const slice = filteredContacts.slice(start, start + TABLE_PAGE_SIZE);
+  tbody.innerHTML=slice.map(r=>{
+    const sel=selectedIds.has(String(r.id)), camp=campaigns.find(c=>String(c.id)===String(r.campaign_id));
+    const bool=v=>v?'<span class="bool-yes">Yes</span>':'<span class="bool-no">No</span>';
+    const flash=flashIds&&flashIds.has(String(r.id));
+    const lip=r.li_profile_url?'<a class="cell-link" href="'+esc(safeUrl(r.li_profile_url))+'" target="_blank" rel="noopener">View profile</a>':'<span class="cell-muted">\u2014</span>';
+    const lic=r.li_company_url?'<a class="cell-link" href="'+esc(safeUrl(r.li_company_url))+'" target="_blank" rel="noopener">View company</a>':'<span class="cell-muted">\u2014</span>';
+    const web=r.website?'<a class="cell-link" href="'+esc(safeUrl(r.website))+'" target="_blank" rel="noopener">'+esc(r.website)+'</a>':'<span class="cell-muted">\u2014</span>';
+    let msgCols = '';
+    for (let i = 1; i <= MAX_MSG_SLOTS; i++) {
+      const txt = r['msg_'+i+'_text'] || null;
+      const v   = r['msg_'+i+'_variant'] || null;
+      msgCols += '<td>'+variantMsgCell(v === 'A' ? txt : null, 'A')+'</td>';
+      msgCols += '<td>'+variantMsgCell(v === 'B' ? txt : null, 'B')+'</td>';
+      msgCols += '<td>'+variantMsgCell(v === 'C' ? txt : null, 'C')+'</td>';
+    }
+    return '<tr class="'+(sel?'selected':'')+(flash?' row-flash':'')+'" id="row-'+r.id+'">'
+      +'<td class="check-col"><input type="checkbox" '+(sel?'checked':'')+' onchange="toggleRow(\''+r.id+'\',this.checked)"></td>'
+      +'<td style="font-weight:500;">'+esc(r.first_name)+'</td>'+(workspaceId==='2'?'<td class="he-name-cell" style="font-weight:500;direction:rtl;position:sticky;left:188px;z-index:2;background:white;">'+HE_NAMES(r.first_name)+'</td>':'')+'<td style="font-weight:500;">'+esc(r.last_name)+'</td>'
+      +'<td class="cell-title">'+(r.title?esc(r.title):'<span class="cell-muted">\u2014</span>')+'</td>'
+      +'<td>'+(r.company?esc(r.company):'<span class="cell-muted">\u2014</span>')+'</td>'
+      +'<td class="cell-loc">'+(r.location?esc(r.location):'<span class="cell-muted">\u2014</span>')+'</td>'
+      +'<td>'+lip+'</td><td>'+lic+'</td>'
+      +'<td>'+(r.email?esc(r.email):'<span class="cell-muted">\u2014</span>')+'</td><td>'+web+'</td>'
+      +'<td style="font-size:12px;color:#888;">'+esc(camp?.name||'\u2014')+'</td>'
+      +'<td>'+providerIdBadge(r.provider_id,r.profile_data)+'</td>'
+      +'<td style="text-align:center;">'+connectedBadge(r.already_connected)+'</td>'
+      +'<td style="text-align:center;">'+chatHistoryBadge(r.has_chat_history, r.already_connected)+'</td>'
+      +'<td style="text-align:center;">'+engBadge(r.engagement_level)+'</td>'
+      +'<td style="text-align:center;">'+fmtDate(r.engagement_scraped_at)+'</td>'
+      +'<td style="text-align:center;">'+likeBadge(r.post_likes_sent)+'</td>'
+      +'<td style="text-align:center;">'+likeBadge(r.comment_likes_sent)+'</td>'
+      +'<td style="text-align:center;">'+cooldownBadge(r.likes_sent_at)+'</td>'
+      +'<td style="text-align:center;">'+bool(r.invite_sent)+'</td><td style="text-align:center;">'+bool(r.invite_approved)+'</td>'
+      +'<td style="text-align:center;">'+msgCountBadge(r.msgs_sent_count)+'</td>'
+      + msgCols
+      +'<td style="text-align:center;">'+bool(r.msg_replied)+'</td>'
+      +'<td style="text-align:center;">'+bool(r.positive_reply)+'</td>'
+      +'<td style="text-align:center;">'+pvBadge(r.profile_view_count)+'</td>'
+      +'<td style="text-align:center;">'+followBadge(r.company_follow_invited,r.company_follow_confirmed)+'</td>'
+      +'<td style="text-align:center;">'+stageBadge(r.conversation_stage)+'</td>'
+      +'<td style="text-align:center;">'+scoreBadge(r.conversation_score)+'</td>'
+      +'<td style="text-align:center;"><button class="analyze-btn" onclick="openConvPopup('+r.id+')" title="View conversation analysis">\uD83D\uDCAC View</button></td>'
+      +'<td><button class="row-del-btn" onclick="askDeleteOne(\''+r.id+'\')" title="Delete">&times;</button></td>'
+      +'<td style="min-width:150px;">'+esc(r.list_names||'')+'</td>'
+      +'</tr>';
+  }).join('');
+  renderTablePager();
+}
+
+function renderTablePager() {
+  const total = filteredContacts.length;
+  const start = tablePage * TABLE_PAGE_SIZE;
+  const end   = Math.min(start + TABLE_PAGE_SIZE, total);
+  const pages = Math.ceil(total / TABLE_PAGE_SIZE);
+  let el = document.getElementById('table-pager');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'table-pager';
+    el.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px 16px;font-size:12px;color:#6b7280;border-top:1px solid #e5e7eb;background:#fafafa;';
+    const wrap = document.querySelector('.table-scroll-wrap');
+    if (wrap) wrap.parentElement.appendChild(el);
+  }
+  if (pages <= 1) { el.innerHTML = `<span>Showing all <strong>${total.toLocaleString()}</strong> contacts</span>`; return; }
+  const mkBtn = (label, page, dis) => `<button onclick="setTablePage(${page})" ${dis?'disabled':''} style="padding:4px 12px;border: 1px solid var(--border);border-radius:5px;background:#fff;cursor:pointer;font-size:12px;">${label}</button>`;
+  el.innerHTML = `
+    <span>Showing <strong>${(start+1).toLocaleString()}–${end.toLocaleString()}</strong> of <strong>${total.toLocaleString()}</strong></span>
+    <span style="display:flex;gap:6px;align-items:center;">
+      ${mkBtn('← Prev', tablePage-1, tablePage===0)}
+      <span style="padding:0 6px;">Page ${tablePage+1} / ${pages}</span>
+      ${mkBtn('Next →', tablePage+1, tablePage>=pages-1)}
+    </span>`;
+}
+function setTablePage(p) {
+  tablePage = Math.max(0, Math.min(p, Math.ceil(filteredContacts.length / TABLE_PAGE_SIZE) - 1));
+  renderContactsTable();
+  document.querySelector('.table-scroll-wrap')?.scrollTo(0, 0);
+}
+
+// ââ Conversation analysis popup ââââââââââââââââââââââââââââââââââââââââââââââââ
+
+async function openConvPopup(contactId) {
+  activeConvContactId = contactId;
+  const contact = allContacts.find(c => String(c.id) === String(contactId));
+  const name = contact ? `${contact.first_name} ${contact.last_name}` : `Contact ${contactId}`;
+
+  document.getElementById('conv-head-name').textContent = name;
+  document.getElementById('conv-head-meta').innerHTML = '';
+  document.getElementById('conv-analyzed-ts').textContent = '';
+  document.getElementById('conv-body').innerHTML = '<div class="conv-loading">Loading analysis\u2026</div>';
+  document.getElementById('conv-backdrop').style.display = 'flex';
+
+  try {
+    const data = await fetch(`/api/contacts/${contactId}/conversation`).then(r => r.json());
+    renderConvPopup(data);
+  } catch (err) {
+    document.getElementById('conv-body').innerHTML =
+      `<div class="conv-error">Failed to load analysis: ${esc(err.message)}</div>`;
+  }
+}
+
+function closeConvPopup(e) {
+  if (e && e.target !== document.getElementById('conv-backdrop')) return;
+  document.getElementById('conv-backdrop').style.display = 'none';
+  activeConvContactId = null;
+}
+
+function renderConvPopup(data) {
+  // Header meta
+  const metaEl = document.getElementById('conv-head-meta');
+  metaEl.innerHTML = '';
+  if (data.stage) metaEl.innerHTML += stageBadge(data.stage);
+  if (data.score) metaEl.innerHTML += '&nbsp;' + scoreBadge(data.score);
+
+  // Timestamp
+  const tsEl = document.getElementById('conv-analyzed-ts');
+  tsEl.textContent = data.analyzed_at
+    ? 'Last analyzed: ' + new Date(data.analyzed_at).toLocaleString()
+    : 'Not yet analyzed';
+
+  if (!data.stage && !data.score) {
+    document.getElementById('conv-body').innerHTML =
+      `<div class="conv-no-data">
+         No analysis available yet.<br>
+         This contact will be analyzed automatically after their next reply,<br>
+         or you can trigger it manually using the Re-analyze button.
+       </div>`;
+    return;
+  }
+
+  const signals = data.signals || [];
+  const positive = signals.filter(s => s.type === 'positive');
+  const negative = signals.filter(s => s.type === 'negative');
+
+  let html = '';
+
+  // Summary
+  if (data.summary) {
+    html += `<div>
+      <div class="conv-section-label">Summary</div>
+      <div class="conv-summary-box">${esc(data.summary)}</div>
+    </div>`;
+  }
+
+  // Signals
+  if (signals.length) {
+    html += `<div><div class="conv-section-label">Signals detected</div><div class="conv-signals">`;
+    positive.forEach(s => {
+      html += `<div class="signal-row"><span class="signal-icon">\u2705</span><span class="signal-text">${esc(s.text)}</span></div>`;
+    });
+    negative.forEach(s => {
+      html += `<div class="signal-row"><span class="signal-icon">\uD83D\uDED1</span><span class="signal-text">${esc(s.text)}</span></div>`;
+    });
+    html += `</div></div>`;
+  }
+
+  // Suggested action
+  if (data.suggested_action) {
+    html += `<div>
+      <div class="conv-section-label">Suggested next action</div>
+      <div class="conv-action-box">
+        <span class="conv-action-icon">\uD83D\uDE80</span>
+        <span>${esc(data.suggested_action)}</span>
+      </div>
+    </div>`;
+  }
+
+  // Stats
+  const depth    = data.exchange_depth || 0;
+  const prospect = data.prospect_msgs  || 0;
+  const score    = parseInt(data.score) || 0;
+  html += `<div>
+    <div class="conv-section-label">Conversation metrics</div>
+    <div class="conv-stats-row">
+      <div class="conv-stat"><strong>${depth}</strong>Total messages</div>
+      <div class="conv-stat"><strong>${prospect}</strong>From prospect</div>
+      <div class="conv-stat"><strong>${depth - prospect}</strong>From you</div>
+      <div class="conv-stat"><strong>${score}/10</strong>Conversion score</div>
+    </div>
+  </div>`;
+
+  document.getElementById('conv-body').innerHTML = html;
+}
+
+async function reAnalyzeContact() {
+  const contactId = activeConvContactId;
+  if (!contactId) return;
+  const btn = document.getElementById('conv-reanalyze-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin">&#x21BB;</span> Analyzing\u2026';
+  document.getElementById('conv-body').innerHTML = '<div class="conv-loading">Fetching conversation and analyzing with AI\u2026<br><br><span style="font-size:11px;color:#aaa;">This usually takes 5\u201310 seconds</span></div>';
+  try {
+    await fetch(`/api/contacts/${contactId}/re-analyze`, { method: 'POST' });
+    // Poll for result (analysis runs async, check every 3s for up to 30s)
+    let attempts = 0;
+    const poll = setInterval(async () => {
+      attempts++;
+      try {
+        const data = await fetch(`/api/contacts/${contactId}/conversation`).then(r => r.json());
+        if (data.stage || attempts >= 10) {
+          clearInterval(poll);
+          renderConvPopup(data);
+          btn.disabled = false;
+          btn.innerHTML = '&#x21BB; Re-analyze';
+          // Also refresh the table row
+          await load(true);
+        }
+      } catch (e) {
+        clearInterval(poll);
+        btn.disabled = false;
+        btn.innerHTML = '&#x21BB; Re-analyze';
+      }
+    }, 3000);
+  } catch (err) {
+    document.getElementById('conv-body').innerHTML =
+      `<div class="conv-error">Re-analysis failed: ${esc(err.message)}</div>`;
+    btn.disabled = false;
+    btn.innerHTML = '&#x21BB; Re-analyze';
+  }
+}
+
+function toggleRow(id,checked) {
+  if(checked) selectedIds.add(String(id)); else selectedIds.delete(String(id));
+  document.getElementById('row-'+id)?.classList.toggle('selected',checked);
+  document.getElementById('check-all').checked=selectedIds.size===filteredContacts.length;
+  renderBulkBar();
+}
+function toggleAll(c){filteredContacts.forEach(r=>{if(c)selectedIds.add(String(r.id));else selectedIds.delete(String(r.id));});renderContactsTable();renderBulkBar();}
+function selectAll(){filteredContacts.forEach(r=>selectedIds.add(String(r.id)));renderContactsTable();renderBulkBar();}
+function clearSelection(){selectedIds.clear();renderContactsTable();renderBulkBar();}
+function renderBulkBar(){
+  const bar=document.getElementById('bulk-bar');
+  if(!selectedIds.size){bar.style.display='none';return;}
+  bar.style.display='flex';
+  document.getElementById('bulk-count').textContent=selectedIds.size+' selected';
+  document.getElementById('bulk-total').textContent=filteredContacts.length;
+}
+function askDeleteOne(id){
+  const r=allContacts.find(c=>String(c.id)===String(id)); pendingDeleteIds=[id];
+  document.getElementById('confirm-title').textContent='Delete contact';
+  document.getElementById('confirm-msg').textContent='Delete '+(r?.first_name||'')+' '+(r?.last_name||'')+' from All Data?';
+  document.getElementById('confirm-modal').style.display='flex';
+}
+function deleteSelected(){
+  if(!selectedIds.size) return; pendingDeleteIds=[...selectedIds];
+  const n=selectedIds.size;
+  document.getElementById('confirm-title').textContent='Delete '+n+' contact'+(n>1?'s':'');
+  document.getElementById('confirm-msg').textContent='Permanently delete '+n+' contact'+(n>1?'s':'')+' from All Data and their campaigns.';
+  document.getElementById('confirm-modal').style.display='flex';
+}
+function closeConfirm(){document.getElementById('confirm-modal').style.display='none';pendingDeleteIds=null;}
+async function confirmDelete(){
+  if(!pendingDeleteIds) return;
+  if(pendingDeleteIds.length===1) await fetch('/api/contacts/'+pendingDeleteIds[0],{method:'DELETE'});
+  else await fetch('/api/contacts',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids:pendingDeleteIds})});
+  pendingDeleteIds.forEach(id=>selectedIds.delete(String(id)));
+  pendingDeleteIds=null; closeConfirm(); await load(false);
+}
+
+function exportContactsCSV(){
+  const fixedLabels=['First name','Last name','Job title','Company','Location','LinkedIn profile','LinkedIn company',
+    'Email','Website','Campaign','Provider ID','Already connected','Chat history','Engagement','Last scraped',
+    'Post likes sent','Comment likes sent','Last liked','Invite sent','Invite approved','# Msgs sent'];
+  const msgLabels=[];
+  for(let i=1;i<=MAX_MSG_SLOTS;i++){ msgLabels.push('Msg '+i+' (A)','Msg '+i+' (B)','Msg '+i+' (C)'); }
+  const trailingLabels=['Replied','Positive reply','Profile views','Company follow invited','Company follow confirmed',
+    'Conv. Stage','Conv. Score'];
+  const labels=[...fixedLabels,...msgLabels,...trailingLabels];
+
+  const toExport=selectedIds.size>0?filteredContacts.filter(r=>selectedIds.has(String(r.id))):filteredContacts;
+  const rows=toExport.map(r=>{
+    const c=campaigns.find(c=>String(c.id)===String(r.campaign_id));
+    const fixedVals=[r.first_name||'',r.last_name||'',r.title||'',r.company||'',r.location||'',
+      r.li_profile_url||'',r.li_company_url||'',r.email||'',r.website||'',
+      c?c.name:'',r.provider_id||'',
+      r.already_connected?'Yes':'No',
+      r.already_connected?(r.has_chat_history?'Yes':'No'):'N/A',
+      r.engagement_level||'',r.engagement_scraped_at||'',
+      parseInt(r.post_likes_sent)||0,parseInt(r.comment_likes_sent)||0,r.likes_sent_at||'',
+      r.invite_sent?'Yes':'No',r.invite_approved?'Yes':'No',
+      parseInt(r.msgs_sent_count)||0];
+    const msgVals=[];
+    for(let i=1;i<=MAX_MSG_SLOTS;i++){
+      const t = r['msg_'+i+'_text']||'';
+      const v = r['msg_'+i+'_variant']||'';
+      msgVals.push(v==='A'?t:'', v==='B'?t:'', v==='C'?t:'');
+    }
+    const trailingVals=[r.msg_replied?'Yes':'No',r.positive_reply?'Yes':'No',
+      parseInt(r.profile_view_count)||0,
+      r.company_follow_invited?'Yes':'No',r.company_follow_confirmed?'Yes':'No',
+      r.conversation_stage||'', parseInt(r.conversation_score)||''];
+    return [...fixedVals,...msgVals,...trailingVals].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',');
+  });
+  downloadCSV('contacts-data.csv', labels, rows);
+}
+
+async function loadCompanies() {
+  try {
+    const lSel = document.getElementById('list-filter-companies');
+    const listId = lSel?.value;
+
+    if (listId) {
+      // Filtered to a specific list
+      applyCompanyListFilter(parseInt(listId));
+      return;
+    }
+
+    // Default: load ALL list_companies across all lists for this workspace
+    // First try campaign_companies (enriched); if empty, fall back to list_companies
+    const [campData, listData] = await Promise.all([
+      fetch('/api/companies?workspace_id='+workspaceId+'&limit=2000').then(r=>r.json()),
+      fetch('/api/lists/all-companies?workspace_id='+workspaceId).then(r=>r.json()).catch(()=>({items:[]}))
+    ]);
+
+    const campItems = Array.isArray(campData.items) ? campData.items : [];
+    const listItems = Array.isArray(listData.items) ? listData.items : [];
+
+    // Merge: prefer campaign_companies (richer data), supplement with list_companies
+    if (campItems.length > 0) {
+      // Merge: add list companies not already in campaign_companies
+      const campUrls = new Set(campItems.map(c => (c.li_company_url||'').toLowerCase()));
+      const extras = listItems.filter(c => !campUrls.has((c.li_company_url||'').toLowerCase()));
+      allCompanies = [...campItems, ...extras.map(c => ({
+        company_name: c.company_name || '',
+        li_company_url: c.li_company_url || '',
+        company_linkedin_id: c.company_linkedin_id || '',
+        campaign_id: null, contact_count: null,
+        engagement_level: null, post_likes_sent: 0, likes_sent_at: null,
+      }))];
+    } else {
+      // No enriched companies — show list_companies directly
+      allCompanies = listItems.map(c => ({
+        company_name: c.company_name || '',
+        li_company_url: c.li_company_url || '',
+        company_linkedin_id: c.company_linkedin_id || '',
+        campaign_id: null, contact_count: null,
+        engagement_level: null, post_likes_sent: 0, likes_sent_at: null,
+      }));
+    }
+    applyCompanyFilters();
+    loadCompanyInboundData();
+  } catch(e) { console.error(e); }
+}
+function applyCompanyFilters() {
+  const q   = document.getElementById('company-search').value.trim().toLowerCase();
+  const cid = document.getElementById('company-campaign-filter').value;
+  const lSel = document.getElementById('list-filter-companies');
+  const listId = lSel?.value;
+  const listName = lSel?.options[lSel.selectedIndex]?.dataset?.name || '';
+
+  filteredCompanies = allCompanies.filter(c => {
+    if (cid && String(c.campaign_id) !== String(cid)) return false;
+    if (q && !((c.company_name||'').toLowerCase().includes(q))) return false;
+    return true;
+  });
+  updateActiveListBar(listName);
+  buildCompaniesHeader(); renderCompanyStats(); renderCompaniesTable();
+}
+
+async function applyCompanyListFilter(listId) {
+  // For companies in a specific list — fetch from list endpoint then render
+  const tbody = document.querySelector('#companies-table tbody');
+  if (tbody) tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:20px;color:#9ca3af">Loading list companies…</td></tr>';
+  try {
+    const data = await fetch('/api/lists/'+listId+'/companies?workspace_id='+workspaceId+'&limit=999').then(r=>r.json());
+    const items = data.items || [];
+    // Merge with allCompanies for enrichment data where possible
+    filteredCompanies = items.map(item => {
+      const match = allCompanies.find(c => c.company_linkedin_id && c.company_linkedin_id === item.company_linkedin_id);
+      return match || {
+        company_name: item.company_name || '',
+        li_company_url: item.li_company_url || '',
+        company_linkedin_id: item.company_linkedin_id || '',
+        campaign_id: null, contact_count: null,
+        engagement_level: null, post_likes_sent: 0, likes_sent_at: null,
+      };
+    });
+    buildCompaniesHeader(); renderCompanyStats(); renderCompaniesTable();
+    loadCompanyInboundData();
+  } catch(e) { console.error(e); }
+}
+function renderCompanyStats() {
+  const f = filteredCompanies;
+  const engaged=f.filter(c=>c.engagement_level==='engaged').length;
+  const avgEngaged=f.filter(c=>c.engagement_level==='average_engaged').length;
+  const unEngaged=f.filter(c=>c.engagement_level==='un_engaged').length;
+  const notScraped=f.filter(c=>!c.engagement_level).length;
+  const totalPostLikes=f.reduce((s,c)=>s+(parseInt(c.post_likes_sent)||0),0);
+  const totalContacts=f.reduce((s,c)=>s+(parseInt(c.contact_count)||0),0);
+  const coolC=f.filter(c=>c.likes_sent_at&&(Date.now()-new Date(c.likes_sent_at).getTime())<3*24*60*60*1000).length;
+  const chips=[
+    {label:'Total companies',val:f.length},{label:'Total contacts covered',val:totalContacts},
+    {label:'Engaged',val:engaged},{label:'Avg engaged',val:avgEngaged},{label:'Un-engaged',val:unEngaged},
+    {label:'Not yet scraped',val:notScraped},{label:'Company post likes sent',val:totalPostLikes},{label:'On cooldown',val:coolC},
+  ].map(s=>'<div class="stat-chip"><strong>'+s.val+'</strong>'+s.label+'</div>').join('');
+  document.getElementById('company-stats-row').innerHTML = chips;
+}
+// ── Inbound Signals for companies — per-user columns ──────────────────────────
+let _wsAccounts      = [];
+let _pvByAcctCo      = {};
+let _coViewsByAccount  = {}; // accountId → { total_views, identified, anonymous }
+let _coViewersByAccount  = {}; // accountId → { people:[...], companies:{ name→count } }
+let _reactionsByAccount  = {}; // accountId → { companies:{ name→count }, contacts:[...] }
+
+function normalizeCoName(name) {
+  return (name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+function shortName(full) { return (full || '').split(' ')[0]; }
+function inboundBadge(value) {
+  if (!value || value === 0) return '<span style="color:#ddd;font-size:11px;">0</span>';
+  return '<span style="background:#d1fae5;color:#065f46;font-size:11px;font-weight:700;padding:2px 8px;border-radius:8px;">' + value + '</span>';
+}
+function soonCellInner() { return '<span style="color:#ccc;font-size:10px;">—</span>'; }
+
+function buildInboundCells(companyName) {
+  const co = normalizeCoName(companyName);
+  let html = '';
+  _wsAccounts.forEach(acc => {
+    const pvMap = _pvByAcctCo[acc.id] || {};
+    // 👁 Profile views: how many times someone from this company viewed this account's profile
+    html += '<td style="text-align:center;background:#fafff8;">' + inboundBadge(pvMap[co] || 0) + '</td>';
+    // 👍 Post reactions: how many times someone from this company liked/reacted to this account's posts
+    const rxMap = (_reactionsByAccount[acc.id]?.companies) || {};
+    let rxCount = 0;
+    for (const [name, count] of Object.entries(rxMap)) {
+      const normName = normalizeCoName(name);
+      if (normName && co && co.length >= 3 && (normName === co || normName.includes(co) || co.includes(normName))) {
+        rxCount += count;
+        break;
+      }
+    }
+    html += '<td style="text-align:center;background:#fafff8;">' + inboundBadge(rxCount) + '</td>';
+    // 💬 Comments (coming soon)
+    html += '<td style="text-align:center;background:#fafff8;">' + soonCellInner() + '</td>';
+  });
+  // Co. Views: how many contacts from this company visited our LinkedIn company page
+  // Use coViewersByAccount which has per-company parsed from visitor_title
+  let coViews = 0;
+  Object.values(_coViewersByAccount).forEach(accData => {
+    const companiesMap = accData.companies || {};
+    for (const [name, count] of Object.entries(companiesMap)) {
+      const normName = normalizeCoName(name);
+      // Match if normalized names overlap (handles partial name matches)
+      if (normName && co && co.length >= 3 && (normName === co || normName.includes(co) || co.includes(normName))) {
+        coViews += count;
+        break;
+      }
+    }
+  });
+  // Only show if we have identified company page visitors (anonymous-only = unreliable)
+  const anyIdentified = Object.values(_coViewersByAccount).some(a => Object.keys(a.companies||{}).length > 0);
+  html += '<td style="text-align:center;background:#fff7ed;border-left:2px solid #fcd34d;">'
+    + (anyIdentified
+        ? inboundBadge(coViews)
+        : '<span style="color:#bbb;font-size:10px;" title="Company page visitors are anonymous — cannot match to companies">—</span>')
+    + '</td>';
+  html += '<td style="text-align:center;background:#fff7ed;">' + soonCellInner() + '</td>';
+  html += '<td style="text-align:center;background:#fff7ed;">' + soonCellInner() + '</td>';
+  return html;
+}
+
+function buildInboundHeaders() {
+  document.querySelectorAll('#companies-table .inbound-user-col').forEach(el => el.remove());
+  const theadRow = document.querySelector('#companies-table thead tr');
+  if (!theadRow) return;
+  const lastTh = theadRow.querySelector('th:last-child');
+  _wsAccounts.forEach(acc => {
+    const sn = shortName(acc.name);
+    [
+      { icon: '&#128065;', title: 'Profile views of ' + acc.name, field: 'pv' },
+      { icon: '&#128077;', title: 'Post reactions from this company on ' + acc.name + "'s posts", field: 'rx' },
+      { icon: '&#128172;', title: 'Comments on ' + acc.name + ' (coming soon)', field: 'cm' },
+    ].forEach(a => {
+      const th = document.createElement('th');
+      th.className = 'inbound-user-col';
+      th.style.cssText = 'min-width:90px;text-align:center;background:#f0faf5;color:#1a3a2a;white-space:nowrap;font-size:10px;';
+      th.title = a.title;
+      th.innerHTML = a.icon + ' ' + sn;
+      theadRow.insertBefore(th, lastTh);
+    });
+  });
+  const coActions = [
+    { icon: '&#127968;', label: 'Co. Views', title: 'Company page visits' },
+    { icon: '&#128077;', label: 'Co. Likes', title: 'Co. post likes (coming soon)' },
+    { icon: '&#128172;', label: 'Co. Cmts', title: 'Co. comments (coming soon)' },
+  ];
+  coActions.forEach((a, i) => {
+    const th = document.createElement('th');
+    th.className = 'inbound-user-col';
+    th.style.cssText = 'min-width:90px;text-align:center;background:#fff7ed;color:#92400e;white-space:nowrap;font-size:10px;'
+      + (i === 0 ? 'border-left:2px solid #fcd34d;' : '');
+    th.title = a.title;
+    th.innerHTML = a.icon + ' ' + a.label;
+    theadRow.insertBefore(th, lastTh);
+  });
+}
+
+async function loadCompanyInboundData() {
+  if (!workspaceId) return;
+  try {
+    if (!_wsAccounts.length) {
+      const acctData = await fetch('/api/workspaces/' + workspaceId + '/accounts').then(r => r.json());
+      _wsAccounts = (acctData.items || []).map(a => ({ id: a.account_id, name: a.display_name || a.account_id }));
+    }
+    const d = await fetch('/api/profile-views?workspace_id=' + workspaceId + '&limit=1000').then(r => r.json());
+    _pvByAcctCo = d.profileViewsByAccount || {};
+    _coViewsByAccount    = d.companyViewsByAccount || {};
+    _coViewersByAccount  = d.coViewersByAccount    || {};
+    _reactionsByAccount  = d.reactionsByAccount    || {};
+    buildInboundHeaders();
+    if (filteredCompanies.length) renderCompaniesTable();
+  } catch(e) { console.warn('[InboundSignals]', e.message); }
+}
+
+function renderCompaniesTable() {
+  const tbody = document.getElementById('companies-body');
+  if (!filteredCompanies.length) { tbody.innerHTML='<tr class="empty-row"><td colspan="10">No companies found</td></tr>'; return; }
+  tbody.innerHTML = filteredCompanies.map(c => {
+    const camp = campaigns.find(camp => String(camp.id) === String(c.campaign_id));
+    const liUrl = c.li_company_url || (c.company_linkedin_id ? 'https://www.linkedin.com/company/'+c.company_linkedin_id : '');
+    const liLink = liUrl ? '<a class="cell-link" href="'+esc(safeUrl(liUrl))+'" target="_blank" rel="noopener">View company</a>' : '<span class="cell-muted">\u2014</span>';
+    return '<tr>'
+      +'<td style="font-weight:500;">'+(c.company_name?esc(c.company_name):'<span class="cell-muted">\u2014</span>')+'</td>'
+      +'<td style="font-size:12px;color:#888;">'+esc(camp?.name||c.campaign_name||'\u2014')+'</td>'
+      +'<td style="text-align:center;">'+(c.contact_count!=null?'<span class="contact-count-badge">'+parseInt(c.contact_count)+'</span>':'<span class="cell-muted">—</span>')+'</td>'
+      +'<td style="text-align:center;">'+(c.company_linkedin_id?'<span class="company-id-badge">'+esc(c.company_linkedin_id)+'</span>':'<span class="cell-muted">\u2014</span>')+'</td>'
+      +'<td style="text-align:center;">'+engBadge(c.engagement_level)+'</td>'
+      +'<td style="text-align:center;">'+posts14dBadge(c.engagement_data)+'</td>'
+      +'<td style="text-align:center;">'+fmtDate(c.engagement_scraped_at)+'</td>'
+      +'<td style="text-align:center;">'+likeBadge(c.post_likes_sent)+'</td>'
+      +'<td style="text-align:center;">'+cooldownBadge(c.likes_sent_at)+'</td>'
+      +buildInboundCells(c.company_name)
+      +'<td>'+liLink+'</td></tr>';
+  }).join('');
+}
+function exportCompaniesCSV() {
+  // Build dynamic labels for CSV export
+  const inboundLabels = [];
+  _wsAccounts.forEach(acc => {
+    const sn = shortName(acc.name);
+    inboundLabels.push(sn + ' Profile Views', sn + ' Post Likes', sn + ' Comments');
+  });
+  inboundLabels.push('Co. Views', 'Co. Post Likes', 'Co. Comments');
+  const labels=['Company','Campaign','Contacts','LinkedIn ID','Engagement','Posts 14d','Last scraped','Post likes sent','Last liked',...inboundLabels,'LinkedIn URL'];
+  const rows = filteredCompanies.map(c => {
+    const camp=campaigns.find(camp=>String(camp.id)===String(c.campaign_id));
+    const d=c.engagement_data?(typeof c.engagement_data==='string'?JSON.parse(c.engagement_data):c.engagement_data):{};
+    return [c.company_name||'',camp?.name||c.campaign_name||'',parseInt(c.contact_count)||1,c.company_linkedin_id||'',
+      c.engagement_level||'',d.posts_14d??'',c.engagement_scraped_at||'',
+      parseInt(c.post_likes_sent)||0,c.likes_sent_at||'',
+      ...(_wsAccounts.flatMap(acc => {
+        const pvMap = _pvByAcctCo[acc.id] || {};
+        return [pvMap[normalizeCoName(c.company_name)]||0, '', ''];
+      })),
+      Object.values(_pvByAcctCo).reduce((s, m) => s + (m[normalizeCoName(c.company_name)]||0), 0), '', '',
+      c.li_company_url||'',
+    ].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',');
+  });
+  downloadCSV('companies-data.csv', labels, rows);
+}
+function downloadCSV(filename, labels, rows) {
+  const nl = String.fromCharCode(10);
+  const csv = '\uFEFF' + [labels.map(l=>'"'+l+'"').join(',')].concat(rows).join(nl);
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// LISTS UX — Overview ↔ Detail navigation
+// ════════════════════════════════════════════════════════════════════════════
+
+let _viewMode = 'overview'; // 'overview' | 'detail'
+let _activeDetailList = null; // { id, name, type }
+
+// ── Show/hide helpers ────────────────────────────────────────────────────────
+function showOverviewMode() {
+  _viewMode = 'overview';
+  _activeDetailList = null;
+  // CSS class on body controls all visibility via !important rules
+  document.body.classList.add('mode-overview');
+  document.body.classList.remove('mode-detail');
+  // Clear active-list-bar content
+  var barName = document.getElementById('active-list-name');
+  if (barName) barName.textContent = '';
+}
+
+function showDetailMode(list) {
+  _viewMode = 'detail';
+  _activeDetailList = list;
+  // CSS class on body controls all visibility
+  document.body.classList.remove('mode-overview');
+  document.body.classList.add('mode-detail');
+  document.getElementById('list-detail-header').style.display = '';
+  // Show tab bar for detail mode
+  var tabBar = document.querySelector('.tab-bar');
+  if (tabBar) tabBar.style.removeProperty('display');
+
+  // Set breadcrumb
+  document.getElementById('detail-list-name').textContent = list.name;
+  var badge = document.getElementById('detail-list-type-badge');
+  if (list.type === 'companies') {
+    badge.textContent = '🏢 Companies';
+    badge.style.cssText = 'font-size:10px;font-weight:700;padding:2px 8px;border-radius: var(--r-lg);background:#eff6ff;color:#1d4ed8;';
+  } else {
+    badge.textContent = '👥 Contacts';
+    badge.style.cssText = 'font-size:10px;font-weight:700;padding:2px 8px;border-radius: var(--r-lg);background:#f0fdf4;color:#15803d;';
+  }
+
+  // Build contextual action buttons
+  var actionsDiv = document.getElementById('detail-list-actions');
+  actionsDiv.innerHTML = '';
+  if (list.type === 'companies') {
+    actionsDiv.innerHTML =
+      '<button onclick="openUploadModal(' + list.id + ',\'' + (list.name||'').replace(/'/g,"\\'") + '\',\'companies\')" style="padding:7px 14px;border: 1px solid var(--border);border-radius:7px;font-size:13px;cursor:pointer;background:#fff;display:flex;align-items:center;gap:5px;">⬆ Add companies</button>' +
+      '<button onclick="openIcpModal(' + list.id + ',\'' + (list.name||'').replace(/'/g,"\\'") + '\')" style="padding:7px 14px;border:none;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;background:#1D9E75;color:#fff;display:flex;align-items:center;gap:5px;">🎯 Find Contacts (ICP)</button>';
+  } else {
+    actionsDiv.innerHTML =
+      '<button onclick="openUploadModal(' + list.id + ',\'' + (list.name||'').replace(/'/g,"\\'") + '\',\'contacts\')" style="padding:7px 14px;border: 1px solid var(--border);border-radius:7px;font-size:13px;cursor:pointer;background:#fff;display:flex;align-items:center;gap:5px;">⬆ Add contacts</button>';
+  }
+
+  // Show the right tab
+  var tabBar = document.querySelector('.tab-bar');
+  if (tabBar) tabBar.style.display = '';
+  if (list.type === 'companies') {
+    switchTab('companies');
+    // Filter to this list
+    var coSel = document.getElementById('list-filter-companies');
+    if (coSel) { coSel.value = list.id; onListFilterChange('companies'); }
+  } else {
+    switchTab('contacts');
+    // Filter to this list
+    currentListFilter = { id: list.id, name: list.name, type: 'contacts' };
+    var cSel = document.getElementById('list-filter-contacts');
+    if (cSel) cSel.value = list.id;
+    load(false);
+  }
+}
+
+function backToListsOverview() {
+  // Clear filters
+  currentListFilter = null;
+  var cSel = document.getElementById('list-filter-contacts');
+  if (cSel) cSel.value = '';
+  updateActiveListBar('');
+  showOverviewMode();
+  renderListsOverview();
+}
+
+// ── Render overview grid ─────────────────────────────────────────────────────
+function renderListsOverview() {
+  var loading = document.getElementById('lists-grid-loading');
+  var empty   = document.getElementById('lists-empty-state');
+  var coSec   = document.getElementById('lists-grid-contacts');
+  var cpSec   = document.getElementById('lists-grid-companies');
+  var coCards = document.getElementById('lists-cards-contacts');
+  var cpCards = document.getElementById('lists-cards-companies');
+
+  if (!_lists || !_lists.length) {
+    if (loading) loading.style.display = 'none';
+    if (empty)   empty.style.display = '';
+    if (coSec)   coSec.style.display = 'none';
+    if (cpSec)   cpSec.style.display = 'none';
+    return;
+  }
+
+  if (loading) loading.style.display = 'none';
+  if (empty)   empty.style.display = 'none';
+
+  var contactLists = _lists.filter(function(l) { return l.type !== 'companies'; });
+  var companyLists = _lists.filter(function(l) { return l.type === 'companies'; });
+
+  function renderCard(l) {
+    var cnt = l.type === 'companies'
+      ? parseInt(l.company_count||0)
+      : parseInt(l.contact_count||l.member_count||0);
+    var lastUpdated = l.created_at
+      ? new Date(l.created_at).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})
+      : '';
+
+    var card = document.createElement('div');
+    card.className = 'list-overview-card';
+    card.innerHTML =
+      '<div class="loc-name">' + escHtml(l.name) + '</div>' +
+      '<div class="loc-count">' + cnt.toLocaleString() + '</div>' +
+      '<div class="loc-sub">' + (l.type === 'companies' ? 'companies' : 'contacts') + (lastUpdated ? ' · Created ' + lastUpdated : '') + '</div>' +
+      (l.description ? '<div style="font-size:11px;color:#9ca3af;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + escHtml(l.description) + '">' + escHtml(l.description) + '</div>' : '') +
+      '<div class="loc-actions" id="loc-actions-' + l.id + '"></div>';
+
+    // Wire click to drill in
+    card.addEventListener('click', function(e) {
+      if (e.target.closest('.loc-actions')) return;
+      showDetailMode(l);
+    });
+
+    // Actions
+    var actions = card.querySelector('.loc-actions');
+    // Open button
+    var openBtn = document.createElement('button');
+    openBtn.className = 'loc-btn primary';
+    openBtn.textContent = 'Open →';
+    openBtn.addEventListener('click', function(e) { e.stopPropagation(); showDetailMode(l); });
+    actions.appendChild(openBtn);
+
+    if (l.type === 'companies') {
+      var icpBtn = document.createElement('button');
+      icpBtn.className = 'loc-btn';
+      icpBtn.textContent = '🎯 Find Contacts';
+      icpBtn.addEventListener('click', function(e) { e.stopPropagation(); openIcpModal(l.id, l.name); });
+      actions.appendChild(icpBtn);
+    }
+
+    var uploadBtn = document.createElement('button');
+    uploadBtn.className = 'loc-btn';
+    uploadBtn.textContent = '⬆ Upload';
+    uploadBtn.addEventListener('click', function(e) { e.stopPropagation(); openUploadModal(l.id, l.name, l.type); });
+    actions.appendChild(uploadBtn);
+
+    var deleteBtn = document.createElement('button');
+    deleteBtn.className = 'loc-btn danger';
+    deleteBtn.textContent = 'Delete';
+    deleteBtn.addEventListener('click', function(e) { e.stopPropagation(); deleteList(l.id, l.name); });
+    actions.appendChild(deleteBtn);
+
+    return card;
+  }
+
+  if (contactLists.length) {
+    coSec.style.display = '';
+    coCards.innerHTML = '';
+    contactLists.forEach(function(l) { coCards.appendChild(renderCard(l)); });
+  } else {
+    coSec.style.display = 'none';
+  }
+
+  if (companyLists.length) {
+    cpSec.style.display = '';
+    cpCards.innerHTML = '';
+    companyLists.forEach(function(l) { cpCards.appendChild(renderCard(l)); });
+  } else {
+    cpSec.style.display = 'none';
+  }
+}
+
+// ── New List Wizard ──────────────────────────────────────────────────────────
+let _wizardType = 'contacts';
+let _wizardStep = 1;
+
+function openNewListWizard() {
+  _wizardType = 'contacts';
+  _wizardStep = 1;
+  renderWizardStep();
+  document.getElementById('list-wizard-overlay').style.display = 'flex';
+}
+
+function closeListWizard() {
+  document.getElementById('list-wizard-overlay').style.display = 'none';
+}
+
+function renderWizardStep() {
+  var body = document.getElementById('wizard-body');
+  var footer = document.getElementById('wizard-footer');
+
+  if (_wizardStep === 1) {
+    // Step 1: Choose type
+    body.innerHTML =
+      '<div style="font-size:13px;color:#6b7280;margin-bottom:16px;">What kind of list do you want to create?</div>' +
+      '<div style="display:flex;gap:12px;">' +
+      '<div class="wizard-type-card' + (_wizardType==='contacts'?' selected':'') + '" id="wiz-type-contacts" onclick="selectWizardType(\'contacts\')">' +
+        '<div class="wtc-icon">👥</div>' +
+        '<div class="wtc-label">Contacts List</div>' +
+        '<div class="wtc-desc">Individual people to reach out to. Import LinkedIn URLs, CSV, or Excel.</div>' +
+      '</div>' +
+      '<div class="wizard-type-card' + (_wizardType==='companies'?' selected':'') + '" id="wiz-type-companies" onclick="selectWizardType(\'companies\')">' +
+        '<div class="wtc-icon">🏢</div>' +
+        '<div class="wtc-label">Companies List</div>' +
+        '<div class="wtc-desc">Target companies. The system then finds your ICP contacts at each company.</div>' +
+      '</div>' +
+      '</div>';
+    footer.innerHTML =
+      '<button onclick="closeListWizard()" style="padding:9px 16px;border: 1px solid var(--border);border-radius:8px;background:#fff;cursor:pointer;font-size:13px;color:#374151;">Cancel</button>' +
+      '<button onclick="wizardNext()" style="padding:9px 20px;border:none;border-radius:8px;background:#1D9E75;color:#fff;font-weight:600;cursor:pointer;font-size:13px;">Continue →</button>';
+
+  } else if (_wizardStep === 2) {
+    // Step 2: Name it
+    var typeLabel = _wizardType === 'companies' ? 'Companies' : 'Contacts';
+    body.innerHTML =
+      '<div style="font-size:13px;color:#6b7280;margin-bottom:16px;">Give your ' + typeLabel.toLowerCase() + ' list a name.</div>' +
+      '<div style="margin-bottom:12px;">' +
+        '<label style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:5px;">List name</label>' +
+        '<input id="wiz-name" type="text" style="width:100%;padding:9px 12px;border: 1px solid var(--border);border-radius:8px;font-size:13px;outline:none;" placeholder="' + (typeLabel==='Companies'?'e.g. Israeli FinTech Companies':'e.g. CLY — VP Sales') + '" autofocus>' +
+      '</div>' +
+      '<div>' +
+        '<label style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:5px;">Description <span style="font-weight:400;">(optional)</span></label>' +
+        '<input id="wiz-desc" type="text" style="width:100%;padding:9px 12px;border: 1px solid var(--border);border-radius:8px;font-size:13px;outline:none;" placeholder="What\'s this list for?">' +
+      '</div>';
+    footer.innerHTML =
+      '<button onclick="_wizardStep=1;renderWizardStep()" style="padding:9px 16px;border: 1px solid var(--border);border-radius:8px;background:#fff;cursor:pointer;font-size:13px;color:#374151;">← Back</button>' +
+      '<button onclick="wizardCreate()" style="padding:9px 20px;border:none;border-radius:8px;background:#1D9E75;color:#fff;font-weight:600;cursor:pointer;font-size:13px;">Create List</button>';
+    setTimeout(function() { var el = document.getElementById('wiz-name'); if (el) el.focus(); }, 50);
+  }
+}
+
+function selectWizardType(type) {
+  _wizardType = type;
+  document.querySelectorAll('.wizard-type-card').forEach(function(c) { c.classList.remove('selected'); });
+  var el = document.getElementById('wiz-type-' + type);
+  if (el) el.classList.add('selected');
+}
+
+function wizardNext() {
+  _wizardStep = 2;
+  renderWizardStep();
+}
+
+async function wizardCreate() {
+  var name = (document.getElementById('wiz-name')?.value || '').trim();
+  if (!name) {
+    document.getElementById('wiz-name').focus();
+    document.getElementById('wiz-name').style.borderColor = '#ef4444';
+    return;
+  }
+  var desc = document.getElementById('wiz-desc')?.value || '';
+  var btn = document.querySelector('#wizard-footer button:last-child');
+  btn.disabled = true; btn.textContent = 'Creating…';
+
+  try {
+    var r = await fetch('/api/lists', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ workspace_id: parseInt(workspaceId), name: name, type: _wizardType, description: desc })
+    }).then(function(res) { return res.json(); });
+
+    if (r.error) throw new Error(r.error);
+    closeListWizard();
+    await loadLists();
+    renderListsOverview();
+    // Auto-open the new list
+    if (r.id) showDetailMode({ id: r.id, name: name, type: _wizardType });
+  } catch(e) {
+    btn.disabled = false; btn.textContent = 'Create List';
+    var body = document.getElementById('wizard-body');
+    body.insertAdjacentHTML('afterbegin', '<div style="color:#ef4444;font-size:12px;margin-bottom:10px;">❌ ' + e.message + '</div>');
+  }
+}
+
+// Patch loadLists to also render overview
+var _origLoadLists = typeof loadLists === 'function' ? loadLists : null;
+
+// ── Page initialization: show overview mode ──────────────────────────────────
+buildContactsHeader();
+
+// On load: show overview first, load data in background
+(async function initPage() {
+  // Show overview immediately
+  showOverviewMode();
+  // Load data concurrently
+  await Promise.all([loadLists(), load(false)]);
+  // Re-apply overview after everything settles (load() may re-show tabs)
+  showOverviewMode();
+  renderListsOverview();
+  // Belt-and-suspenders: re-apply after a short delay in case anything async resets display
+  setTimeout(function() {
+    if (typeof _viewMode !== 'undefined' && _viewMode === 'overview') {
+      showOverviewMode();
+    }
+  }, 500);
+  // Load discover feeds separately (async — won't block overview)
+  if (typeof loadDiscoverFeeds === 'function') loadDiscoverFeeds();
+})();
+
+fetch('/api/contacts/re-extract?workspace_id='+workspaceId,{method:'POST'})
+  .then(r=>r.json()).then(d=>{if(d.updated>0)setTimeout(()=>load(true),3000);})
+  .catch(()=>{});
+
+
+/* ══ LISTS MANAGEMENT ═══════════════════════════════════════════════ */
+let _lists = [];
+let _activeListId = null;
+let _newListType = 'contacts';
+let _renameListId = null;
+
+function setListType(t) {
+  _newListType = t;
+  document.getElementById('type-contacts').classList.toggle('active', t==='contacts');
+  document.getElementById('type-companies').classList.toggle('active', t==='companies');
+}
+
+function openNewListModal() {
+  document.getElementById('nl-name').value = '';
+  document.getElementById('nl-desc').value = '';
+  setListType('contacts');
+  document.getElementById('new-list-modal').style.display = 'flex';
+  setTimeout(() => document.getElementById('nl-name').focus(), 50);
+}
+function closeNewListModal() { document.getElementById('new-list-modal').style.display = 'none'; }
+
+async function createList() {
+  const name = document.getElementById('nl-name').value.trim();
+  const desc = document.getElementById('nl-desc').value.trim();
+  if (!name) { document.getElementById('nl-name').focus(); return; }
+  try {
+    const r = await fetch('/api/lists', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ workspace_id: parseInt(workspaceId), name, type: _newListType, description: desc||undefined })
+    });
+    closeNewListModal();
+    await loadLists();
+  } catch(e) { showMsg('Failed to create list: ' + e.message, 'error'); }
+}
+
+function openRenameModal(listId, currentName, currentDesc) {
+  _renameListId = listId;
+  document.getElementById('rl-name').value = currentName;
+  document.getElementById('rl-desc').value = currentDesc || '';
+  document.getElementById('rename-list-modal').style.display = 'flex';
+  setTimeout(() => document.getElementById('rl-name').focus(), 50);
+}
+function closeRenameModal() { document.getElementById('rename-list-modal').style.display = 'none'; }
+
+async function saveRename() {
+  const name = document.getElementById('rl-name').value.trim();
+  const desc = document.getElementById('rl-desc').value.trim();
+  if (!name) return;
+  try {
+    await fetch('/api/lists/' + _renameListId, {
+      method: 'PATCH',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ workspace_id: parseInt(workspaceId), name, description: desc||null })
+    });
+    closeRenameModal();
+    await loadLists();
+  } catch(e) { showMsg('Failed to rename: ' + e.message, 'error'); }
+}
+
+async function deleteList(listId, listName) {
+  if (!confirm('Delete list "' + listName + '"?\nContacts in the list will NOT be deleted.')) return;
+  try {
+    await fetch('/api/lists/' + listId + '?workspace_id=' + workspaceId, { method: 'DELETE' });
+    if (_activeListId === listId) filterContacts('all');
+    await loadLists();
+  } catch(e) { showMsg('Failed to delete list: ' + e.message, 'error'); }
+}
+
+async function loadLists() {
+  try {
+    const data = await fetch('/api/lists?workspace_id=' + workspaceId).then(r=>r.json());
+    _lists = data.items || [];
+    populateListDropdowns(_lists);
+    // Render overview cards if in overview mode
+    if (typeof renderListsOverview === 'function') renderListsOverview();
+    // Render legacy cards grid (for old list-card elements if still used)
+    if (document.getElementById('lists-grid') && typeof renderListCards === 'function') renderListCards();
+  } catch(e) {
+    const el = document.getElementById('lists-grid-loading');
+    if (el) el.textContent = 'Failed to load lists';
+  }
+}
+
+function populateListDropdowns(lists) {
+  // Build options: "All lists" + one per list
+  const contactLists  = lists.filter(l => l.type !== 'companies');
+  const companyLists  = lists.filter(l => l.type === 'companies');
+
+  function buildOptions(listSubset) {
+    return '<option value="">All lists</option>' +
+      listSubset.map(l => `<option value="${l.id}" data-name="${esc(l.name)}">${esc(l.name)}${l.count ? ' ('+l.count+')' : ''}</option>`).join('');
+  }
+
+  const cEl = document.getElementById('list-filter-contacts');
+  const coEl = document.getElementById('list-filter-companies');
+  if (cEl)  cEl.innerHTML  = buildOptions(contactLists.length ? contactLists : lists);
+  if (coEl) coEl.innerHTML = buildOptions(companyLists.length ? companyLists : lists);
+}
+
+function onListFilterChange(tab) {
+  if (tab === 'contacts') {
+    const sel = document.getElementById('list-filter-contacts');
+    const listId   = sel?.value || '';
+    const listName = sel?.options[sel.selectedIndex]?.dataset?.name || '';
+    currentListFilter = listId ? { id: parseInt(listId), name: listName, type: 'contacts' } : null;
+    updateActiveListBar(listName);
+    // Re-fetch from server with list_id filter (client-side list_names unreliable)
+    load(false);
+  } else if (tab === 'companies') {
+    const sel = document.getElementById('list-filter-companies');
+    const listId = sel?.value || '';
+    const listName = sel?.options[sel.selectedIndex]?.dataset?.name || '';
+    if (listId) {
+      applyCompanyListFilter(parseInt(listId));
+    } else {
+      applyCompanyFilters(); // show all companies
+    }
+    updateActiveListBar(listName);
+  }
+}
+
+function updateActiveListBar(listName) {
+  const bar  = document.getElementById('active-list-bar');
+  const span = document.getElementById('active-list-name');
+  if (!bar || !span) return;
+  if (listName) {
+    bar.style.cssText = 'display:flex;padding:6px 0 4px;align-items:center;gap:8px;font-size:12px;flex-wrap:wrap;';
+    span.textContent = listName;
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+function clearListFilter() {
+  currentListFilter = null;
+  const cEl  = document.getElementById('list-filter-contacts');
+  const coEl = document.getElementById('list-filter-companies');
+  if (cEl)  cEl.value  = '';
+  if (coEl) coEl.value = '';
+  updateActiveListBar('');
+  if (activeTab === 'contacts')  applyContactFilters();
+  else if (activeTab === 'companies') applyCompanyFilters();
+}
+async function loadDiscoverFeeds() {
+  var feedsEl = document.getElementById('lists-cards-feeds');
+  var feedsSec = document.getElementById('lists-grid-feeds');
+  if (!feedsEl || !feedsSec) return;
+  try {
+    var r = await fetch('/api/discover-feeds?workspace_id=' + workspaceId);
+    var d = await r.json();
+    var feeds = d.feeds || [];
+    feedsSec.style.display = feeds.length ? '' : 'none';
+    feedsEl.innerHTML = '';
+    feeds.forEach(function(feed) {
+      var sinceStr = feed.last_run_at
+        ? 'Last scan ' + new Date(feed.last_run_at).toLocaleDateString('en-GB',{day:'2-digit',month:'short'})
+        : 'Never scanned';
+      var sourceBadges = (feed.sources||['reddit','linkedin']).map(function(s){
+        return '<span style="font-size:10px;padding:1px 6px;border-radius:10px;font-weight:600;' +
+          (s==='linkedin' ? 'background:#dbeafe;color:#1d4ed8' : 'background:#fee2e2;color:#991b1b') + '">' +
+          (s==='linkedin'?'in':'r/') + '</span>';
+      }).join(' ');
+
+      var card = document.createElement('div');
+      card.className = 'list-overview-card';
+      card.style.cursor = 'pointer';
+      card.innerHTML =
+        '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px;">' +
+          '<div class="loc-name" style="margin:0;">' + escHtml(feed.name) + '</div>' +
+          '<div style="display:flex;gap:4px;">' + sourceBadges + '</div>' +
+        '</div>' +
+        '<div class="loc-count">' + (feed.item_count||0) + '</div>' +
+        '<div class="loc-sub">' + escHtml(feed.keywords) + ' · ' + sinceStr + '</div>' +
+        (feed.auto_run ? '<div style="font-size:10px;color:#1D9E75;margin-top:3px;">⟳ auto-updating every 6h</div>' : '') +
+        '<div class="loc-actions" id="feed-actions-' + feed.id + '"></div>';
+
+      var actions = card.querySelector('.loc-actions');
+
+      var openBtn = document.createElement('button');
+      openBtn.className = 'loc-btn primary';
+      openBtn.textContent = 'Open →';
+      openBtn.addEventListener('click', function(e){ e.stopPropagation(); openFeedDetail(feed); });
+      actions.appendChild(openBtn);
+
+      var scanBtn = document.createElement('button');
+      scanBtn.className = 'loc-btn';
+      scanBtn.textContent = '↻ Scan now';
+      scanBtn.addEventListener('click', function(e){
+        e.stopPropagation();
+        scanBtn.textContent = 'Scanning…'; scanBtn.disabled = true;
+        fetch('/api/discover-feeds/' + feed.id + '/run', {
+          method: 'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ workspace_id: workspaceId })
+        }).then(function(r){ return r.json(); }).then(function(d){
+          scanBtn.textContent = '+' + d.added + ' new';
+          setTimeout(function(){ loadDiscoverFeeds(); }, 1500);
+        }).catch(function(){ scanBtn.textContent = 'Error'; });
+      });
+      actions.appendChild(scanBtn);
+
+      var delBtn = document.createElement('button');
+      delBtn.className = 'loc-btn danger';
+      delBtn.textContent = 'Delete';
+      delBtn.addEventListener('click', function(e){
+        e.stopPropagation();
+        if (!confirm('Delete feed "' + feed.name + '"?')) return;
+        fetch('/api/discover-feeds/' + feed.id + '?workspace_id=' + workspaceId, { method: 'DELETE' })
+          .then(function(){ loadDiscoverFeeds(); });
+      });
+      actions.appendChild(delBtn);
+
+      card.addEventListener('click', function(e){
+        if (e.target.closest('.loc-actions')) return;
+        openFeedDetail(feed);
+      });
+      feedsEl.appendChild(card);
+    });
+  } catch(e) { console.warn('[discover feeds]', e.message); }
+}
+
+function openFeedDetail(feed) {
+  // Open discover-feed detail page for this feed
+  if (window.parent?.openFeedScreen) {
+    window.parent.openFeedScreen(feed.id);
+  }
+}
+
+function openNewFeedWizard() {
+  var name = prompt('Feed name (e.g. "IVR Signals", "Cold Outreach Trends"):');
+  if (!name) return;
+  var keywords = prompt('Keywords to monitor:', '');
+  if (!keywords) return;
+  fetch('/api/discover-feeds', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ workspace_id: workspaceId, name: name.trim(), keywords: keywords.trim(), sources: ['reddit','linkedin'], auto_run: true })
+  }).then(function(r){ return r.json(); }).then(function(d){
+    if (d.feed) {
+      loadDiscoverFeeds();
+      // Trigger first scan
+      fetch('/api/discover-feeds/' + d.feed.id + '/run', {
+        method: 'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ workspace_id: workspaceId })
+      });
+    }
+  });
+}
+
+
+
+function renderListCards() {
+  const grid = document.getElementById('lists-grid');
+  if (!grid) return; // element removed in redesign
+  if (!_lists.length) {
+    grid.innerHTML = '<div class="lists-loading">No lists yet — click <strong>+ New list</strong> to create one</div>';
+    return;
+  }
+  grid.innerHTML = '';
+  _lists.forEach(function(l) {
+    const cnt = l.type === 'contacts' ? (l.contact_count||0) : (l.company_count||0);
+    const card = document.createElement('div');
+    card.className = 'list-card' + (_activeListId===l.id?' active':'');
+    card.dataset.id = l.id;
+    card.dataset.name = l.name||'';
+    card.dataset.type = l.type;
+    card.dataset.desc = l.description||'';
+    card.innerHTML =
+      '<span class="lc-icon">' + (l.type==='contacts'?'👥':'🏢') + '</span>' +
+      '<span class="lc-name">' + escHtml(l.name) + '</span>' +
+      '<span class="lc-count">' + cnt + '</span>' +
+      '<span class="lc-type">' + l.type + '</span>' +
+      '<span class="list-card-actions">' +
+        '<button class="btn-lc-action lca-u" title="Upload">⬆</button>' +
+        '<button class="btn-lc-action lca-r" title="Rename">✏️</button>' +
+        '<button class="btn-lc-action lca-d" title="Delete">🗑️</button>' +
+      '</span>';
+    card.querySelector('.lca-u').addEventListener('click', function(e){e.stopPropagation();openUploadModal(l.id,l.name,l.type);});
+    card.querySelector('.lca-r').addEventListener('click', function(e){e.stopPropagation();openRenameModal(l.id,l.name,l.description||'');});
+    card.querySelector('.lca-d').addEventListener('click', function(e){e.stopPropagation();deleteList(l.id,l.name);});
+    card.addEventListener('click', function(){filterContacts(l.id,l.name,l.type);});
+    grid.appendChild(card);
+  });
+}
+function loadListCompanies(listId) {
+  var tbody = document.querySelector('#companies-table tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:20px">Loading...</td></tr>';
+  fetch('/api/lists/' + listId + '/companies?workspace_id=' + workspaceId + '&limit=999')
+    .then(function(r){ return r.json(); })
+    .then(function(d) {
+      var items = d.items || [];
+      if (!items.length) { tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:20px">No companies in this list</td></tr>'; return; }
+      tbody.innerHTML = items.map(function(c){
+        var url = c.li_company_url || '';
+        var name = c.company_name || url.split('/').pop();
+        var lid = c.company_linkedin_id || '—';
+        return '<tr>'
+          + '<td style="font-weight:500">' + name + '</td>'
+          + '<td>—</td><td>—</td>'
+          + '<td>' + lid + '</td>'
+          + '<td>—</td><td>—</td><td>—</td><td>—</td><td>—</td>'
+          + '<td>' + (url ? '<a href="' + url + '" target="_blank" style="color:#3b82f6">' + url.replace('https://www.linkedin.com/company/','') + '</a>' : '—') + '</td>'
+          + '</tr>';
+      }).join('');
+      // Update stats
+      var total = document.querySelector('.stat-badge[data-key="total"] .stat-value') || document.querySelector('.company-stat-badge');
+      var totalEl = document.getElementById('stat-total-companies');
+      if (totalEl) totalEl.textContent = items.length;
+    }).catch(function(e){ tbody.innerHTML = '<tr><td colspan="10">Error: ' + e.message + '</td></tr>'; });
+}
+
+function filterContacts(listIdOrAll, listName, listType) {
+  const filterBar = document.getElementById('lists-filter-bar');
+  const activeLabel = document.getElementById('filter-active-list');
+  const clearBtn = document.getElementById('btn-clear-filter');
+  const allBtn = document.getElementById('filter-btn-all');
+
+  if (listIdOrAll === 'all') {
+    _activeListId = null;
+    filterBar.style.display = '';
+    activeLabel.style.display = 'none';
+    clearBtn.style.display = 'none';
+    allBtn.classList.add('active');
+    // Reset table filter
+    currentListFilter = null; applyContactFilters();
+  } else {
+    _activeListId = listIdOrAll;
+    filterBar.style.display = '';
+    activeLabel.style.display = '';
+    activeLabel.textContent = (listType==='contacts'?'👥':'🏢') + ' ' + listName;
+    clearBtn.style.display = '';
+    allBtn.classList.remove('active');
+    // Filter contacts OR show list companies
+    if (listType === 'companies') {
+      // Switch to Companies tab and load list_companies
+      document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+      var coTab = document.querySelector('.tab-btn[data-tab="companies"]') || document.querySelector('#tab-companies');
+      if (coTab) coTab.classList.add('active');
+      document.querySelectorAll('.tab-panel').forEach(function(p){ p.style.display='none'; });
+      var coPanel = document.getElementById('tab-companies') || document.querySelector('[data-tab-content="companies"]');
+      if (coPanel) coPanel.style.display='';
+      loadListCompanies(listIdOrAll);
+    } else {
+      currentListFilter = { id: listIdOrAll, name: listName, type: listType }; applyContactFilters();
+    }
+  }
+  renderListCards();
+}
+
+async function loadListContacts(listId, listType) {
+  // For contacts lists: load them into the main contacts table
+  if (listType === 'companies') {
+    showMsg('Company lists can be attached to campaigns. Contact lists are shown here.', 'info');
+    return;
+  }
+  // Re-load the contacts table filtered by list
+  if (typeof load === 'function') {
+    const origFetch = window._origFetch || fetch;
+    // Override next contacts API call to use list endpoint
+    window._listFilter = listId;
+    load()
+  loadLists();
+  }
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+
+// ════════════════════════════════════════════════════════════════════════════
+// UPLOAD MODAL — full-featured (URL paste / CSV / Excel paste / Manual entry)
+// ════════════════════════════════════════════════════════════════════════════
+
+let _ulId   = null;   // target list id
+let _ulType = 'contacts'; // 'contacts' | 'companies'
+let _ulTab  = 'url';  // current tab
+let _ulCsvRows = [];  // parsed CSV rows
+let _ulColMap  = {};  // column index → field name
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
+function ulEsc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function ulExtractLiUrl(text) {
+  // Extract first linkedin.com/in/ or linkedin.com/company/ URL from any text
+  var m = String(text||'').match(/https?:\/\/(?:www\.)?linkedin\.com\/(in|company)\/[^\s,;"'<>\]]+/);
+  return m ? m[0].replace(/\/$/, '') : null;
+}
+
+function ulCountUrls(text) {
+  var lines = String(text||'').split('\n');
+  var count = 0;
+  lines.forEach(function(l) { if (ulExtractLiUrl(l)) count++; });
+  return count;
+}
+
+const UL_FIELDS_CONTACTS  = ['linkedin_url','first_name','last_name','company','title','email','phone'];
+const UL_FIELDS_COMPANIES = ['linkedin_url','company_name','website','industry'];
+
+function ulFieldLabel(f) {
+  return {linkedin_url:'LinkedIn URL',first_name:'First Name',last_name:'Last Name',
+    company:'Company',title:'Job Title',email:'Email',phone:'Phone',
+    company_name:'Company Name',website:'Website',industry:'Industry'}[f] || f;
+}
+
+// ── Tab switching ────────────────────────────────────────────────────────────
+function ulSwitchTab(tab) {
+  _ulTab = tab;
+  ['url','csv','paste','manual'].forEach(function(t) {
+    var btn  = document.getElementById('ul-tab-' + t);
+    var body = document.getElementById('ul-body-' + t);
+    if (!btn || !body) return;
+    var active = t === tab;
+    btn.style.borderBottom = active ? '2px solid #1D9E75' : '2px solid transparent';
+    btn.style.color        = active ? '#1D9E75' : '#94a3b8';
+    btn.style.fontWeight   = active ? '600' : '500';
+    body.style.display     = active ? '' : 'none';
+  });
+}
+
+// ── Open / Close ─────────────────────────────────────────────────────────────
+function openUploadModal(id, name, type) {
+  _ulId   = id || null;
+  _ulType = type || 'contacts';
+  _ulTab  = 'url';
+  _ulCsvRows = [];
+  _ulColMap  = {};
+
+  // Title
+  var title = document.getElementById('ul-modal-title');
+  if (title) title.textContent = _ulType === 'companies' ? '🏢 Upload Companies' : '👤 Upload Contacts';
+
+  // List selector
+  var relevantLists = (_lists||[]).filter(function(l){ return l.type === _ulType; });
+  var sel = document.getElementById('ul-list-select');
+  sel.innerHTML = '<option value="">— select a list —</option>' +
+    relevantLists.map(function(l){
+      return '<option value="' + l.id + '">' + ulEsc(l.name) + ' (' + (l.member_count||0) + ')</option>';
+    }).join('');
+
+  var selector = document.getElementById('ul-list-selector');
+  var listName = document.getElementById('ul-list-name');
+
+  if (id) {
+    sel.value = id;
+    _ulId = id;
+    listName.textContent = name || '';
+    selector.style.display = relevantLists.length > 1 ? '' : 'none';
+  } else {
+    _ulId = null;
+    listName.textContent = '';
+    selector.style.display = '';
+    if (relevantLists.length === 1) {
+      sel.value = relevantLists[0].id;
+      _ulId = relevantLists[0].id;
+      listName.textContent = relevantLists[0].name;
+    }
+  }
+
+  sel.onchange = function() {
+    _ulId = sel.value ? parseInt(sel.value) : null;
+    var chosen = (_lists||[]).find(function(l){ return String(l.id) === String(sel.value); });
+    listName.textContent = chosen ? chosen.name : '';
+  };
+
+  // URL tab placeholder
+  var hint = document.getElementById('ul-url-hint');
+  if (hint) hint.textContent = _ulType === 'companies'
+    ? 'Paste LinkedIn company URLs (one per line). URLs are auto-extracted — extra text is ignored.'
+    : 'Paste LinkedIn profile URLs (one per line). URLs are auto-extracted — extra text is ignored.';
+  var ta = document.getElementById('ul-urls');
+  if (ta) {
+    ta.value = '';
+    ta.placeholder = _ulType === 'companies'
+      ? 'https://www.linkedin.com/company/microsoft\nhttps://www.linkedin.com/company/google\n\nOr paste any text containing company URLs — they will be extracted automatically.'
+      : 'https://www.linkedin.com/in/john-doe\nhttps://www.linkedin.com/in/jane-smith\n\nOr paste any text containing profile URLs — they will be extracted automatically.';
+  }
+  document.getElementById('ul-url-count').textContent = '';
+
+  // Manual form
+  ['ul-m-first','ul-m-last','ul-m-company','ul-m-title','ul-m-li','ul-m-email','ul-m-phone','ul-m-li-co'].forEach(function(id){
+    var el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  var coFields = document.getElementById('ul-m-company-fields');
+  var persFields = document.getElementById('ul-manual-form');
+  if (coFields) coFields.style.display = _ulType === 'companies' ? '' : 'none';
+  if (persFields) {
+    // Show/hide person rows based on type
+    var liReq = document.getElementById('ul-m-li-req');
+    if (liReq) liReq.style.display = _ulType === 'companies' ? 'none' : '';
+    persFields.style.display = _ulType === 'companies' ? 'none' : '';
+  }
+
+  // CSV drop zone
+  document.getElementById('ul-col-mapper').style.display = 'none';
+  document.getElementById('ul-file-input').value = '';
+
+  // Paste area
+  document.getElementById('ul-paste-area').value = '';
+  document.getElementById('ul-paste-preview').innerHTML = '';
+
+  // Result
+  document.getElementById('ul-result').textContent = '';
+  var btn = document.getElementById('ul-btn');
+  btn.disabled = false; btn.textContent = 'Upload';
+
+  // Reset tabs
+  ulSwitchTab('url');
+
+  document.getElementById('upload-modal').style.display = 'flex';
+  setTimeout(function(){ if (ta) ta.focus(); }, 50);
+}
+
+function closeUploadModal() {
+  document.getElementById('upload-modal').style.display = 'none';
+  _ulId = null;
+}
+
+// ── URL tab helpers ──────────────────────────────────────────────────────────
+function ulUrlCountUpdate() {
+  var ta = document.getElementById('ul-urls');
+  var n  = ulCountUrls(ta.value);
+  document.getElementById('ul-url-count').textContent = n ? n + ' URL' + (n>1?'s':'') + ' detected' : '';
+}
+
+// ── CSV / File tab ───────────────────────────────────────────────────────────
+function ulHandleDrop(e) {
+  e.preventDefault();
+  var dz = document.getElementById('ul-drop-zone');
+  dz.style.borderColor = '#e2e8f0';
+  dz.style.background  = '#f8fafc';
+  var file = e.dataTransfer.files[0];
+  if (file) ulHandleFile(file);
+}
+
+function ulHandleFile(file) {
+  if (!file) return;
+  var ext = file.name.split('.').pop().toLowerCase();
+  var dz  = document.getElementById('ul-drop-zone');
+  dz.innerHTML = '<div style="font-size:20px;">📄</div><div style="font-size:13px;font-weight:600;color:#374151;margin-top:6px;">' + ulEsc(file.name) + '</div><div style="font-size:11px;color:#94a3b8;margin-top:2px;">Reading…</div>';
+
+  if (ext === 'csv' || ext === 'txt') {
+    var reader = new FileReader();
+    reader.onload = function(e) { ulParseCsv(e.target.result, file.name); };
+    reader.readAsText(file);
+  } else if (ext === 'xlsx' || ext === 'xls') {
+    var reader = new FileReader();
+    reader.onload = function(e) { ulParseXlsx(e.target.result, file.name); };
+    reader.readAsArrayBuffer(file);
+  } else {
+    dz.innerHTML = '<div style="color:#ef4444;">Unsupported file type. Use .csv, .xlsx, .xls, or .txt</div>';
+  }
+}
+
+function ulParseCsv(text, filename) {
+  // Parse CSV supporting comma, semicolon, and tab delimiters
+  var lines = text.split(/\r?\n/).filter(function(l){ return l.trim(); });
+  if (!lines.length) return;
+  // Detect delimiter: count commas vs semicolons vs tabs in first line
+  var firstLine = lines[0];
+  var commas    = (firstLine.match(/,/g)||[]).length;
+  var semis     = (firstLine.match(/;/g)||[]).length;
+  var tabs      = (firstLine.match(/\t/g)||[]).length;
+  var delim     = tabs > commas && tabs > semis ? '\t' : semis > commas ? ';' : ',';
+
+  var rows = lines.map(function(line) {
+    // Simple CSV parser: handles quoted fields
+    var fields = [], cur = '', inQ = false;
+    for (var i = 0; i < line.length; i++) {
+      var ch = line[i];
+      if (ch === '"') { inQ = !inQ; }
+      else if (ch === delim && !inQ) { fields.push(cur.trim()); cur = ''; }
+      else { cur += ch; }
+    }
+    fields.push(cur.trim());
+    return fields;
+  });
+
+  ulShowCsvMapper(rows, filename);
+}
+
+function ulParseXlsx(arrayBuffer, filename) {
+  // Use SheetJS if available, otherwise show error
+  if (typeof XLSX === 'undefined') {
+    // Load SheetJS dynamically
+    var s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload = function() { ulParseXlsx(arrayBuffer, filename); };
+    document.head.appendChild(s);
+    return;
+  }
+  try {
+    var wb = XLSX.read(arrayBuffer, {type:'arraybuffer'});
+    var ws = wb.Sheets[wb.SheetNames[0]];
+    var rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+    rows = rows.filter(function(r){ return r.some(function(c){ return String(c||'').trim(); }); });
+    ulShowCsvMapper(rows, filename);
+  } catch(e) {
+    document.getElementById('ul-drop-zone').innerHTML = '<div style="color:#ef4444;">Failed to parse Excel file: ' + ulEsc(e.message) + '</div>';
+  }
+}
+
+// Auto-detect column field from header text
+function ulAutoDetectField(header, type) {
+  var h = String(header||'').toLowerCase().trim();
+  if (h.includes('linkedin') || h.includes('li_url') || h.includes('profile url') || h.includes('li url')) return 'linkedin_url';
+  if (h.includes('first') || h === 'fname') return 'first_name';
+  if (h.includes('last')  || h === 'lname') return 'last_name';
+  if (h.includes('company') || h.includes('organization') || h.includes('account')) return type==='companies' ? 'company_name' : 'company';
+  if (h.includes('title') || h.includes('position') || h.includes('role') || h.includes('job')) return 'title';
+  if (h.includes('email') || h.includes('mail')) return 'email';
+  if (h.includes('phone') || h.includes('tel') || h.includes('mobile')) return 'phone';
+  if (h.includes('website') || h.includes('domain') || h.includes('url')) return type==='companies' ? 'website' : null;
+  if (h.includes('industry') || h.includes('sector')) return 'industry';
+  if (h.includes('name') && type === 'companies') return 'company_name';
+  if (h.includes('name') && !h.includes('first') && !h.includes('last')) return 'first_name'; // full name → first_name slot
+  return null;
+}
+
+function ulShowCsvMapper(rows, filename) {
+  if (!rows.length) { document.getElementById('ul-drop-zone').innerHTML = '<div style="color:#ef4444;">No data found in file.</div>'; return; }
+
+  _ulCsvRows = rows;
+  var headers = rows[0];
+  var FIELDS = _ulType === 'companies' ? UL_FIELDS_COMPANIES : UL_FIELDS_CONTACTS;
+
+  // Auto-detect mapping
+  _ulColMap = {};
+  headers.forEach(function(h, i) {
+    var field = ulAutoDetectField(h, _ulType);
+    if (field) _ulColMap[i] = field;
+  });
+
+  // Also scan first data row for LinkedIn URLs if not found in headers
+  if (!Object.values(_ulColMap).includes('linkedin_url') && rows.length > 1) {
+    rows[1].forEach(function(cell, i) {
+      if (ulExtractLiUrl(cell)) _ulColMap[i] = 'linkedin_url';
+    });
+  }
+
+  // Build mapper UI
+  var mapperHtml = headers.map(function(h, i) {
+    var selected = _ulColMap[i] || '';
+    return '<span style="font-size:12px;color:#64748b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + ulEsc(h) + '">' + ulEsc(h||'Col '+(i+1)) + '</span>'
+      + '<span style="text-align:center;color:#94a3b8;">→</span>'
+      + '<select onchange="_ulColMap[' + i + ']=this.value||undefined" style="padding:5px 8px;border: 1px solid var(--border);border-radius:6px;font-size:12px;background:#fff;">'
+      + '<option value="">— skip —</option>'
+      + FIELDS.map(function(f){ return '<option value="' + f + '"' + (selected===f?' selected':'') + '>' + ulFieldLabel(f) + '</option>'; }).join('')
+      + '</select>';
+  }).join('');
+
+  document.getElementById('ul-col-mapper-rows').innerHTML = mapperHtml;
+
+  // Preview (first 3 data rows)
+  var previewRows = rows.slice(1, 4);
+  document.getElementById('ul-csv-preview').textContent =
+    rows.length + ' rows total · Preview:\n' +
+    previewRows.map(function(r){ return r.slice(0,5).map(function(c){ return String(c||'').slice(0,20); }).join(' | '); }).join('\n');
+
+  document.getElementById('ul-col-mapper').style.display = '';
+  document.getElementById('ul-drop-zone').innerHTML =
+    '<div style="font-size:14px;color:#1D9E75;font-weight:600;">✅ ' + ulEsc(filename) + '</div>' +
+    '<div style="font-size:12px;color:#94a3b8;margin-top:4px;">' + (rows.length-1) + ' rows · Click to replace</div>';
+}
+
+// ── Paste tab ─────────────────────────────────────────────────────────────────
+function ulPastePreview() {
+  var text = document.getElementById('ul-paste-area').value;
+  if (!text.trim()) { document.getElementById('ul-paste-preview').innerHTML = ''; return; }
+  var rows = text.split('\n').filter(function(l){ return l.trim(); });
+  var parsed = ulParseTabSeparated(rows);
+  if (!parsed.length) return;
+  var n = parsed.length;
+  document.getElementById('ul-paste-preview').innerHTML =
+    '<div style="font-size:12px;color:#1D9E75;font-weight:600;">✅ ' + n + ' row' + (n>1?'s':'') + ' detected</div>';
+}
+
+function ulParseTabSeparated(lines) {
+  // Each line is tab-separated (from Excel copy-paste)
+  return lines.map(function(line) {
+    return line.split('\t').map(function(c){ return c.trim(); });
+  }).filter(function(r){ return r.some(function(c){ return c; }); });
+}
+
+function ulPasteToContacts(rows) {
+  // Auto-map paste rows: detect headers in first row
+  var hasHeaders = rows[0].some(function(c){
+    var cl = c.toLowerCase();
+    return cl.includes('name') || cl.includes('email') || cl.includes('linkedin') || cl.includes('company') || cl.includes('title') || cl.includes('first') || cl.includes('last');
+  });
+
+  var dataRows = hasHeaders ? rows.slice(1) : rows;
+  var headers  = hasHeaders ? rows[0] : null;
+
+  // Build column map from headers (or use positional)
+  var colMap = {};
+  if (headers) {
+    headers.forEach(function(h, i) { var f = ulAutoDetectField(h, _ulType); if (f) colMap[i] = f; });
+  } else {
+    // Positional: try to guess from content
+    if (rows[0]) {
+      rows[0].forEach(function(cell, i) {
+        if (ulExtractLiUrl(cell)) colMap[i] = 'linkedin_url';
+        else if (i === 0 && !colMap[0]) colMap[0] = 'first_name';
+        else if (i === 1 && !colMap[1]) colMap[1] = 'last_name';
+        else if (i === 2 && !colMap[2]) colMap[2] = 'company';
+      });
+    }
+  }
+
+  return dataRows.map(function(row) {
+    var obj = {};
+    row.forEach(function(cell, i) {
+      var field = colMap[i];
+      if (field) obj[field] = cell;
+      // Also scan each cell for LinkedIn URL
+      var url = ulExtractLiUrl(cell);
+      if (url && !obj.linkedin_url) obj.linkedin_url = url;
+    });
+    return obj;
+  }).filter(function(o){ return Object.keys(o).length > 0; });
+}
+
+// ── Main upload dispatcher ────────────────────────────────────────────────────
+async function ulDoUpload() {
+  if (!_ulId) {
+    document.getElementById('ul-result').innerHTML = '<span style="color:#ef4444">Please select a list first.</span>';
+    return;
+  }
+
+  var btn = document.getElementById('ul-btn');
+  btn.disabled = true; btn.textContent = 'Uploading…';
+  document.getElementById('ul-result').textContent = '';
+
+  try {
+    var contacts = [];
+    var companies = [];
+
+    if (_ulTab === 'url') {
+      var raw = document.getElementById('ul-urls').value;
+      var lines = raw.split('\n').filter(function(l){ return l.trim(); });
+      lines.forEach(function(line) {
+        var url = ulExtractLiUrl(line);
+        if (!url) return;
+        if (_ulType === 'companies') companies.push({li_company_url: url, company_name: url.split('/').filter(Boolean).pop()});
+        else contacts.push({li_profile_url: url});
+      });
+
+    } else if (_ulTab === 'csv') {
+      if (!_ulCsvRows.length) { document.getElementById('ul-result').innerHTML = '<span style="color:#ef4444">No file loaded.</span>'; btn.disabled=false; btn.textContent='Upload'; return; }
+      var dataRows = _ulCsvRows.slice(1); // skip header row
+      dataRows.forEach(function(row) {
+        var obj = {};
+        row.forEach(function(cell, i) {
+          var field = _ulColMap[i];
+          if (field) obj[field] = String(cell||'').trim();
+          var url = ulExtractLiUrl(cell);
+          if (url && !obj.linkedin_url) obj.linkedin_url = url;
+        });
+        if (_ulType === 'companies') {
+          if (obj.linkedin_url || obj.company_name) companies.push({li_company_url: obj.linkedin_url||'', company_name: obj.company_name||obj.linkedin_url?.split('/').filter(Boolean).pop()||''});
+        } else {
+          if (obj.linkedin_url) contacts.push({li_profile_url: obj.linkedin_url, first_name: obj.first_name||'', last_name: obj.last_name||'', company: obj.company||'', title: obj.title||'', email: obj.email||''});
+        }
+      });
+
+    } else if (_ulTab === 'paste') {
+      var pasteText = document.getElementById('ul-paste-area').value;
+      var pasteRows = ulParseTabSeparated(pasteText.split('\n').filter(function(l){ return l.trim(); }));
+      var mapped = ulPasteToContacts(pasteRows);
+      mapped.forEach(function(obj) {
+        if (_ulType === 'companies') {
+          if (obj.linkedin_url || obj.company_name) companies.push({li_company_url: obj.linkedin_url||'', company_name: obj.company_name||''});
+        } else {
+          if (obj.linkedin_url) contacts.push({li_profile_url: obj.linkedin_url, first_name: obj.first_name||'', last_name: obj.last_name||'', company: obj.company||'', title: obj.title||''});
+        }
+      });
+
+    } else if (_ulTab === 'manual') {
+      if (_ulType === 'companies') {
+        var liCo = document.getElementById('ul-m-li-co').value.trim();
+        if (!liCo.includes('linkedin.com/company/')) { document.getElementById('ul-result').innerHTML = '<span style="color:#ef4444">Enter a valid LinkedIn company URL.</span>'; btn.disabled=false; btn.textContent='Upload'; return; }
+        companies.push({li_company_url: liCo, company_name: document.getElementById('ul-m-company').value.trim() || liCo.split('/').filter(Boolean).pop()});
+      } else {
+        var liUrl = document.getElementById('ul-m-li').value.trim();
+        if (!liUrl.includes('linkedin.com/in/')) { document.getElementById('ul-result').innerHTML = '<span style="color:#ef4444">Enter a valid LinkedIn profile URL.</span>'; btn.disabled=false; btn.textContent='Upload'; return; }
+        contacts.push({li_profile_url: liUrl, first_name: document.getElementById('ul-m-first').value.trim(), last_name: document.getElementById('ul-m-last').value.trim(), company: document.getElementById('ul-m-company').value.trim(), title: document.getElementById('ul-m-title').value.trim(), email: document.getElementById('ul-m-email').value.trim()});
+      }
+    }
+
+    // ── Send to backend ──────────────────────────────────────────────────────
+    if (_ulType === 'companies') {
+      if (!companies.length) { document.getElementById('ul-result').innerHTML = '<span style="color:#ef4444">No valid company URLs found.</span>'; btn.disabled=false; btn.textContent='Upload'; return; }
+      document.getElementById('ul-result').textContent = 'Uploading ' + companies.length + ' companies…';
+      var r = await fetch('/api/lists/' + _ulId + '/companies', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({workspace_id: parseInt(workspaceId), companies: companies})
+      }).then(function(res){ return res.json(); });
+      document.getElementById('ul-result').innerHTML = '<span style="color:#16a34a">✓ Added ' + (r.added||0) + (r.skipped?' ('+r.skipped+' skipped)':'') + '</span>';
+      await loadLists(); await loadCompanies();
+    } else {
+      if (!contacts.length) { document.getElementById('ul-result').innerHTML = '<span style="color:#ef4444">No valid LinkedIn profile URLs found.</span>'; btn.disabled=false; btn.textContent='Upload'; return; }
+      document.getElementById('ul-result').textContent = 'Uploading ' + contacts.length + ' contacts…';
+      var r = await fetch('/api/lists/' + _ulId + '/contacts', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({workspace_id: parseInt(workspaceId), contacts: contacts})
+      }).then(function(res){ return res.json(); });
+      document.getElementById('ul-result').innerHTML = '<span style="color:#16a34a">✓ Added ' + (r.added||0) + (r.skipped?' ('+r.skipped+' skipped)':'') + '</span>';
+      await loadLists();
+    }
+
+    btn.textContent = '✓ Done';
+    // For companies list: offer ICP contact search after upload
+    if (_ulType === 'companies' && _ulId) {
+      const listName = (_lists||[]).find(l=>l.id===_ulId)?.name || 'Companies';
+      setTimeout(() => openIcpAfterUpload(_ulId, listName), 1200);
+    } else {
+      setTimeout(closeUploadModal, 2000);
+    }
+
+  } catch(e) {
+    document.getElementById('ul-result').innerHTML = '<span style="color:#ef4444">Error: ' + ulEsc(e.message) + '</span>';
+    btn.disabled = false; btn.textContent = 'Upload';
+  }
+}
+
+// Keep uploadContacts as alias for any old callers
+function uploadContacts() { ulDoUpload(); }
+
+
+
+buildContactsHeader();
+load(false);
+loadLists();
+</script>
+
+<!-- ══ ICP Find Contacts Modal ════════════════════════════════════════════════ -->
+<div id="icp-modal" onclick="if(event.target===this)closeIcpModal()"
+  style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:10001;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius: var(--r-lg);width:540px;max-width:95vw;box-shadow:0 24px 64px rgba(0,0,0,.22);overflow:hidden;">
+    <!-- Header -->
+    <div style="padding:20px 24px 16px;border-bottom:1px solid #f1f5f9;display:flex;align-items:flex-start;justify-content:space-between;">
+      <div>
+        <div style="font-size:16px;font-weight:700;color:#0f172a;">🎯 Find Contacts by ICP</div>
+        <div id="icp-list-name" style="font-size:12px;color:#94a3b8;margin-top:3px;"></div>
+      </div>
+      <button onclick="closeIcpModal()" style="background:none;border:none;font-size:21px;color:#94a3b8;cursor:pointer;line-height:1;">×</button>
+    </div>
+    <!-- Body -->
+    <div style="padding:20px 24px;">
+      <!-- Stats -->
+      <div id="icp-stats" style="background:#f8fafc;border-radius:10px;padding:12px 16px;margin-bottom:18px;font-size:13px;color:#475569;"></div>
+
+      <!-- Titles input -->
+      <div style="margin-bottom:16px;">
+        <label style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:6px;">
+          Target Job Titles <span style="color:#1D9E75;">(ICP)</span>
+        </label>
+        <div style="font-size:12px;color:#94a3b8;margin-bottom:8px;">One title per line. The system will search LinkedIn for people with these titles at every company in the list.</div>
+        <textarea id="icp-titles-ta" rows="7"
+          style="width:100%;padding:10px 12px;border: 1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;outline:none;line-height:1.6;color:#1e293b;"
+          onfocus="this.style.borderColor='#1D9E75'" onblur="this.style.borderColor='#e2e8f0'"
+          oninput="icpCountTitles()"
+          placeholder="VP Sales&#10;Head of Revenue&#10;Chief Revenue Officer&#10;Sales Director&#10;VP Business Development"></textarea>
+        <div style="font-size:11px;color:#94a3b8;margin-top:4px;">
+          <span id="icp-title-count" style="color:#1D9E75;font-weight:600;"></span>
+          Each company will be searched for contacts matching any of these titles.
+        </div>
+      </div>
+
+      <!-- Saved titles hint -->
+      <div id="icp-saved-hint" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 14px;font-size:12px;color:#15803d;margin-bottom:12px;">
+        ✓ <strong>Previously saved ICP</strong> — loaded from last search. Edit if needed.
+      </div>
+
+      <!-- Status / progress -->
+      <div id="icp-status" style="font-size:13px;min-height:20px;"></div>
+    </div>
+    <!-- Footer -->
+    <div style="padding:14px 24px;border-top:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;gap:8px;">
+      <div style="font-size:11px;color:#94a3b8;flex:1;">Search runs in the background — results appear in the linked Contacts list.</div>
+      <button onclick="closeIcpModal()" style="padding:9px 16px;border: 1px solid var(--border);border-radius:8px;background:#fff;cursor:pointer;font-size:13px;color:#374151;">Cancel</button>
+      <button id="icp-btn" onclick="startIcpSearch()"
+        style="padding:9px 20px;border:none;border-radius:8px;background:#1D9E75;color:#fff;font-weight:600;cursor:pointer;font-size:13px;min-width:120px;transition:background .15s;"
+        onmouseover="this.style.background='#188a65'" onmouseout="this.style.background='#1D9E75'">
+        🔍 Find Contacts
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+
+async function openIcpFromToolbar() {
+  const sel = document.getElementById('list-filter-companies');
+  const listId = sel?.value ? parseInt(sel.value) : null;
+  if (listId) {
+    const list = (_lists||[]).find(l=>l.id===listId);
+    openIcpModal(listId, list?.name || 'Companies list');
+    return;
+  }
+  // Fetch fresh lists from API (handles case where _lists not yet populated)
+  let companyLists = (_lists||[]).filter(l=>l.type==='companies');
+  if (!companyLists.length) {
+    try {
+      const r = await fetch('/api/lists?workspace_id=' + workspaceId).then(r=>r.json());
+      companyLists = (r.items||[]).filter(l=>l.type==='companies');
+    } catch(e) { companyLists = []; }
+  }
+  if (!companyLists.length) {
+    alert('No companies lists found. Upload a companies list first.');
+    return;
+  }
+  if (companyLists.length === 1) {
+    openIcpModal(companyLists[0].id, companyLists[0].name);
+    return;
+  }
+  showIcpListPicker(companyLists);
+}
+
+function showIcpListPicker(lists) {
+  var picker = document.getElementById('icp-list-picker');
+  if (!picker) {
+    picker = document.createElement('div');
+    picker.id = 'icp-list-picker';
+    picker.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:10002;display:flex;align-items:center;justify-content:center;';
+    document.body.appendChild(picker);
+  }
+  var inner = document.createElement('div');
+  inner.style.cssText = 'background:#fff;border-radius: var(--r-lg);width:460px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,.2);overflow:hidden;';
+  var header = document.createElement('div');
+  header.style.cssText = 'padding:18px 22px 14px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;';
+  header.innerHTML = '<div style="font-size:16px;font-weight:700;color:#0f172a;">Find Contacts (ICP)</div>';
+  var closeBtn = document.createElement('button');
+  closeBtn.textContent = 'x';
+  closeBtn.style.cssText = 'background:none;border:none;font-size:21px;color:#94a3b8;cursor:pointer;line-height:1;';
+  closeBtn.addEventListener('click', function() { picker.remove(); });
+  header.appendChild(closeBtn);
+  var body = document.createElement('div');
+  body.style.cssText = 'padding:18px 22px 22px;';
+  var hint = document.createElement('div');
+  hint.style.cssText = 'font-size:13px;color:#64748b;margin-bottom:14px;';
+  hint.textContent = 'Choose which companies list to search:';
+  body.appendChild(hint);
+  lists.forEach(function(l) {
+    var row = document.createElement('div');
+    row.style.cssText = 'border: 1px solid var(--border);border-radius:10px;padding:12px 16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;transition:border-color .15s;';
+    row.addEventListener('mouseover', function() { row.style.borderColor = '#1D9E75'; row.style.background = '#f0fdf4'; });
+    row.addEventListener('mouseout',  function() { row.style.borderColor = '#e2e8f0'; row.style.background = '#fff'; });
+    row.addEventListener('click', function() { picker.remove(); openIcpModal(l.id, l.name); });
+    var info = document.createElement('div');
+    info.innerHTML = '<div style="font-size:14px;font-weight:600;color:#0f172a;">' + (l.name||'') + '</div>' +
+      '<div style="font-size:12px;color:#94a3b8;margin-top:2px;">' + (l.company_count||0) + ' companies</div>';
+    var arrow = document.createElement('span');
+    arrow.textContent = String.fromCharCode(8594);
+    arrow.style.cssText = 'color:#1D9E75;font-size:20px;font-weight:600;';
+    row.appendChild(info);
+    row.appendChild(arrow);
+    body.appendChild(row);
+  });
+  inner.appendChild(header);
+  inner.appendChild(body);
+  picker.innerHTML = '';
+  picker.appendChild(inner);
+  picker.style.display = 'flex';
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// ICP FIND CONTACTS MODAL
+// ════════════════════════════════════════════════════════════════════════════
+
+let _icpListId   = null;
+let _icpListName = '';
+
+async function openIcpModal(listId, listName) {
+  _icpListId   = listId;
+  _icpListName = listName || 'Companies list';
+  document.getElementById('icp-list-name').textContent = _icpListName;
+
+  // Load stats + saved ICP titles
+  const st = document.getElementById('icp-status');
+  st.innerHTML = '<span style="color:#94a3b8">Loading…</span>';
+  document.getElementById('icp-stats').innerHTML = '…';
+  document.getElementById('icp-saved-hint').style.display = 'none';
+  document.getElementById('icp-btn').disabled = false;
+  document.getElementById('icp-btn').textContent = '🔍 Find Contacts';
+
+  try {
+    const r = await fetch(`/api/lists/${listId}/icp-status?workspace_id=${workspaceId}`).then(r=>r.json());
+    // Stats
+    const n = parseInt(r.company_count)||0;
+    const found = parseInt(r.contacts_found)||0;
+    document.getElementById('icp-stats').innerHTML =
+      `<strong>${n}</strong> companies in list` +
+      (found > 0 ? ` · <span style="color:#1D9E75"><strong>${found}</strong> contacts already found</span>` : '') +
+      (r.contacts_list_name ? ` · Results → <em>${r.contacts_list_name}</em>` : '');
+    // Pre-fill saved titles
+    const saved = Array.isArray(r.icp_titles) ? r.icp_titles : [];
+    if (saved.length) {
+      document.getElementById('icp-titles-ta').value = saved.join('\n');
+      document.getElementById('icp-saved-hint').style.display = '';
+      icpCountTitles();
+    }
+  } catch(e) {
+    document.getElementById('icp-stats').innerHTML = '<span style="color:#ef4444">Could not load list info</span>';
+  }
+  st.innerHTML = '';
+
+  document.getElementById('icp-modal').style.display = 'flex';
+  setTimeout(() => document.getElementById('icp-titles-ta').focus(), 100);
+}
+
+function closeIcpModal() {
+  document.getElementById('icp-modal').style.display = 'none';
+  _icpListId = null;
+}
+
+function icpCountTitles() {
+  const lines = document.getElementById('icp-titles-ta').value
+    .split('\n').map(s=>s.trim()).filter(Boolean);
+  const el = document.getElementById('icp-title-count');
+  el.textContent = lines.length ? `${lines.length} title${lines.length>1?'s':''} · ` : '';
+}
+
+async function startIcpSearch() {
+  if (!_icpListId) return;
+  const titles = document.getElementById('icp-titles-ta').value
+    .split('\n').map(s=>s.trim()).filter(Boolean);
+  if (!titles.length) {
+    document.getElementById('icp-status').innerHTML =
+      '<span style="color:#ef4444">Please enter at least one job title.</span>';
+    return;
+  }
+  const btn = document.getElementById('icp-btn');
+  btn.disabled = true; btn.textContent = '⏳ Starting…';
+  document.getElementById('icp-status').innerHTML = '<span style="color:#94a3b8">Sending request…</span>';
+
+  try {
+    const r = await fetch(`/api/lists/${_icpListId}/find-contacts`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ workspace_id: parseInt(workspaceId), titles })
+    }).then(r=>r.json());
+
+    if (r.error) throw new Error(r.error);
+    if (r.status === 'no_companies') {
+      document.getElementById('icp-status').innerHTML =
+        '<span style="color:#f59e0b">⚠️ No companies with resolved LinkedIn IDs. Try uploading companies first and wait for ID resolution.</span>';
+      btn.disabled = false; btn.textContent = '🔍 Find Contacts';
+      return;
+    }
+    if (r.status === 'no_accounts') {
+      document.getElementById('icp-status').innerHTML =
+        '<span style="color:#ef4444">❌ No LinkedIn account connected in this workspace.</span>';
+      btn.disabled = false; btn.textContent = '🔍 Find Contacts';
+      return;
+    }
+
+    document.getElementById('icp-status').innerHTML =
+      `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 14px;">
+        <div style="font-size:13px;font-weight:700;color:#15803d;margin-bottom:4px;">✅ Search started!</div>
+        <div style="font-size:12px;color:#166534;">
+          Searching <strong>${r.total_companies}</strong> companies for: <em>${r.titles?.join(', ')}</em><br>
+          Results will appear in the linked contacts list. This runs in the background — check back in a few minutes.
+        </div>
+       </div>`;
+    btn.textContent = '✓ Running…';
+    await loadLists();
+    setTimeout(closeIcpModal, 4000);
+  } catch(e) {
+    document.getElementById('icp-status').innerHTML =
+      `<span style="color:#ef4444">❌ ${e.message}</span>`;
+    btn.disabled = false; btn.textContent = '🔍 Find Contacts';
+  }
+}
+
+// Trigger ICP modal after a successful company upload
+function openIcpAfterUpload(listId, listName) {
+  closeUploadModal();
+  setTimeout(() => openIcpModal(listId, listName), 300);
+}
+</script>
+
+<!-- ══ New List Wizard ══════════════════════════════════════════════════════ -->
+<div id="list-wizard-overlay" onclick="if(event.target===this)closeListWizard()"
+  style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9998;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius: var(--r-lg);width:520px;max-width:95vw;box-shadow:0 24px 64px rgba(0,0,0,.2);overflow:hidden;">
+    <div style="padding:20px 24px 16px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;">
+      <div id="wizard-title" style="font-size:16px;font-weight:700;color:#0f172a;">Create a new list</div>
+      <button onclick="closeListWizard()" style="background:none;border:none;font-size:21px;color:#94a3b8;cursor:pointer;line-height:1;">×</button>
+    </div>
+    <div id="wizard-body" style="padding:20px 24px;min-height:160px;"></div>
+    <div id="wizard-footer" style="padding:14px 24px;border-top:1px solid #f1f5f9;display:flex;justify-content:flex-end;gap:8px;"></div>
+  </div>
+</div>
+
+</body>
+</html
+<!-- ══ LISTS OVERVIEW GRID ══════════════════════════════════════════ -->
+<div id="lists-overview-grid" style="display:none;padding:20px 0 0;">
+
+  <!-- Loading / empty state -->
+  <div id="lists-grid-loading" style="color:#9ca3af;font-size:13px;padding:20px 0;">Loading lists…</div>
+
+  <!-- List type sections -->
+  <div id="lists-grid-contacts" style="display:none;margin-bottom:28px;">
+    <div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;">👥 Contacts Lists</div>
+    <div id="lists-cards-contacts" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;"></div>
+  </div>
+
+  <div id="lists-grid-companies" style="display:none;margin-bottom:28px;">
+    <div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;">🏢 Companies Lists</div>
+    <div id="lists-cards-companies" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;"></div>
+  </div>
+
+  <!-- Discover Feeds section -->
+  <div id="lists-grid-feeds" style="display:none;margin-bottom:28px;">
+    <div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;display:flex;align-items:center;gap:8px;">
+      🔍 Discover Feeds
+      <span style="font-size:10px;font-weight:600;color:#1D9E75;background:#f0fdf4;border:1px solid #bbf7d0;padding:1px 7px;border-radius:20px;text-transform:none;letter-spacing:0;">auto-updating</span>
+      <button onclick="openNewFeedWizard()" style="margin-left:auto;padding:3px 10px;background:#1D9E75;color:#fff;border:none;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;">+ New Feed</button>
+    </div>
+    <div id="lists-cards-feeds" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;"></div>
+  </div>
+
+  <!-- Empty state -->
+  <div id="lists-empty-state" style="display:none;text-align:center;padding:60px 20px;">
+    <div style="font-size:48px;margin-bottom:16px;opacity:.25;">📋</div>
+    <div style="font-size:18px;font-weight:700;color:#374151;margin-bottom:8px;">No lists yet</div>
+    <div style="font-size:14px;color:#9ca3af;margin-bottom:24px;">Create your first list to start building target audiences for your campaigns.</div>
+    <button onclick="openNewListWizard()" style="background:#1D9E75;color:#fff;border:none;border-radius:8px;padding:10px 24px;font-size:14px;font-weight:600;cursor:pointer;">＋ Create your first list</button>
+  </div>
+</div>
+
+<!-- New List Modal -->
+<div id="new-list-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeNewListModal()">
+  <div class="modal-box">
+    <div class="modal-title">New list</div>
+    <div class="modal-field">
+      <label>Name</label>
+      <input id="nl-name" type="text" placeholder="e.g. Israeli CTOs — Q3 2025" />
+    </div>
+    <div class="modal-field">
+      <label>Type</label>
+      <div class="type-toggle">
+        <button class="type-btn active" id="type-contacts" onclick="setListType('contacts')">👥 Contacts</button>
+        <button class="type-btn" id="type-companies" onclick="setListType('companies')">🏢 Companies</button>
+      </div>
+    </div>
+    <div class="modal-field">
+      <label>Description <span style="color:#999;font-weight:400">(optional)</span></label>
+      <input id="nl-desc" type="text" placeholder="What's this list for?" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel-modal" onclick="closeNewListModal()">Cancel</button>
+      <button class="btn-create-list" onclick="createList()">Create list</button>
+    </div>
+  </div>
+</div>
+
+<!-- Rename List Modal -->
+<div id="rename-list-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeRenameModal()">
+  <div class="modal-box">
+    <div class="modal-title">Rename list</div>
+    <div class="modal-field">
+      <label>Name</label>
+      <input id="rl-name" type="text" />
+    </div>
+    <div class="modal-field">
+      <label>Description</label>
+      <input id="rl-desc" type="text" placeholder="Optional" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel-modal" onclick="closeRenameModal()">Cancel</button>
+      <button class="btn-create-list" onclick="saveRename()">Save</button>
+    </div>
+  </div>
+</div>
+
+</html>

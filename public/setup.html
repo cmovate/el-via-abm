@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>El-Via ABM — Setup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --green: #1D9E75;
+    --green-light: #E8F7F2;
+    --green-dark: #167A5A;
+    --text: #111827;
+    --text-muted: #6B7280;
+    --border: #E5E7EB;
+    --bg: #F9FAFB;
+    --white: #FFFFFF;
+    --red: #DC2626;
+    --red-light: #FEF2F2;
+    --amber: #D97706;
+    --amber-light: #FFFBEB;
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Header ── */
+  .header {
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+    padding: 0 40px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-icon {
+    width: 32px; height: 32px; background: var(--green);
+    border-radius: 8px; display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .logo-text { font-size: 17px; font-weight: 700; color: var(--text); }
+  .logo-sub { font-size: 12px; color: var(--text-muted); font-weight: 400; }
+
+  /* ── Layout ── */
+  .main {
+    flex: 1;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 40px 20px 60px;
+  }
+
+  .wizard {
+    width: 100%;
+    max-width: 700px;
+  }
+
+  /* ── Progress ── */
+  .progress-bar {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 36px;
+  }
+  .step-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    position: relative;
+  }
+  .step-pill::after {
+    content: '';
+    flex: 1;
+    height: 2px;
+    background: var(--border);
+    margin: 0 8px;
+  }
+  .step-pill:last-child::after { display: none; }
+  .step-pill.done::after { background: var(--green); }
+  .step-pill.active::after { background: var(--border); }
+
+  .step-num {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: var(--white);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    transition: all .2s;
+  }
+  .step-pill.active .step-num {
+    border-color: var(--green);
+    background: var(--green);
+    color: #fff;
+  }
+  .step-pill.done .step-num {
+    border-color: var(--green);
+    background: var(--green);
+    color: #fff;
+  }
+  .step-label { font-size: 12px; font-weight: 500; color: var(--text-muted); white-space: nowrap; }
+  .step-pill.active .step-label { color: var(--text); }
+
+  /* ── Card ── */
+  .card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 36px 40px;
+    margin-bottom: 16px;
+  }
+  .card-title {
+    font-size: 20px; font-weight: 700; margin-bottom: 6px;
+  }
+  .card-desc {
+    font-size: 14px; color: var(--text-muted); margin-bottom: 28px; line-height: 1.6;
+  }
+
+  /* ── Form ── */
+  .field { margin-bottom: 20px; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  label {
+    display: block;
+    font-size: 12px; font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    margin-bottom: 6px;
+  }
+  .label-hint { font-size: 11px; color: var(--text-muted); font-weight: 400; text-transform: none; letter-spacing: 0; margin-left: 6px; }
+  input[type=text], input[type=url], input[type=email], input[type=password], input[type=number], select, textarea {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--text);
+    background: var(--white);
+    outline: none;
+    transition: border-color .15s;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--green); }
+  input.error, select.error { border-color: var(--red); }
+  .field-hint { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+  .field-error { font-size: 11px; color: var(--red); margin-top: 4px; display: none; }
+  .field-error.show { display: block; }
+
+  /* ── Test button ── */
+  .test-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 14px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    font-size: 12px; font-weight: 600;
+    cursor: pointer;
+    color: var(--text);
+    margin-top: 8px;
+    transition: background .15s;
+  }
+  .test-btn:hover { background: #F0F0F0; }
+  .test-result {
+    margin-top: 8px;
+    padding: 8px 12px;
+    border-radius: 7px;
+    font-size: 12px;
+    display: none;
+  }
+  .test-result.ok { background: var(--green-light); color: var(--green-dark); border: 1px solid #A7F3D0; }
+  .test-result.err { background: var(--red-light); color: var(--red); border: 1px solid #FECACA; }
+  .test-result.show { display: block; }
+
+  /* ── Buttons ── */
+  .btn-row { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+  .btn {
+    padding: 10px 24px;
+    border: none; border-radius: 8px;
+    font-size: 14px; font-weight: 600;
+    cursor: pointer;
+    transition: background .15s, opacity .15s;
+  }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .btn-primary { background: var(--green); color: #fff; }
+  .btn-primary:hover:not(:disabled) { background: var(--green-dark); }
+  .btn-secondary { background: var(--bg); border: 1px solid var(--border); color: var(--text); }
+  .btn-secondary:hover:not(:disabled) { background: #EEEEEE; }
+
+  /* ── Step panels ── */
+  .step-panel { display: none; }
+  .step-panel.active { display: block; }
+
+  /* ── Info box ── */
+  .info-box {
+    background: #EFF6FF;
+    border: 1px solid #BFDBFE;
+    border-radius: 9px;
+    padding: 14px 16px;
+    font-size: 13px;
+    color: #1E40AF;
+    line-height: 1.6;
+    margin-bottom: 24px;
+  }
+  .info-box a { color: #1E40AF; font-weight: 600; }
+
+  .warn-box {
+    background: var(--amber-light);
+    border: 1px solid #FDE68A;
+    border-radius: 9px;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--amber);
+    margin-bottom: 20px;
+  }
+
+  /* ── Section divider ── */
+  .section-title {
+    font-size: 11px; font-weight: 700; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: .07em;
+    margin-bottom: 16px; margin-top: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ── Success screen ── */
+  .success-screen {
+    text-align: center;
+    padding: 48px 20px;
+  }
+  .success-icon {
+    width: 72px; height: 72px;
+    background: var(--green-light);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 32px;
+    margin: 0 auto 24px;
+  }
+  .success-title { font-size: 24px; font-weight: 700; margin-bottom: 10px; }
+  .success-desc { font-size: 15px; color: var(--text-muted); margin-bottom: 32px; line-height: 1.6; }
+  .go-btn {
+    display: inline-block;
+    padding: 14px 32px;
+    background: var(--green);
+    color: #fff;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: background .15s;
+  }
+  .go-btn:hover { background: var(--green-dark); }
+
+  /* ── Optional toggle ── */
+  .optional-section { margin-top: 20px; }
+  .optional-toggle {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; font-weight: 600; color: var(--text-muted);
+    cursor: pointer; user-select: none;
+    padding: 8px 0;
+  }
+  .optional-toggle:hover { color: var(--text); }
+  .optional-body { display: none; margin-top: 12px; }
+  .optional-body.open { display: block; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <div class="logo-icon">⚡</div>
+    <div>
+      <div class="logo-text">El-Via ABM</div>
+      <div class="logo-sub">Setup Wizard</div>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="wizard">
+
+    <!-- Progress bar -->
+    <div class="progress-bar">
+      <div class="step-pill active" id="pill-1">
+        <div class="step-num">1</div>
+        <div class="step-label">Database</div>
+      </div>
+      <div class="step-pill" id="pill-2">
+        <div class="step-num">2</div>
+        <div class="step-label">Unipile</div>
+      </div>
+      <div class="step-pill" id="pill-3">
+        <div class="step-num">3</div>
+        <div class="step-label">AI & Email</div>
+      </div>
+      <div class="step-pill" id="pill-4">
+        <div class="step-num">4</div>
+        <div class="step-label">Workspace</div>
+      </div>
+      <div class="step-pill" id="pill-5">
+        <div class="step-num">✓</div>
+        <div class="step-label">Done</div>
+      </div>
+    </div>
+
+    <!-- Preloaded banner -->
+    <div id="preloaded-banner" style="display:none;background:#E8F7F2;border:1px solid #A7F3D0;border-radius:9px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:#167A5A;">
+      ✅ Database and Unipile credentials are already configured. Just enter a workspace name to complete setup.
+    </div>
+    <div id="step1-preloaded" style="display:none;background:#E8F7F2;border:1px solid #A7F3D0;border-radius:9px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:#167A5A;">
+      ✅ Database is already configured via server environment.
+    </div>
+
+    <!-- ── STEP 1: Database ── -->
+    <div class="step-panel active" id="step-1">
+      <div class="card">
+        <div class="card-title">Database Connection</div>
+        <div class="card-desc">El-Via ABM requires a PostgreSQL database. Provide a connection URL (e.g. from Railway, Supabase, Neon, or your own Postgres server).</div>
+
+        <div class="info-box">
+          💡 The connection string format is:<br>
+          <code>postgresql://user:password@host:5432/dbname</code><br><br>
+          All tables are created automatically on first startup.
+        </div>
+
+        <div class="field">
+          <label>PostgreSQL Connection URL <span class="label-hint">required</span></label>
+          <input type="password" id="db-url" placeholder="postgresql://user:pass@host:5432/dbname"
+            oninput="clearResult('db-test-result')">
+          <div class="field-error" id="db-url-error">Please enter a valid PostgreSQL URL</div>
+        </div>
+
+        <button class="test-btn" onclick="testDatabase()">🔍 Test Connection</button>
+        <div class="test-result" id="db-test-result"></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="nextStep(1)">Continue →</button>
+      </div>
+    </div>
+
+    <!-- ── STEP 2: Unipile ── -->
+    <div class="step-panel" id="step-2">
+      <div class="card">
+        <div class="card-title">Unipile API</div>
+        <div class="card-desc">El-Via ABM uses <strong>Unipile</strong> to connect LinkedIn accounts and perform outreach actions. You need an active Unipile account with a LinkedIn-enabled plan.</div>
+
+        <div class="info-box">
+          Find your credentials at <a href="https://app.unipile.com" target="_blank">app.unipile.com</a> →
+          Settings → API Keys &amp; DSN.<br><br>
+          The DSN looks like: <code>https://api8.unipile.com:13859</code>
+        </div>
+
+        <div class="field">
+          <label>Unipile DSN <span class="label-hint">required</span></label>
+          <input type="url" id="unipile-dsn" placeholder="https://api8.unipile.com:13859"
+            oninput="clearResult('unipile-test-result')">
+          <div class="field-hint">Your Unipile Data Source Name (DSN)</div>
+          <div class="field-error" id="unipile-dsn-error">Please enter your Unipile DSN</div>
+        </div>
+
+        <div class="field">
+          <label>Unipile API Key <span class="label-hint">required</span></label>
+          <input type="password" id="unipile-key" placeholder="your-unipile-api-key"
+            oninput="clearResult('unipile-test-result')">
+          <div class="field-hint">Found in Unipile → Settings → API Keys</div>
+          <div class="field-error" id="unipile-key-error">Please enter your Unipile API Key</div>
+        </div>
+
+        <button class="test-btn" onclick="testUnipile()">🔍 Test Unipile Connection</button>
+        <div class="test-result" id="unipile-test-result"></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="prevStep(2)">← Back</button>
+        <button class="btn btn-primary" onclick="nextStep(2)">Continue →</button>
+      </div>
+    </div>
+
+    <!-- ── STEP 3: AI & Email ── -->
+    <div class="step-panel" id="step-3">
+      <div class="card">
+        <div class="card-title">AI Settings</div>
+        <div class="card-desc">Configure the Anthropic API for AI-powered features like reply analysis, brand intelligence and smart search.</div>
+
+        <div class="field">
+          <label>Anthropic API Key <span class="label-hint">required for AI features</span></label>
+          <input type="password" id="anthropic-key" placeholder="sk-ant-...">
+          <div class="field-hint">Get your key at <a href="https://console.anthropic.com" target="_blank" style="color:var(--green)">console.anthropic.com</a>. Required for reply analysis, AI search, and brand intelligence.</div>
+        </div>
+
+
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="prevStep(3)">← Back</button>
+        <button class="btn btn-primary" onclick="nextStep(3)">Continue →</button>
+      </div>
+    </div>
+
+    <!-- ── STEP 4: First Workspace ── -->
+    <div class="step-panel" id="step-4">
+      <div class="card">
+        <div class="card-title">Create Your First Workspace</div>
+        <div class="card-desc">A workspace groups your LinkedIn accounts and campaigns. You can add more workspaces later from the dashboard.</div>
+
+        <div class="field">
+          <label>Workspace Name <span class="label-hint">required</span></label>
+          <input type="text" id="ws-name" placeholder="e.g. My Company, Team Alpha, Q1 Campaign…">
+          <div class="field-error" id="ws-name-error">Please enter a workspace name</div>
+        </div>
+
+        <div class="info-box">
+          After setup completes, go to <strong>Settings</strong> to connect your first LinkedIn account via Unipile, then create campaigns and start your outreach.
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="prevStep(4)">← Back</button>
+        <button class="btn btn-primary" id="finish-btn" onclick="finishSetup()">⚡ Complete Setup</button>
+      </div>
+    </div>
+
+    <!-- ── STEP 5: Done ── -->
+    <div class="step-panel" id="step-5">
+      <div class="card">
+        <div class="success-screen">
+          <div class="success-icon">✅</div>
+          <div class="success-title">Setup Complete!</div>
+          <div class="success-desc">
+            El-Via ABM is configured and ready to go.<br>
+            Connect your LinkedIn accounts in Settings to get started.
+          </div>
+          <a href="/workspace.html?id=1" class="go-btn" id="go-dashboard-btn">Go to Dashboard →</a>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /wizard -->
+</div><!-- /main -->
+
+<script>
+let currentStep = 1;
+let envPreloaded = { db: false, unipile: false };
+
+// On load: check which env vars are already set server-side
+async function checkPreloaded() {
+  try {
+    const r = await fetch('/api/setup/env-status');
+    const d = await r.json();
+    envPreloaded = d;
+    if (d.db && d.unipile) {
+      // All required vars already set — skip to workspace step
+      document.getElementById('preloaded-banner').style.display = 'block';
+      setStep(4);
+    } else if (d.db) {
+      document.getElementById('step1-preloaded').style.display = 'block';
+      setStep(2);
+    }
+  } catch(e) {}
+}
+window.addEventListener('DOMContentLoaded', checkPreloaded);
+
+const TOTAL_STEPS = 4;
+
+function setStep(n) {
+  if (n === 5) {
+    // Auto-navigate to dashboard after 2.5 seconds
+    setTimeout(() => {
+      const btn = document.getElementById('go-dashboard-btn');
+      if (btn) window.location.href = btn.href;
+    }, 2500);
+  }
+  document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.step-pill').forEach(p => p.classList.remove('active', 'done'));
+  document.getElementById('step-' + n).classList.add('active');
+  for (let i = 1; i < n; i++) document.getElementById('pill-' + i).classList.add('done');
+  if (n <= TOTAL_STEPS) document.getElementById('pill-' + n).classList.add('active');
+  else document.getElementById('pill-5').classList.add('active');
+  currentStep = n;
+  window.scrollTo(0,0);
+}
+
+function nextStep(from) {
+  if (!validateStep(from)) return;
+  setStep(from + 1);
+}
+function prevStep(from) { setStep(from - 1); }
+
+function validateStep(n) {
+  let ok = true;
+  if (n === 1) {
+    const v = document.getElementById('db-url').value.trim();
+    if (!v || !v.startsWith('postgresql')) {
+      show('db-url-error'); ok = false;
+    } else hide('db-url-error');
+  }
+  if (n === 2) {
+    const dsn = document.getElementById('unipile-dsn').value.trim();
+    const key = document.getElementById('unipile-key').value.trim();
+    if (!dsn) { show('unipile-dsn-error'); ok = false; } else hide('unipile-dsn-error');
+    if (!key) { show('unipile-key-error'); ok = false; } else hide('unipile-key-error');
+  }
+  if (n === 4) {
+    const name = document.getElementById('ws-name').value.trim();
+    if (!name) { show('ws-name-error'); ok = false; } else hide('ws-name-error');
+  }
+  return ok;
+}
+
+function show(id) { document.getElementById(id).classList.add('show'); }
+function hide(id) { document.getElementById(id).classList.remove('show'); }
+
+function clearResult(id) {
+  const el = document.getElementById(id);
+  el.className = 'test-result'; el.textContent = '';
+}
+function showTestResult(id, ok, msg) {
+  const el = document.getElementById(id);
+  el.className = 'test-result show ' + (ok ? 'ok' : 'err');
+  el.textContent = msg;
+}
+
+async function testDatabase() {
+  const url = document.getElementById('db-url').value.trim();
+  if (!url) { showTestResult('db-test-result', false, '❌ Please enter a database URL first.'); return; }
+  showTestResult('db-test-result', true, '⏳ Testing connection…');
+  try {
+    const r = await fetch('/api/setup/test-db', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ database_url: url })
+    });
+    const d = await r.json();
+    if (d.ok) showTestResult('db-test-result', true, '✅ Connected successfully — PostgreSQL ' + (d.version || ''));
+    else showTestResult('db-test-result', false, '❌ ' + (d.error || 'Connection failed'));
+  } catch(e) {
+    showTestResult('db-test-result', false, '❌ Request failed: ' + e.message);
+  }
+}
+
+async function testUnipile() {
+  const dsn = document.getElementById('unipile-dsn').value.trim();
+  const key = document.getElementById('unipile-key').value.trim();
+  if (!dsn || !key) { showTestResult('unipile-test-result', false, '❌ Please enter both DSN and API Key.'); return; }
+  showTestResult('unipile-test-result', true, '⏳ Testing Unipile connection…');
+  try {
+    const r = await fetch('/api/setup/test-unipile', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ unipile_dsn: dsn, unipile_api_key: key })
+    });
+    const d = await r.json();
+    if (d.ok) showTestResult('unipile-test-result', true, '✅ Unipile connected — ' + (d.accounts_count != null ? d.accounts_count + ' accounts found' : 'API key valid'));
+    else showTestResult('unipile-test-result', false, '❌ ' + (d.error || 'Connection failed'));
+  } catch(e) {
+    showTestResult('unipile-test-result', false, '❌ Request failed: ' + e.message);
+  }
+}
+
+async function finishSetup() {
+  if (!validateStep(4)) return;
+  const btn = document.getElementById('finish-btn');
+  btn.disabled = true; btn.textContent = '⏳ Saving…';
+
+  const payload = {
+    database_url:    document.getElementById('db-url').value.trim(),
+    unipile_dsn:     document.getElementById('unipile-dsn').value.trim(),
+    unipile_api_key: document.getElementById('unipile-key').value.trim(),
+    anthropic_api_key: document.getElementById('anthropic-key').value.trim() || null,
+    workspace_name:  document.getElementById('ws-name').value.trim(),
+  };
+
+  try {
+    const r = await fetch('/api/setup/complete', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    const d = await r.json();
+    if (d.ok) {
+      setStep(5);
+      // Also update the "Go to Dashboard" link with actual workspace id
+      const goBtn = document.querySelector('.go-btn');
+      if (goBtn && d.workspace_id) {
+        goBtn.href = '/workspace.html?id=' + d.workspace_id;
+      }
+    } else {
+      btn.disabled = false; btn.textContent = '⚡ Complete Setup';
+      alert('Setup failed: ' + (d.error || 'Unknown error'));
+    }
+  } catch(e) {
+    btn.disabled = false; btn.textContent = '⚡ Complete Setup';
+    alert('Request failed: ' + e.message);
+  }
+}
+
+</script>
+</body>
+</html>

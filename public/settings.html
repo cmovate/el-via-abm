@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="stylesheet" href="/ds.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Settings</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { height: 100%; overflow-y: auto; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #F8FAFC; color: #1a1a1a; font-size: 14px; height: 100%; overflow-y: auto; }
+.page { padding: 20px 28px 40px; max-width: 1020px; }
+.page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #e5e7eb; }
+.page-title { font-size: 20px; font-weight: 600; }
+.page-sub { font-size: 14px; color: #666; margin-top: 4px; }
+.add-btn { background: #1D9E75; border: none; border-radius: 8px; padding: 9px 18px; font-size: 14px; font-weight: 500; color: white; cursor: pointer; }
+.add-btn:hover { background: #178f68; }
+.count { font-size: 12px; color: #aaa; margin-bottom: 8px; }
+.accounts-rail { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.account-tile { background: white; border: 1px solid #e5e5e5; border-radius: 10px; padding: 10px 14px; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: border-color 0.15s; }
+.account-tile:hover { border-color: #b0ddd0; }
+.account-tile.active { border: 1.5px solid #1D9E75; }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; background: #1D9E75; flex-shrink: 0; }
+.account-avatar { width: 34px; height: 34px; border-radius: 50%; background: #DBEAFE; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: #1E40AF; flex-shrink: 0; }
+.account-name { font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tile-disconnect { margin-left: auto; background: none; border: none; color: #ddd; font-size: 18px; cursor: pointer; padding: 2px 4px; flex-shrink: 0; }
+.tile-disconnect:hover { color: #DC2626; }
+.empty-accounts { background: white; border: 1px dashed #e0e0e0; border-radius: 12px; padding: 40px 24px; text-align: center; color: #aaa; font-size: 14px; }
+.divider { height: 1px; background: #e5e5e5; margin-bottom: 16px; }
+.settings-layout { display: grid; grid-template-columns: 280px 1fr; gap: 20px; align-items: start; }
+.settings-left { display: flex; flex-direction: column; }
+.settings-right { min-width: 0; }
+@media (max-width: 900px) { .settings-layout { grid-template-columns: 1fr; } }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+.account-detail { background: white; border: 1px solid #e5e5e5; border-radius: 12px; overflow: hidden; }
+.detail-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; border-bottom: 1px solid #f0f0f0; background: #fafafa; }
+.detail-head-left { display: flex; align-items: center; gap: 12px; }
+.detail-name { font-size: 16px; font-weight: 500; }
+.detail-body { padding: 16px 20px; display: flex; flex-direction: column; gap: 16px; }
+.section-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #aaa; margin-bottom: 8px; }
+.copy-banner { display: flex; align-items: center; gap: 10px; background: #F0FBF7; border: 1px solid #b0ddd0; border-radius: 8px; padding: 9px 14px; }
+.copy-banner-label { font-size: 13px; color: #1a5c45; font-weight: 500; white-space: nowrap; }
+.copy-select { flex: 1; padding: 7px 10px; border: 1px solid #b0ddd0; border-radius: 8px; font-size: 13px; background: white; font-family: inherit; cursor: pointer; color: #333; }
+.copy-select:focus { outline: none; border-color: #1D9E75; }
+.copy-btn { background: #1D9E75; border: none; border-radius: 8px; padding: 7px 14px; font-size: 13px; font-weight: 500; color: white; cursor: pointer; white-space: nowrap; }
+.copy-btn:hover { background: #178f68; }
+.limits-grid { display: flex; flex-direction: column; gap: 8px; }
+.limit-row { display: grid; grid-template-columns: 180px 1fr 32px; align-items: center; gap: 10px; height: 28px; }
+.limit-name { font-size: 13px; color: #555; }
+.limit-val { font-size: 13px; font-weight: 600; text-align: right; color: #1a1a1a; }
+.save-row { display: flex; justify-content: flex-end; align-items: center; gap: 12px; padding-top: 8px; border-top: 1px solid #f0f0f0; }
+.save-btn { background: #1D9E75; border: none; border-radius: 8px; padding: 8px 20px; font-size: 14px; font-weight: 500; color: white; cursor: pointer; }
+.save-btn:hover { background: #178f68; }
+.save-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.save-feedback { font-size: 13px; color: #0F6E56; font-weight: 500; opacity: 0; transition: opacity 0.3s; }
+.save-feedback.visible { opacity: 1; }
+.ghost-btn { background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 6px 12px; font-size: 13px; color: #555; cursor: pointer; }
+.ghost-btn:hover { background: #f5f5f5; }
+.no-selection { border: 1px solid #e5e5e5; border-radius: 12px; padding: 48px 24px; text-align: center; color: #aaa; font-size: 14px; }
+.modal-backdrop { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; padding: 20px; }
+.modal { background: white; border-radius: 14px; width: min(500px, 100%); padding: 28px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+.modal h3 { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
+.modal-sub { font-size: 13px; color: #888; margin-bottom: 20px; }
+.accounts-list { display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow-y: auto; margin-bottom: 20px; }
+.selectable-account { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1.5px solid #e5e5e5; border-radius: 10px; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+.selectable-account:hover { border-color: #1D9E75; background: #F0FBF7; }
+.selectable-account.selected { border-color: #1D9E75; background: #F0FBF7; }
+.selectable-account.already-added { opacity: 0.5; cursor: default; }
+.selectable-account.already-added:hover { border-color: #e5e5e5; background: white; }
+.sel-avatar { width: 36px; height: 36px; border-radius: 50%; background: #DBEAFE; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: #1E40AF; flex-shrink: 0; }
+.sel-name { font-size: 14px; font-weight: 500; }
+.sel-badge { margin-left: auto; font-size: 11px; background: #f0f0f0; color: #888; border-radius: 999px; padding: 2px 8px; flex-shrink: 0; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.primary-btn { background: #1D9E75; border: none; border-radius: 8px; padding: 9px 20px; font-size: 14px; font-weight: 500; color: white; cursor: pointer; }
+.primary-btn:hover { background: #178f68; }
+.primary-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.loading { color: #888; font-size: 13px; padding: 20px 0; text-align: center; }
+.error-banner { background: #FEF2F2; border: 1px solid #FECACA; border-radius: 8px; padding: 10px 14px; color: #DC2626; font-size: 13px; margin-bottom: 16px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Settings</div>
+      <div class="page-sub">Manage LinkedIn accounts, action limits, and company pages</div>
+    </div>
+    <button class="add-btn" onclick="openAddModal()">+ Add account</button>
+  </div>
+  <div id="error-area"></div>
+  <div class="settings-layout">
+    <!-- Left column: account list + company pages -->
+    <div class="settings-left">
+      <div id="account-count" class="count"></div>
+      <div id="accounts-rail" class="accounts-rail"></div>
+
+      <!-- ── Company Pages ───────────────────── -->
+      <div class="divider" style="margin:16px 0 12px"></div>
+      <div>
+        <div style="font-size:13px;font-weight:700;color:#1a1a1a;margin-bottom:4px">Company Pages</div>
+        <div style="font-size:11px;color:#888;margin-bottom:10px">Pages your workspace can invite followers to</div>
+        <div id="company-pages-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:6px"></div>
+        <div id="cp-status" style="font-size:12px;display:none;margin-top:4px"></div>
+      </div><!-- close company pages inner -->
+    </div><!-- close settings-left -->
+
+    <!-- Right column: account detail -->
+    <div class="settings-right">
+      <div id="detail-area"></div>
+    </div>
+  </div><!-- close settings-layout -->
+</div><!-- close .page -->
+
+<div id="add-modal" class="modal-backdrop" style="display:none;">
+  <div class="modal">
+    <h3>Add account</h3>
+    <p class="modal-sub">Select a LinkedIn account from your Unipile connection to add to this workspace.</p>
+    <div id="modal-error" style="display:none;" class="error-banner"></div>
+    <div id="accounts-list" class="accounts-list"><div class="loading">Loading available accounts...</div></div>
+    <div class="modal-actions">
+      <button class="ghost-btn" onclick="closeAddModal()">Cancel</button>
+      <button class="primary-btn" id="confirm-add-btn" onclick="confirmAdd()" disabled>Add account</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escHtml(s) { return esc(s); }
+
+const LIMITS = [
+  { key:'connection_requests', label:'Connection requests / day', max:75,  default:20 },
+  { key:'messages',            label:'Messages / day',            max:100, default:30 },
+  { key:'inmails',             label:'InMails / day',             max:25,  default:8  },
+  { key:'profile_views',       label:'Profile views / day',       max:200, default:50 },
+  { key:'likes',               label:'Post likes / day',          max:50,  default:15 },
+  { key:'followings',          label:'Follows / day',             max:50,  default:15 },
+  { key:'company_follow_invites', label:'Company follow invites / day', max:50, default:10 },
+];
+
+const urlParams = new URLSearchParams(window.location.search);
+const workspaceId = urlParams.get('workspace_id');
+
+// In-memory limits store: populated from DB on load, written back on Save
+const limitsStore = {};
+
+let connectedAccounts = [];
+let allUnipileAccounts = [];
+let activeAccountId = null;
+let selectedToAdd = null;
+
+function initials(n) { return String(n||'?').split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase(); }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+async function load() {
+  try {
+    const res = await fetch(`/api/workspaces/${workspaceId}/accounts`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    connectedAccounts = Array.isArray(data.items) ? data.items : [];
+
+    // Populate limitsStore from DB for each account
+    for (const acc of connectedAccounts) {
+      const dbLimits = acc.settings?.limits || {};
+      limitsStore[acc.account_id] = Object.fromEntries(
+        LIMITS.map(l => [l.key, dbLimits[l.key] ?? l.default])
+      );
+    }
+
+    if (!activeAccountId && connectedAccounts.length) {
+      activeAccountId = connectedAccounts[0].account_id;
+    }
+  } catch(err) { showError('Could not load accounts: ' + err.message); }
+  renderRail();
+  renderDetail();
+}
+
+function showError(msg) {
+  const el = document.getElementById('error-area');
+  el.innerHTML = msg ? `<div class="error-banner">${esc(msg)}</div>` : '';
+}
+
+function renderRail() {
+  const count = connectedAccounts.length;
+  document.getElementById('account-count').textContent =
+    count ? `${count} account${count!==1?'s':''} connected to this workspace` : '';
+  const rail = document.getElementById('accounts-rail');
+  if (!count) {
+    rail.innerHTML = `<div class="empty-accounts" style="grid-column:1/-1;">
+      No accounts connected yet.<br>Click <strong>+ Add account</strong> to get started.
+    </div>`;
+    return;
+  }
+  rail.innerHTML = connectedAccounts.map(acc => {
+    const isActive = acc.account_id === activeAccountId;
+    return `
+      <div class="account-tile${isActive?' active':''}" onclick="selectAccount('${acc.account_id}')">
+        <div class="status-dot"></div>
+        <div class="account-avatar">${initials(acc.display_name)}</div>
+        <div style="flex:1;min-width:0;"><div class="account-name">${esc(acc.display_name)}</div></div>
+        <button class="tile-disconnect" onclick="event.stopPropagation();disconnectAccount('${acc.account_id}')" title="Disconnect">&times;</button>
+      </div>`;
+  }).join('');
+}
+
+function selectAccount(id) { activeAccountId = id; renderRail(); renderDetail(); }
+
+async function disconnectAccount(accountId) {
+  if (!confirm('Disconnect this account from the workspace?')) return;
+  try {
+    await fetch(`/api/workspaces/${workspaceId}/accounts/${accountId}`, { method: 'DELETE' });
+    if (activeAccountId === accountId) activeAccountId = connectedAccounts.find(a => a.account_id !== accountId)?.account_id || null;
+    delete limitsStore[accountId];
+    await load();
+  } catch(err) { showError('Failed to disconnect: ' + err.message); }
+}
+
+function renderDetail() {
+  const area = document.getElementById('detail-area');
+  const acc = connectedAccounts.find(a => a.account_id === activeAccountId);
+  if (!connectedAccounts.length) { area.innerHTML = ''; return; }
+  if (!acc) {
+    area.innerHTML = '<div class="no-selection">Select an account above to configure its settings</div>';
+    return;
+  }
+
+  // Ensure store has defaults if not yet populated
+  if (!limitsStore[acc.account_id]) {
+    limitsStore[acc.account_id] = Object.fromEntries(LIMITS.map(l => [l.key, l.default]));
+  }
+  const lim = limitsStore[acc.account_id];
+
+  const others = connectedAccounts.filter(a => a.account_id !== acc.account_id);
+  const copyBannerHtml = others.length > 0 ? `
+    <div class="copy-banner">
+      <span class="copy-banner-label">Copy limits from</span>
+      <select class="copy-select" id="copy-select-${acc.account_id}">
+        <option value="">Select an account...</option>
+        ${others.map(o => `<option value="${o.account_id}">${esc(o.display_name)}</option>`).join('')}
+      </select>
+      <button class="copy-btn" onclick="copyLimitsFrom('${acc.account_id}')">Copy</button>
+    </div>` : '';
+
+  const limitsHtml = LIMITS.map(l => `
+    <div class="limit-row">
+      <div class="limit-name">${l.label}</div>
+      <input type="range" min="0" max="${l.max}" step="1"
+        value="${lim[l.key]}"
+        id="limit-${acc.account_id}-${l.key}"
+        oninput="updateLimit('${acc.account_id}','${l.key}',this.value)">
+      <div class="limit-val" id="lv-${acc.account_id}-${l.key}">${lim[l.key]}</div>
+    </div>`).join('');
+
+  area.innerHTML = `
+    <div class="account-detail">
+      <div class="detail-head">
+        <div class="detail-head-left">
+          <div class="account-avatar">${initials(acc.display_name)}</div>
+          <div><div class="detail-name">${esc(acc.display_name)}</div></div>
+        </div>
+        <button class="ghost-btn" style="color:#DC2626;border-color:#FECACA;" onclick="disconnectAccount('${acc.account_id}')">Disconnect</button>
+      </div>
+      <div class="detail-body">
+        ${copyBannerHtml}
+        <div>
+          <div class="section-label">Daily action limits</div>
+          <div style="font-size:12px;color:#888;margin-bottom:14px;">Working hours are configured per campaign in the campaign wizard.</div>
+          <div class="limits-grid">${limitsHtml}</div>
+        </div>
+        <div style="margin-top:12px;padding-top:12px;border-top:1px solid #f0f0f0;">
+          <div class="section-label" style="margin-bottom:10px">COMPANY PAGES</div>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <input id="cp-url-${acc.account_id}" type="url"
+              placeholder="https://www.linkedin.com/company/your-company"
+              style="flex:1;padding:8px 12px;border:1px solid #e0e0e0;border-radius:7px;font-size:13px;font-family:inherit;outline:none;"
+              onfocus="this.style.borderColor='#1D9E75'" onblur="this.style.borderColor='#e0e0e0'"
+              onkeydown="if(event.key==='Enter') validateAndAddPage('${acc.account_id}')">
+            <button onclick="validateAndAddPage('${acc.account_id}')" id="cp-validate-btn-${acc.account_id}"
+              style="padding:8px 14px;background:#1D9E75;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;">
+              + Add
+            </button>
+          </div>
+          <div id="cp-validate-result-${acc.account_id}" style="margin-top:8px;font-size:12px;display:none;"></div>
+        </div>
+                <div class="save-row">
+          <span class="save-feedback" id="save-feedback-${acc.account_id}">&#10003; Saved</span>
+          <button class="save-btn" id="save-btn-${acc.account_id}" onclick="saveSettings('${acc.account_id}')">Save settings</button>
+        </div>
+        <div style="margin-top:12px;padding-top:12px;border-top:1px solid #eee;">
+          <div style="font-size:12px;color:#888;margin-bottom:8px;">Signals &amp; Webhooks — receive LinkedIn events in the Signals feed</div>
+          <button onclick="registerSignalsWebhooks()" style="background:#f0f9ff;border:1px solid #bfdbfe;color:#1e40af;border-radius:6px;padding:6px 14px;font-size:12px;cursor:pointer;">
+            📡 Register Signals Webhooks
+          </button>
+          <button onclick="resetCompanyFollowState()" style="background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:6px;padding:6px 14px;font-size:12px;cursor:pointer;margin-left:8px;">
+            🔄 Reset Follow State
+          </button>
+          <span id="webhook-reg-feedback" style="font-size:12px;color:#888;margin-left:10px;"></span>
+        </div>
+
+        <div style="margin-top:12px;padding-top:12px;border-top:1px solid #eee;">
+          <div style="font-size:12px;color:#888;margin-bottom:8px;">Background Jobs — run immediately</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button onclick="runJob('process-enrollments')" style="background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;">&#9654; Enrollments</button>
+            <button onclick="runJob('enrich-contacts')"    style="background:#fefce8;border:1px solid #fde68a;color:#854d0e;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;">&#9654; Enrich</button>
+            <button onclick="runJob('compute-scores')"     style="background:#faf5ff;border:1px solid #e9d5ff;color:#6b21a8;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;">&#9654; Scores</button>
+            <button onclick="runJob('sync-target-accounts')" style="background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;">&#9654; Target Accounts</button>
+          </div>
+          <span id="job-run-feedback" style="font-size:11px;color:#888;margin-top:4px;display:block;"></span>
+        </div>
+
+        <div style="margin-top:12px;padding-top:12px;border-top:1px solid #eee;">
+          <div style="font-size:12px;color:#888;margin-bottom:8px;">Conversation Intelligence</div>
+          <button onclick="analyzeReplies()" style="background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;border-radius:6px;padding:5px 12px;font-size:11px;cursor:pointer;">
+            🧠 Analyze Replies (AI)
+          </button>
+          <span id="analyze-feedback" style="font-size:11px;color:#888;margin-left:8px;"></span>
+        </div>
+      </div>
+    </div>`;
+}
+
+function updateLimit(accountId, key, value) {
+  if (!limitsStore[accountId]) return;
+  limitsStore[accountId][key] = parseInt(value);
+  const el = document.getElementById(`lv-${accountId}-${key}`);
+  if (el) el.textContent = value;
+}
+
+function copyLimitsFrom(targetAccountId) {
+  const select = document.getElementById(`copy-select-${targetAccountId}`);
+  const sourceId = select?.value;
+  if (!sourceId || !limitsStore[sourceId]) return;
+  limitsStore[targetAccountId] = { ...limitsStore[sourceId] };
+  renderDetail();
+  const btn = document.querySelector(`#copy-select-${targetAccountId}`)?.closest('.copy-banner')?.querySelector('.copy-btn');
+  if (btn) {
+    const orig = btn.textContent;
+    btn.textContent = 'Copied!';
+    btn.style.background = '#178f68';
+    setTimeout(() => { btn.textContent = orig; btn.style.background = ''; }, 1500);
+  }
+}
+
+async function saveSettings(accountId) {
+  const btn = document.getElementById(`save-btn-${accountId}`);
+  const feedback = document.getElementById(`save-feedback-${accountId}`);
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
+
+  try {
+    const limits = limitsStore[accountId];
+    const res = await fetch(
+      `/api/workspaces/${workspaceId}/accounts/${accountId}/settings`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ limits, company_page_url: (document.getElementById('company-page-url-' + accountId)?.value || '').trim() })
+      }
+    );
+    if (!res.ok) throw new Error((await res.json()).error || `HTTP ${res.status}`);
+
+    // Show saved feedback
+    if (feedback) {
+      feedback.classList.add('visible');
+      setTimeout(() => feedback.classList.remove('visible'), 2000);
+    }
+  } catch(err) {
+    alert('Failed to save settings: ' + err.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Save settings'; }
+  }
+}
+
+async function openAddModal() {
+  selectedToAdd = null;
+  document.getElementById('confirm-add-btn').disabled = true;
+  document.getElementById('modal-error').style.display = 'none';
+  document.getElementById('accounts-list').innerHTML = '<div class="loading">Loading available accounts...</div>';
+  document.getElementById('add-modal').style.display = 'flex';
+  try {
+    const res = await fetch('/api/unipile/accounts');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    allUnipileAccounts = Array.isArray(data.items) ? data.items : [];
+    renderAccountsList();
+  } catch(err) {
+    document.getElementById('accounts-list').innerHTML = '';
+    const errEl = document.getElementById('modal-error');
+    errEl.textContent = 'Could not load Unipile accounts: ' + err.message;
+    errEl.style.display = 'block';
+  }
+}
+
+function closeAddModal() { document.getElementById('add-modal').style.display='none'; selectedToAdd=null; }
+
+function renderAccountsList() {
+  const connectedIds = new Set(connectedAccounts.map(a => a.account_id));
+  const list = document.getElementById('accounts-list');
+  if (!allUnipileAccounts.length) { list.innerHTML='<div class="loading">No LinkedIn accounts found in Unipile.</div>'; return; }
+  list.innerHTML = allUnipileAccounts.map(acc => {
+    const name = acc.name || acc.username || acc.public_identifier || 'Account';
+    const alreadyAdded = connectedIds.has(acc.id);
+    const isSelected = selectedToAdd === acc.id;
+    return `
+      <div class="selectable-account${isSelected?' selected':''}${alreadyAdded?' already-added':''}"
+        onclick="${alreadyAdded?'':"selectToAdd('"+acc.id+"')"}">
+        <div class="sel-avatar">${initials(name)}</div>
+        <div><div class="sel-name">${esc(name)}</div></div>
+        ${alreadyAdded ? '<span class="sel-badge">Already added</span>' : ''}
+      </div>`;
+  }).join('');
+}
+
+function selectToAdd(accountId) {
+  selectedToAdd = accountId;
+  document.getElementById('confirm-add-btn').disabled = false;
+  renderAccountsList();
+}
+
+async function confirmAdd() {
+  if (!selectedToAdd) return;
+  const acc = allUnipileAccounts.find(a => a.id === selectedToAdd);
+  if (!acc) return;
+  const btn = document.getElementById('confirm-add-btn');
+  btn.disabled=true; btn.textContent='Adding...';
+  try {
+    const name = acc.name || acc.username || acc.public_identifier || acc.id;
+    const res = await fetch(`/api/workspaces/${workspaceId}/accounts`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ account_id: acc.id, display_name: name, provider: 'linkedin', status: acc.connection_state||acc.status||'connected' })
+    });
+    if (!res.ok) throw new Error((await res.json()).error);
+    closeAddModal();
+    activeAccountId = acc.id;
+    await load();
+  } catch(err) {
+    const errEl = document.getElementById('modal-error');
+    errEl.textContent = err.message;
+    errEl.style.display = 'block';
+    btn.disabled=false; btn.textContent='Add account';
+  }
+}
+
+async function resetCompanyFollowState() {
+  const fb = document.getElementById('webhook-reg-feedback');
+  if (fb) { fb.textContent = 'Resetting…'; fb.style.color = '#888'; }
+  try {
+    const r = await fetch('/api/admin/reset-company-follow-state', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ workspace_id: workspaceId }),
+    }).then(r => r.json());
+    if (r.error) throw new Error(r.error);
+    if (fb) { fb.textContent = `✅ Reset ${r.reset} accounts to 'normal' state`; fb.style.color = '#059669'; }
+  } catch(e) {
+    if (fb) { fb.textContent = '❌ ' + e.message; fb.style.color = '#dc2626'; }
+  }
+}
+
+async function registerSignalsWebhooks() {
+  const fb = document.getElementById('webhook-reg-feedback');
+  if (fb) { fb.textContent = 'Registering…'; fb.style.color = '#888'; }
+  try {
+    const r = await fetch('/api/admin/register-signals-webhooks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ workspace_id: workspaceId }),
+    }).then(r => r.json());
+    if (r.error) throw new Error(r.error);
+    const msg = `✅ ${r.registered} registered, ${r.existed} already existed${r.failed > 0 ? `, ${r.failed} failed` : ''}`;
+    if (fb) { fb.textContent = msg; fb.style.color = r.failed > 0 ? '#d97706' : '#059669'; }
+  } catch(e) {
+    if (fb) { fb.textContent = '❌ ' + e.message; fb.style.color = '#dc2626'; }
+  }
+}
+
+async function analyzeReplies() {
+  const fb = document.getElementById('analyze-feedback');
+  if (fb) { fb.textContent = 'Analyzing…'; fb.style.color = '#888'; }
+  try {
+    const r = await fetch('/api/admin/analyze-replies', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ workspace_id: wsId }),
+    }).then(r => r.json());
+    if (r.error) throw new Error(r.error);
+    if (fb) { fb.textContent = `✅ ${r.message}`; fb.style.color = '#059669'; }
+    setTimeout(() => { if (fb) fb.textContent = ''; }, 8000);
+  } catch(e) {
+    if (fb) { fb.textContent = '❌ ' + e.message; fb.style.color = '#dc2626'; }
+  }
+}
+
+async function runJob(jobName) {
+  const fb = document.getElementById('job-run-feedback');
+  if (fb) { fb.textContent = `Running ${jobName}…`; fb.style.color = '#888'; }
+  try {
+    const r = await fetch('/api/admin/trigger-job', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ job: jobName }),
+    }).then(r => r.json());
+    if (r.error) throw new Error(r.error);
+    if (fb) { fb.textContent = `✅ ${jobName} started (${r.method})`; fb.style.color = '#059669'; }
+    setTimeout(() => { if (fb) fb.textContent = ''; }, 5000);
+  } catch(e) {
+    if (fb) { fb.textContent = '❌ ' + e.message; fb.style.color = '#dc2626'; }
+  }
+}
+
+load();
+
+// ── Company Pages ─────────────────────────────────────────────────────────────
+async function loadCompanyPages() {
+  try {
+    const d = await fetch('/api/company-pages?workspace_id=' + workspaceId).then(r=>r.json());
+    renderCompanyPages(d.pages || []);
+  } catch(e) {}
+}
+
+function renderCompanyPages(pages) {
+  const list = document.getElementById('company-pages-list');
+  if (!list) return;
+  if (!pages.length) {
+    list.innerHTML = '<div style="font-size:12px;color:#aaa;padding:2px 0">No company pages added yet.</div>';
+    return;
+  }
+  list.innerHTML = pages.map(p => `
+    <div style="padding:9px 12px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;display:flex;align-items:center;gap:8px;">
+      <div style="flex:1;min-width:0;overflow:hidden;">
+        <div style="font-size:13px;font-weight:700;color:#111;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(p.name)}</div>
+        <div style="font-size:10px;color:#9ca3af;font-family:monospace;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(p.company_page_urn)}</div>
+      </div>
+      <button onclick="deleteCompanyPage(${p.id})"
+        title="Remove from workspace"
+        style="flex-shrink:0;width:26px;height:26px;display:flex;align-items:center;justify-content:center;border:1px solid #fca5a5;color:#dc2626;border-radius:6px;cursor:pointer;background:#fff;font-size:14px;">
+        ✕
+      </button>
+    </div>`).join('');
+}
+
+// ── Validate & Add Company Page ──────────────────────────────────────────────
+async function validateAndAddPage(accountId) {
+  const input  = document.getElementById('cp-url-' + accountId);
+  const btn    = document.getElementById('cp-validate-btn-' + accountId);
+  const result = document.getElementById('cp-validate-result-' + accountId);
+  const url    = input?.value?.trim();
+
+  if (!url) { input?.focus(); return; }
+
+  // Basic URL check
+  if (!url.includes('linkedin.com/company/')) {
+    showResult(result, '❌ Please enter a LinkedIn company URL (e.g. https://www.linkedin.com/company/your-company)', 'error');
+    return;
+  }
+
+  btn.disabled = true; btn.textContent = '⏳ Validating…';
+  showResult(result, '⏳ Resolving company and checking admin access…', 'loading');
+
+  try {
+    const d = await fetch('/api/company-pages/validate', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ workspace_id: workspaceId, li_url: url, account_id: accountId })
+    }).then(r=>r.json());
+
+    if (!d.ok) {
+      showResult(result, '❌ ' + (d.error || 'Failed'), 'error');
+      return;
+    }
+
+    if (!d.can_send) {
+      // Company was found but no admin access
+      showResult(result,
+        `⚠️ <strong>${esc(d.name)}</strong> found but none of your accounts has admin rights on this page. ` +
+        `Make sure you are a Page Admin on LinkedIn first, then try again.`,
+        'warn');
+      return;
+    }
+
+    // All good — add to workspace
+    const add = await fetch('/api/company-pages', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ workspace_id: workspaceId, company_page_urn: d.urn, name: d.name, li_url: d.li_url })
+    }).then(r=>r.json());
+
+    if (!add.ok && !add.error?.includes('duplicate') && !add.error?.includes('already')) {
+      throw new Error(add.error);
+    }
+
+    const adminAcct = d.accounts?.find(a=>a.can_send)?.display_name;
+    const alreadyExisted = add.error?.includes('duplicate') || add.error?.includes('already');
+    showResult(result,
+      alreadyExisted
+        ? `✅ <strong>${esc(d.name)}</strong> is already in this workspace`
+        : `✅ <strong>${esc(d.name)}</strong> added — ` +
+          (adminAcct ? `sending via <em>${esc(adminAcct)}</em>` : 'admin verified'),
+      'success');
+    input.value = '';
+    await loadCompanyPages();
+    // Auto-clear success message after 6 seconds
+    setTimeout(() => { if (result) result.style.display = 'none'; }, 6000);
+
+  } catch(e) {
+    showResult(result, '❌ ' + esc(e.message), 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '+ Add';
+  }
+}
+
+function showResult(el, html, type) {
+  if (!el) return;
+  const colors = {
+    success: { bg:'#f0fdf4', border:'#bbf7d0', text:'#166534' },
+    error:   { bg:'#fef2f2', border:'#fecaca', text:'#991b1b' },
+    warn:    { bg:'#fffbeb', border:'#fde68a', text:'#92400e' },
+    loading: { bg:'#f8fafc', border:'#e2e8f0', text:'#475569' },
+  };
+  const c = colors[type] || colors.loading;
+  el.style.cssText = `display:block;padding:8px 12px;background:${c.bg};border:1px solid ${c.border};border-radius:7px;color:${c.text};font-size:12px;line-height:1.5`;
+  el.innerHTML = html;
+}
+
+
+// ── Company page management ───────────────────────────────────────────────────
+async function deleteCompanyPage(id) {
+  await fetch('/api/company-pages/' + id + '?workspace_id=' + workspaceId, { method: 'DELETE' }).catch(()=>{});
+  await loadCompanyPages();
+  // Reset all dropdown caches so ✓ Added state refreshes on next open
+  Object.keys(_cpDropdownState).forEach(k => { _cpDropdownState[k] = { loaded: false }; });
+}
+
+async function setDefaultPage(id) {
+  await fetch('/api/company-pages/' + id + '/default?workspace_id=' + workspaceId, { method: 'PATCH' }).catch(()=>{});
+  await loadCompanyPages();
+}
+
+async function renamePage(id, name) {
+  await fetch('/api/company-pages/' + id + '?workspace_id=' + workspaceId, {
+    method: 'PATCH', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ name })
+  }).catch(()=>{});
+  await loadCompanyPages();
+}
+
+// Load company pages on init
+loadCompanyPages();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="stylesheet" href="/ds.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Campaigns</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+@import url('/elvia.css');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+body { background: var(--bg); color: var(--text); font-size: 14px; }
+.page { padding: 24px 28px; }
+.page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; }
+.page-title { font-size: 20px; font-weight: 800; color: var(--text); letter-spacing: -.3px; }
+.page-sub { font-size: 13px; color: var(--text-3); margin-top: 2px; }
+.new-btn { background: var(--green); border: none; border-radius: var(--r-sm); padding: 9px 18px; font-size: 13px; font-weight: 700; color: white; cursor: pointer; transition: all .15s; display:flex;align-items:center;gap:6px; }
+.new-btn:hover { background: var(--green-hover); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(29,158,117,.25); }
+.summary-cards { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 20px; }
+.sum-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 16px 20px; display: flex; flex-direction: column; gap: 3px; box-shadow: var(--shadow-xs); }
+.sum-card-num { font-size: 28px; font-weight: 800; letter-spacing: -.03em; color: var(--text); line-height: 1; font-family: var(--mono); }
+.sum-card-label { font-size: 10px; color: var(--text-3); font-weight: 700; text-transform: uppercase; letter-spacing: .7px; margin-top: 4px; }
+.sum-card-rate { font-size: 12px; color: var(--green); font-weight: 600; margin-top: 2px; }
+.sum-card.accent .sum-card-num { color: var(--green); }
+.campaigns-table-wrap { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-lg); overflow: hidden; box-shadow: var(--shadow-sm); }
+.campaigns-table { width: 100%; border-collapse: collapse; }
+.campaigns-table th { text-align: left; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .7px; color: var(--text-3); padding: 10px 14px; border-bottom: 1px solid var(--border); background: var(--bg); }
+.campaigns-table td { padding: 13px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.campaigns-table tr:last-child td { border-bottom: none; }
+.campaigns-table tbody tr { cursor: pointer; transition: background .12s; }
+.campaigns-table tbody tr:hover td { background: var(--green-light); }
+.stat-num { font-size: 15px; font-weight: 700; color: var(--text); letter-spacing: -.01em; font-family: var(--mono); }
+.stat-rate { font-size: 11px; color: var(--green); font-weight: 600; margin-top: 2px; }
+.status-pill { display: inline-flex; align-items: center; gap: 5px; border-radius: 20px; padding: 3px 10px; font-size: 11px; font-weight: 700; }
+.status-pill::before { content:''; width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+.status-active { background: var(--green-light); color: var(--green); border:1px solid var(--green-border); }
+.status-active::before { background: var(--green); animation: ds-pulse 2s infinite; }
+.status-paused { background: var(--amber-light); color: var(--amber); border:1px solid var(--amber-border); }
+.status-paused::before { background: var(--amber); }
+.status-draft  { background: #F3F4F6; color: var(--text-3); border:1px solid var(--border); }
+.status-draft::before  { background: var(--text-4); }
+.action-btn { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 5px 10px; font-size: 12px; color: var(--text-3); cursor: pointer; font-weight: 500; transition: all .12s; }
+.action-btn:hover { background: var(--bg); border-color: var(--border2); color: var(--text); }
+.action-btn.danger:hover { background: var(--red-light); color: var(--red); border-color: var(--red-border); }
+.analytics-hint { font-size: 11px; color: #aaa; margin-top: 3px; }
+.empty-state { background: white; border: 1px dashed #e0e0e0; border-radius: var(--r-lg); padding: 64px 24px; text-align: center; }
+.modal-backdrop { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; padding: 20px; }
+.modal { background: var(--card); border-radius: var(--r-xl); width: min(860px,100%); max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0,0,0,0.2); overflow: hidden; }
+.modal-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 24px; border-bottom: 1px solid var(--border); background: var(--bg); flex-shrink: 0; }
+.modal-title { font-size: 16px; font-weight: 600; }
+.modal-close { background: none; border: none; font-size: 22px; color: #999; cursor: pointer; }
+.modal-steps { display: flex; border-bottom: 1px solid #f0f0f0; flex-shrink: 0; }
+.modal-step { flex: 1; padding: 11px 14px; font-size: 12px; font-weight: 500; color: #aaa; text-align: center; border-right: 1px solid #f0f0f0; }
+.modal-step:last-child { border-right: none; }
+.modal-step.active { color: #1D9E75; background: #F0FBF7; }
+.modal-step.done { color: #666; }
+.modal-body { padding: 26px 24px; overflow-y: auto; flex: 1; }
+.modal-footer { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; border-top: 1px solid var(--border); background: var(--bg); flex-shrink: 0; }
+.section-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #aaa; margin-bottom: 16px; }
+.user-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap: 10px; }
+.user-card { border: 1.5px solid #e5e5e5; border-radius: var(--r-lg); padding: 14px; cursor: pointer; display: flex; align-items: center; gap: 12px; }
+.user-card:hover, .user-card.selected { border-color: #1D9E75; background: #F0FBF7; }
+.user-avatar { width: 38px; height: 38px; border-radius: 50%; background: #DBEAFE; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: #1E40AF; flex-shrink: 0; }
+.user-name { font-size: 13px; font-weight: 600; }
+.audience-options { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+.audience-option { border: 1.5px solid #e5e5e5; border-radius: var(--r-lg); padding: 20px; cursor: pointer; text-align: center; }
+.audience-option:hover, .audience-option.selected { border-color: #1D9E75; background: #F0FBF7; }
+.audience-option-icon { font-size: 24px; margin-bottom: 8px; }
+.audience-option-title { font-size: 14px; font-weight: 600; }
+.audience-option-sub { font-size: 12px; color: #888; margin-top: 4px; }
+textarea { width: 100%; padding: 10px 12px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 13px; font-family: inherit; resize: vertical; background: #fafafa; }
+textarea:focus { outline: none; border-color: #1D9E75; }
+.search-progress { border: 1px solid #e5e5e5; border-radius: var(--r-lg); padding: 32px 24px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.contacts-list { display: flex; flex-direction: column; gap: 4px; }
+.contact-row { display: flex; align-items: center; gap: 10px; padding: 9px 12px; background: #fafafa; border: 1px solid #f0f0f0; border-radius: 8px; transition: background 0.1s; }
+.contact-row.selected-row { background: #F0FBF7; border-color: #A7F3D0; }
+.contact-cb { width: 16px; height: 16px; accent-color: #1D9E75; cursor: pointer; flex-shrink: 0; }
+.contact-info { flex: 1; min-width: 0; }
+.contact-name { font-size: 13px; font-weight: 500; }
+.contact-title { font-size: 12px; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.contact-remove { background: none; border: none; font-size: 18px; color: #ccc; cursor: pointer; flex-shrink: 0; padding: 0 4px; }
+.contact-remove:hover { color: #DC2626; }
+.contacts-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: white; border: 1px solid #e5e5e5; border-radius: 8px; margin-bottom: 6px; }
+.contacts-toolbar-left { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #555; }
+.contacts-toolbar-right { display: flex; align-items: center; gap: 8px; }
+.remove-sel-btn { background: #FEF2F2; border: 1px solid #FECACA; border-radius: 6px; padding: 5px 10px; font-size: 12px; color: #DC2626; cursor: pointer; font-family: inherit; }
+.remove-sel-btn:hover { background: #FEE2E2; }
+.remove-sel-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.conn-section { border: 1px solid #e5e5e5; border-radius: var(--r-lg); padding: 16px; margin-bottom: 20px; }
+.conn-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.conn-label { font-size: 14px; font-weight: 500; }
+.conn-sub { font-size: 12px; color: #888; margin-top: 3px; }
+.conn-options { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; padding-top: 14px; border-top: 1px solid #f0f0f0; }
+.conn-opt-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.conn-opt-label { font-size: 13px; color: #555; }
+.num-input { width: 64px; padding: 5px 8px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px; text-align: center; }
+.sequence-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+.sequence-canvas { border: 1px solid #e5e5e5; border-radius: var(--r-lg); overflow: hidden; }
+.seq-head { padding: 12px 14px; background: #fafafa; border-bottom: 1px solid #f0f0f0; }
+.seq-head-title { font-size: 13px; font-weight: 600; }
+.seq-head-sub { font-size: 11px; color: #888; margin-top: 2px; }
+.seq-body { padding: 12px; min-height: 80px; display: flex; flex-direction: column; gap: 8px; }
+.seq-msg { border: 1px solid #e5e5e5; border-radius: 8px; padding: 10px; position: relative; }
+.seq-msg-delay { font-size: 11px; color: #888; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+.seq-msg-text { font-size: 12px; color: #333; }
+.seq-msg-remove { position: absolute; top: 6px; right: 8px; background: none; border: none; font-size: 16px; color: #ccc; cursor: pointer; }
+.seq-msg-remove:hover { color: #DC2626; }
+.variant-badge { display: inline-flex; gap: 3px; }
+.vbadge { display: inline-block; border-radius: 3px; padding: 1px 5px; font-size: 10px; font-weight: 700; }
+.vbadge-a { background: #EDE9FE; color: #6D28D9; }
+.vbadge-b { background: #DBEAFE; color: #1D4ED8; }
+.vbadge-c { background: #FEF3C7; color: #B45309; }
+.add-msg-btn { background: none; border: 1px dashed #ddd; border-radius: 8px; padding: 8px; font-size: 12px; color: #888; cursor: pointer; width: 100%; text-align: center; font-family: inherit; }
+.add-msg-btn:hover { border-color: #1D9E75; color: #1D9E75; background: #F0FBF7; }
+.engagement-list { display: flex; flex-direction: column; gap: 8px; }
+.engagement-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border: 1px solid #e5e5e5; border-radius: var(--r-lg); }
+.eng-label { font-size: 13px; font-weight: 500; }
+.eng-sub { font-size: 11px; color: #888; margin-top: 2px; }
+.toggle { width: 38px; height: 22px; border-radius: 11px; background: #ddd; border: none; cursor: pointer; position: relative; transition: background 0.15s; flex-shrink: 0; }
+.toggle.on { background: #1D9E75; }
+.toggle::after { content: ''; position: absolute; width: 16px; height: 16px; border-radius: 50%; background: white; top: 3px; left: 3px; transition: left 0.15s; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+.toggle.on::after { left: 19px; }
+.msg-dialog-backdrop { position: fixed; inset: 0; z-index: 90; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; padding: 20px; }
+.msg-dialog { background: white; border-radius: var(--r-lg); width: min(580px,100%); max-height: 90vh; overflow-y: auto; padding: 24px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+.msg-dialog h3 { font-size: 16px; font-weight: 600; margin-bottom: 18px; }
+.field-label { font-size: 12px; font-weight: 500; color: #555; margin-bottom: 6px; }
+.delay-row { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; }
+.delay-row input { width: 72px; padding: 7px 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px; }
+.delay-row select { padding: 7px 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px; }
+.variant-section { border: 1px solid #e5e5e5; border-radius: var(--r-lg); padding: 14px; margin-bottom: 10px; position: relative; }
+.variant-section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.variant-section-label { font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.variant-remove-btn { background: none; border: none; font-size: 15px; color: #ccc; cursor: pointer; }
+.variant-remove-btn:hover { color: #DC2626; }
+.tokens-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
+.token-btn { background: #f5f5f5; border: 1px solid #e0e0e0; border-radius: 999px; padding: 4px 10px; font-size: 12px; color: #555; cursor: pointer; font-family: inherit; }
+.token-btn:hover { border-color: #1D9E75; color: #1D9E75; background: #F0FBF7; }
+.add-variant-btn { background: none; border: 1px dashed #c4b5fd; border-radius: 8px; padding: 8px; font-size: 12px; color: #7C3AED; cursor: pointer; width: 100%; text-align: center; margin-bottom: 10px; font-family: inherit; }
+.add-variant-btn:hover { background: #F5F3FF; }
+.ab-info-box { background: #F5F3FF; border: 1px solid #DDD6FE; border-radius: 8px; padding: 10px 12px; font-size: 12px; color: #5B21B6; margin-bottom: 16px; }
+.name-input { width: 100%; padding: 12px 14px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 16px; font-family: inherit; }
+.name-input:focus { outline: none; border-color: #1D9E75; }
+.hours-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 8px; margin-top: 12px; }
+.day-card { border: 1px solid #e5e5e5; border-radius: 8px; padding: 10px 8px; display: flex; flex-direction: column; gap: 8px; }
+.day-card.off { opacity: 0.45; }
+.day-head { display: flex; align-items: center; justify-content: space-between; }
+.day-name { font-size: 11px; font-weight: 500; color: #555; }
+.day-toggle { width: 28px; height: 16px; border-radius: 8px; background: #ddd; border: none; cursor: pointer; position: relative; transition: background 0.15s; }
+.day-toggle.on { background: #1D9E75; }
+.day-toggle::after { content: ''; position: absolute; width: 12px; height: 12px; border-radius: 50%; background: white; top: 2px; left: 2px; transition: left 0.15s; }
+.day-toggle.on::after { left: 14px; }
+.time-inputs { display: flex; flex-direction: column; gap: 4px; }
+.time-row { display: flex; align-items: center; gap: 4px; }
+.time-lbl { font-size: 10px; color: #aaa; width: 20px; }
+.time-input { flex: 1; font-size: 11px; border: 1px solid #e0e0e0; border-radius: 4px; padding: 3px 4px; background: #fafafa; }
+.day-off-label { font-size: 11px; color: #aaa; text-align: center; }
+.summary-box { margin-top: 24px; background: #fafafa; border: 1px solid #f0f0f0; border-radius: var(--r-lg); padding: 16px; }
+.summary-row { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 5px 0; border-bottom: 1px solid #f5f5f5; }
+.summary-row:last-child { border-bottom: none; }
+.summary-key { color: #888; min-width: 180px; }
+.summary-val { font-weight: 500; }
+.primary-btn { background: #1D9E75; border: none; border-radius: 8px; padding: 9px 20px; font-size: 14px; font-weight: 500; color: white; cursor: pointer; font-family: inherit; }
+.primary-btn:hover { background: #178f68; }
+.primary-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.ghost-btn { background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 9px 16px; font-size: 14px; color: #555; cursor: pointer; font-family: inherit; }
+.ghost-btn:hover { background: #f5f5f5; }
+.notice-box { background: #FFF8E1; border: 1px solid #FFE082; border-radius: var(--r-lg); padding: 20px 22px; font-size: 13px; color: #5D4037; line-height: 1.7; }
+.notice-box .notice-title { font-size: 15px; font-weight: 600; margin-bottom: 10px; color: #4E342E; }
+.notice-box a.inline-link { color: #1D9E75; font-weight: 600; text-decoration: underline; cursor: pointer; }
+.cell-link { color: #1D9E75; text-decoration: none; font-size: 12px; }
+.cell-link:hover { text-decoration: underline; }
+.analytics-section-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #aaa; margin-bottom: 14px; }
+.overview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; margin-bottom: 28px; }
+.overview-card { background: #fafafa; border: 1px solid #f0f0f0; border-radius: var(--r-lg); padding: 14px 12px; text-align: center; }
+.overview-card-num { font-size: 22px; font-weight: 700; color: #1a1a1a; }
+.overview-card-rate { font-size: 11px; color: #1D9E75; font-weight: 500; margin-top: 2px; }
+.overview-card-label { font-size: 11px; color: #888; margin-top: 4px; }
+.ab-step-block { margin-bottom: 20px; }
+.ab-step-title { font-size: 13px; font-weight: 600; color: #333; margin-bottom: 10px; }
+.ab-table { width: 100%; border-collapse: collapse; border: 1px solid #e5e5e5; border-radius: 8px; overflow: hidden; font-size: 13px; }
+.ab-table th { background: #fafafa; padding: 9px 14px; text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #888; border-bottom: 1px solid #e5e5e5; }
+.ab-table td { padding: 11px 14px; border-bottom: 1px solid #f5f5f5; }
+.ab-table tr:last-child td { border-bottom: none; }
+.ab-table tr.best-row td { background: #F0FBF7; }
+.variant-pill { display: inline-block; border-radius: 4px; padding: 2px 8px; font-size: 12px; font-weight: 700; min-width: 26px; text-align: center; }
+.variant-a { background: #EDE9FE; color: #6D28D9; }
+.variant-b { background: #DBEAFE; color: #1D4ED8; }
+.variant-c { background: #FEF3C7; color: #B45309; }
+.best-badge { display: inline-block; background: #E1F5EE; color: #0F6E56; border-radius: 4px; padding: 1px 6px; font-size: 10px; font-weight: 600; margin-left: 6px; }
+.rate-bar-wrap { display: flex; align-items: center; gap: 8px; }
+.rate-bar { height: 6px; border-radius: 3px; background: #1D9E75; min-width: 2px; }
+.rate-text { font-size: 12px; font-weight: 600; color: #333; white-space: nowrap; }
+.no-ab-msg { text-align: center; color: #aaa; font-size: 13px; padding: 24px; background: #fafafa; border-radius: 8px; }
+.cm-back { position:fixed;inset:0;z-index:70;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;padding:16px; }
+.cm-modal { background:white;border-radius:14px;width:min(980px,96vw);height:86vh;display:flex;flex-direction:column;box-shadow:0 24px 80px rgba(0,0,0,0.25);overflow:hidden; }
+.cm-head { display:flex;align-items:center;justify-content:space-between;padding:16px 22px;border-bottom:1px solid #f0f0f0;background:#fafafa;flex-shrink:0; }
+.cm-name { font-size:16px;font-weight:600; }
+.cm-meta { font-size:12px;color:#888;margin-top:3px; }
+.cm-nav { display:flex;border-bottom:1px solid #f0f0f0;flex-shrink:0;background:white; }
+.cm-tab { flex:1;padding:12px 8px;font-size:13px;font-weight:500;color:#888;background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;font-family:inherit;transition:all 0.12s;white-space:nowrap; }
+.cm-tab:hover { color:#1D9E75;background:#F0FBF7; }
+.cm-tab.active { color:#1D9E75;border-bottom-color:#1D9E75;background:#F0FBF7; }
+.cm-body { flex:1;overflow-y:auto;padding:22px 24px; }
+.cm-foot { display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:12px 22px;border-top:1px solid #f0f0f0;background:#fafafa;flex-shrink:0; }
+.tab-spin { text-align:center;color:#aaa;padding:60px;font-size:13px; }
+.tab-err  { color:#DC2626;text-align:center;padding:40px;font-size:13px; }
+.add-card { background:#fafafa;border:1px solid #e5e5e5;border-radius:10px;padding:18px;margin-top:20px; }
+.add-card-title { font-size:13px;font-weight:600;margin-bottom:12px;color:#333; }
+.add-res { font-size:12px;margin:8px 0 0;min-height:18px; }
+.auto-box { background:#F0FBF7;border:1px solid #A7F3D0;border-radius:8px;padding:10px 14px;font-size:12px;color:#0F6E56;margin-bottom:12px;line-height:1.5; }
+.add-ta { width:100%;padding:10px 12px;border:1px solid #e0e0e0;border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;min-height:90px;background:white;line-height:1.6; }
+.add-ta:focus { outline:none;border-color:#1D9E75; }
+.cm-table { width:100%;border-collapse:collapse;font-size:13px; }
+.cm-table th { text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:#888;padding:8px 12px;border-bottom:1px solid #f0f0f0;background:#fafafa; }
+.cm-table td { padding:10px 12px;border-bottom:1px solid #f5f5f5;vertical-align:middle; }
+.cm-table tr:last-child td { border-bottom:none; }
+.cm-table tbody tr:hover td { background:#fafafa; }
+.tbl-wrap { border:1px solid #e5e5e5;border-radius:10px;overflow:hidden; }
+.sc { display:inline-block;border-radius:4px;padding:2px 7px;font-size:11px;font-weight:600;margin-right:3px;white-space:nowrap; }
+.sc-g { background:#E1F5EE;color:#0F6E56; }
+.sc-b { background:#DBEAFE;color:#1D4ED8; }
+.sc-t { background:#F0FBF7;color:#178f68; }
+.sc-x { background:#f5f5f5;color:#888; }
+.pager { display:flex;align-items:center;justify-content:center;gap:5px;padding-top:14px; }
+.pg { background:white;border:1px solid #e0e0e0;border-radius:6px;padding:5px 10px;font-size:12px;color:#555;cursor:pointer;font-family:inherit; }
+.pg:hover:not(:disabled) { background:#f5f5f5; }
+.pg.on { background:#1D9E75;color:white;border-color:#1D9E75; }
+.pg:disabled { opacity:0.4;cursor:not-allowed; }
+.rm-btn { background:none;border:none;font-size:16px;color:#ccc;cursor:pointer;padding:2px 6px; }
+.rm-btn:hover { color:#DC2626; }
+.fsl { display:block;font-size:11px;font-weight:600;color:#888;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.06em; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.preview-notice { background:#F0FBF7;border:1px solid #A7F3D0;border-radius:8px;padding:12px 14px;font-size:12px;color:#0F6E56;margin-bottom:12px;line-height:1.7; }
+.preview-notice strong { color:#0a5c44; }
+.country-input { width:100%;padding:10px 12px;border:1px solid #e0e0e0;border-radius:8px;font-size:13px;font-family:inherit;background:#fafafa; }
+.country-input:focus { outline:none;border-color:#1D9E75; }
+
+.list-picker-grid{display:flex;flex-wrap:wrap;gap:10px;padding:12px 0}
+.list-picker-loading{font-size:13px;color:#9ca3af;padding:8px 0}
+.list-picker-card{display:flex;align-items:center;gap:10px;padding:10px 16px;border:1.5px solid #e5e7eb;border-radius:10px;cursor:pointer;transition:all .15s;background:white;min-width:160px}
+.list-picker-card:hover{border-color:#9ca3af;background:#f9fafb}
+.list-picker-card.selected{border-color:#16a34a;background:#f0fdf4}
+.list-picker-card .lpc-icon{font-size:18px}
+.list-picker-card .lpc-name{font-size:13px;font-weight:600;color:#111827}
+.list-picker-card .lpc-count{font-size:11px;color:#6b7280;margin-top:1px}
+.list-picker-card .lpc-check{margin-left:auto;color:#16a34a;font-size:16px;display:none}
+.list-picker-card.selected .lpc-check{display:block}
+.list-picker-empty{font-size:13px;color:#9ca3af;padding:8px 0}
+.list-picker-empty a{color:#16a34a;text-decoration:none;font-weight:600}
+
+
+.list-picker-grid { display:flex; flex-direction:column; gap:8px; margin-top:4px; max-height:280px; overflow-y:auto; }
+.list-picker-loading { font-size:13px; color:#888; padding:8px 0; }
+.list-picker-card { display:flex; align-items:center; gap:12px; padding:11px 14px; border:1.5px solid #e5e7eb; border-radius:10px; cursor:pointer; transition:all .15s; background:white; }
+.list-picker-card:hover,.list-picker-card.selected { border-color:#1D9E75; background:#f0fbf7; }
+.lpc-icon { font-size:20px; flex-shrink:0; }
+.lpc-info { flex:1; min-width:0; }
+.lpc-name { font-size:14px; font-weight:600; color:#111; margin-bottom:2px; }
+.lpc-count { font-size:12px; color:#888; }
+.lpc-check { color:#1D9E75; font-size:16px; font-weight:700; flex-shrink:0; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Campaigns</div>
+      <div class="page-sub">Manage your outreach campaigns</div>
+    </div>
+    <button class="new-btn" onclick="openModal()">+ New campaign</button>
+  </div>
+  <div id="campaigns-area"></div>
+</div>
+
+<div id="modal" class="modal-backdrop" style="display:none;">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">New campaign</div>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-steps" id="modal-steps"></div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-footer">
+      <button class="ghost-btn" id="btn-back" onclick="prevStep()">Back</button>
+      <button class="primary-btn" id="btn-next" onclick="nextStep()">Continue</button>
+    </div>
+  </div>
+</div>
+
+<div id="msg-dialog" class="msg-dialog-backdrop" style="display:none;">
+  <div class="msg-dialog">
+    <h3 id="msg-dialog-title">Add message</h3>
+    <div class="field-label">Wait before sending</div>
+    <div class="delay-row">
+      <input type="number" id="msg-delay-val" value="3" min="1">
+      <select id="msg-delay-unit"><option value="hours">hours</option><option value="days" selected>days</option><option value="weeks">weeks</option></select>
+      <span style="font-size:13px;color:#888;">after previous step</span>
+    </div>
+    <div class="ab-info-box">&#9654; The system randomly sends one variant per contact. After enough sends, compare reply rates to find the winner.</div>
+    <div id="variant-sections"></div>
+    <div id="add-variant-area"></div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;">
+      <button class="ghost-btn" onclick="closeMsgDialog()">Cancel</button>
+      <button class="primary-btn" onclick="saveMsgDialog()">Add message</button>
+    </div>
+  </div>
+</div>
+
+<div id="cm-back" class="cm-back" style="display:none;" onclick="if(event.target===this)closeCM()">
+  <div class="cm-modal">
+    <div class="cm-head">
+      <div>
+        <div class="cm-name" id="cm-name">Loading...</div>
+        <div class="cm-meta" id="cm-meta"></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button id="cm-st-btn" class="ghost-btn" style="font-size:12px;" onclick="toggleCMStatus()"></button>
+        <button class="modal-close" onclick="closeCM()">&times;</button>
+      </div>
+    </div>
+    <div class="cm-nav">
+      <button class="cm-tab" data-tab="analytics" onclick="switchCMTab('analytics')">&#128200; Analytics</button>
+      <button class="cm-tab" data-tab="enrollments" onclick="switchCMTab('enrollments')">&#128100; Enrollments</button>
+      <button class="cm-tab" data-tab="companies" onclick="switchCMTab('companies')">&#127970; Companies</button>
+      <button class="cm-tab" data-tab="audience"  onclick="switchCMTab('audience')">&#128203; Contacts</button>
+      <button class="cm-tab" data-tab="settings"  onclick="switchCMTab('settings')">&#9881;&#65039; Settings</button>
+    </div>
+    <div id="cmb-analytics"   class="cm-body"></div>
+    <div id="cmb-enrollments" class="cm-body" style="display:none;"></div>
+    <div id="cmb-companies"   class="cm-body" style="display:none;"></div>
+    <div id="cmb-audience"    class="cm-body" style="display:none;"></div>
+    <div id="cmb-settings"    class="cm-body" style="display:none;"></div>
+    <div id="cm-foot" class="cm-foot" style="display:none;">
+      <button class="ghost-btn" onclick="closeCM()">Close</button>
+      <button class="primary-btn" id="cm-save-btn" onclick="saveCMSettings()">Save settings</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const params = new URLSearchParams(window.location.search);
+const workspaceId = params.get('workspace_id');
+const settingsUrl = `settings.html?workspace_id=${workspaceId}`;
+
+const STEPS = ['Account','List','Sequence','Name & Hours'];
+const DAYS  = [
+  {key:'1',label:'Mon'},{key:'2',label:'Tue'},{key:'3',label:'Wed'},
+  {key:'4',label:'Thu'},{key:'5',label:'Fri'},{key:'6',label:'Sat'},{key:'7',label:'Sun'}
+];
+const ENGAGEMENT_ACTIONS = [
+  { key: 'view_profile',          label: 'View profile',                    sub: 'Once per week' },
+  { key: 'follow_company',        label: 'Invite to follow company page',   sub: 'Uses company page from Settings' },
+  { key: 'like_posts',            label: 'Like posts (personal)',           sub: 'Posts from last 7 days' },
+  { key: 'like_comments',         label: 'Like comments (personal)',        sub: '' },
+  { key: 'company_like_posts',    label: 'Like posts via company page',     sub: 'Posts from last 7 days' },
+  { key: 'company_like_comments', label: 'Like comments via company page',  sub: '' },
+];
+
+function defaultHours() {
+  return Object.fromEntries(DAYS.map((d, i) => [d.key, { on: i < 5, from: '09:00', to: '18:00' }]));
+}
+
+let campaigns = [], workspaceAccounts = [], currentStep = 0;
+let pcDropdownOpen = true;
+let wizard = resetWizard(), activeMsgCanvas = null, dlgVariants = [];
+
+var msgEditCanvas = null;
+var CKEY = { new:'new', existingNo:'existing_no_history', existingYes:'existing_with_history' };
+var cmId=null, cmData=null, cmTab=null, cmLoaded={}, cmSettings=null, cmCtPage=1;
+
+function resetWizard() {
+  return {
+    selectedAccount: null,
+    list_id: null, list_name: null, list_type: null,
+    audienceType: null,
+    urlsPasted: '', companyUrls: '', searchTitles: '', maxPerCompany: 10,
+    searchStatus: null, contacts: [], companiesMeta: [],
+    allCompanyUrls: [], isPreview: false, totalCompanies: 0,
+    keywordsQuery: '', nextCursor: null,
+    selectedContactIndices: new Set(),
+    targetCountry: '',
+    connectionEnabled: true, withdrawEnabled: false, withdrawDays: 14, resendEnabled: false,
+    newMessages: [], existingNoHistoryMessages: [], existingWithHistoryMessages: [],
+    engagement: {}, campaignName: '', hours: defaultHours(),
+    // Personal campaign fields (set via postMessage from Signals)
+    personalMode: false, aiMsg: '', entityName: '', entityLiUrl: null, company: '',
+    sequenceId: null,
+  };
+}
+
+function initials(n) { return String(n||'?').split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase(); }
+function pct(a, b) { const bn = parseInt(b) || 0; return bn > 0 ? Math.round((parseInt(a)||0) / bn * 100) + '%' : '\u2014'; }
+function countUrls(t){ return (t.match(/linkedin\.com\/in\//g)||[]).length; }
+function esc(s)      { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function safeUrl(u)  { u=(u||'').trim(); return /^https?:\/\//i.test(u)?u:'https://'+u; }
+
+async function load() {
+  try {
+    const [campRes, accRes] = await Promise.all([
+      fetch(`/api/campaigns?workspace_id=${workspaceId}`),
+      fetch(`/api/workspaces/${workspaceId}/accounts`)
+    ]);
+    const campData = await campRes.json(), accData = await accRes.json();
+    campaigns         = Array.isArray(campData.items) ? campData.items : [];
+    workspaceAccounts = Array.isArray(accData.items)  ? accData.items  : [];
+  } catch(e) { console.error(e); }
+  renderCampaigns();
+}
+
+function renderCampaigns() {
+  const el = document.getElementById('campaigns-area');
+  if (!campaigns.length) {
+    el.innerHTML = `<div class="empty-state"><div style="font-size:40px;margin-bottom:14px;opacity:0.2;">📋</div><div style="font-size:16px;font-weight:600;margin-bottom:6px;color:#374151;">No campaigns yet</div><div style="font-size:13px;color:#9ca3af;">Create your first campaign to start outreach</div></div>`;
+    return;
+  }
+
+  // Summary totals
+  const totInvites  = campaigns.reduce((s,c)=>s+(parseInt(c.invites_sent)||0),0);
+  const totApproved = campaigns.reduce((s,c)=>s+(parseInt(c.invites_approved)||0),0);
+  const totMessages = campaigns.reduce((s,c)=>s+(parseInt(c.messages_sent)||0),0);
+  const totReplies  = campaigns.reduce((s,c)=>s+(parseInt(c.positive_replies)||0),0);
+  const approvedPct = totInvites ? Math.round(totApproved/totInvites*100)+'%' : '—';
+  const msgPct      = totApproved ? Math.round(totMessages/totApproved*100)+'%' : '—';
+
+  el.innerHTML = `
+  <div class="summary-cards">
+    <div class="sum-card"><div class="sum-card-num">${totInvites.toLocaleString()}</div><div class="sum-card-label">Invites Sent</div></div>
+    <div class="sum-card accent"><div class="sum-card-num">${totApproved.toLocaleString()}</div><div class="sum-card-label">Approved</div><div class="sum-card-rate">${approvedPct} approval rate</div></div>
+    <div class="sum-card"><div class="sum-card-num">${totMessages.toLocaleString()}</div><div class="sum-card-label">Messages Sent</div><div class="sum-card-rate">${msgPct} of approved</div></div>
+    <div class="sum-card"><div class="sum-card-num">${totReplies.toLocaleString()}</div><div class="sum-card-label">Positive Replies</div><div class="sum-card-rate">${totMessages?Math.round(totReplies/totMessages*100)+'%':'—'} reply rate</div></div>
+  </div>
+  <div class="campaigns-table-wrap"><table class="campaigns-table">
+    <thead><tr><th>Campaign</th><th>Account</th><th>List</th><th>Invites</th><th>Approved</th><th>Messages</th><th>Replies</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+    ${(()=>{
+      const personalCamps = campaigns.filter(c => c.audience_type === 'personal');
+      const regularCamps  = campaigns.filter(c => c.audience_type !== 'personal');
+
+      // ── Personal Campaigns Dropdown (always shown) ──
+      let pcSection = '';
+      if (true) {  // always render — built-in feature for all workspaces
+        const sorted = [...personalCamps].sort((a,b) => {
+          const oA = a.status==='draft'||a.status==='active';
+          const oB = b.status==='draft'||b.status==='active';
+          return oA===oB ? (new Date(b.created_at||0)-new Date(a.created_at||0)) : oA?-1:1;
+        });
+        const totalOpen = sorted.filter(c=>c.status==='draft'||c.status==='active').length;
+        const totalDone = sorted.filter(c=>c.status==='sent'||c.status==='closed').length;
+        const arrow = pcDropdownOpen ? '▾' : '▸';
+        const emptyHint = personalCamps.length === 0
+          ? `<span style="font-size:11px;color:#94a3b8;margin-left:6px;">Go to Signals to create one</span>`
+          : '';
+
+        pcSection += `<tr onclick="togglePcDropdown()" style="cursor:pointer;background:#f8faff;border-top:2px solid #dde8ff;">
+          <td colspan="9" style="padding:10px 14px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span style="font-size:15px;color:#1d4ed8;">${arrow}</span>
+              <span style="font-size:14px;font-weight:700;color:#1d4ed8;">🎯 Personal Campaigns</span>
+              <span style="background:#1d4ed8;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:12px;">${personalCamps.length}</span>
+              ${totalOpen>0?`<span style="background:#fef9c3;color:#b45309;font-size:11px;font-weight:600;padding:2px 8px;border-radius:12px;">${totalOpen} open</span>`:''}
+              ${totalDone>0?`<span style="background:#d1fae5;color:#065f46;font-size:11px;font-weight:600;padding:2px 8px;border-radius:12px;">${totalDone} completed</span>`:''}
+              <span style="margin-left:auto;font-size:11px;color:#94a3b8;">AI-personalized outreach from Signals</span>${emptyHint}
+            </div>
+          </td>
+        </tr>`;
+
+        if (pcDropdownOpen) {
+          if (sorted.length === 0) {
+            pcSection += `<tr style="background:#fafbff;">
+              <td colspan="9" style="padding:20px 36px;">
+                <div style="display:flex;align-items:center;gap:12px;color:#94a3b8;">
+                  <span style="font-size:28px;">🎯</span>
+                  <div>
+                    <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:4px;">No Personal Campaigns yet</div>
+                    <div style="font-size:12px;">Go to <strong>Signals</strong> → scan → click <strong>Create Personal Campaign</strong> on any opportunity.</div>
+                    <div style="font-size:12px;margin-top:4px;">The <em>Inbound Signals</em> list is auto-updated — it collects people who viewed your profile, reacted or commented on your posts.</div>
+                  </div>
+                </div>
+              </td>
+            </tr>`;
+          }
+          sorted.forEach(c => {
+            const isOpen = c.status==='draft'||c.status==='active';
+            const dateStr = c.created_at ? new Date(c.created_at).toLocaleDateString('en-GB',{day:'2-digit',month:'short'}) : '';
+            pcSection += `<tr style="background:#fafbff;cursor:pointer;" onclick="openPersonalCampaignView(${c.id})">
+              <td style="padding-left:36px;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="width:8px;height:8px;border-radius:50%;background:${isOpen?'#3b82f6':'#10b981'};flex-shrink:0;"></span>
+                  <span style="font-weight:600;font-size:13px;color:#1d4ed8;">${esc(c.name)}</span>
+                  <span style="font-size:11px;color:#94a3b8;">${dateStr}</span>
+                </div>
+              </td>
+              <td colspan="6" style="font-size:12px;color:#64748b;">
+                <span style="background:${isOpen?'#eff6ff':'#f0fdf4'};color:${isOpen?'#1d4ed8':'#065f46'};font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;">${c.status||'draft'}</span>
+                <span style="margin-left:8px;color:#94a3b8;">Click to review &amp; send</span>
+              </td>
+              <td></td>
+              <td onclick="event.stopPropagation()">
+                <button class="action-btn danger" onclick="deletePersonalCampaign(${c.id})" style="font-size:11px;padding:3px 8px;">Delete</button>
+              </td>
+            </tr>`;
+          });
+        }
+      }
+
+      // ── Regular Campaigns ──
+      const regularRows = regularCamps.map(c=>{
+        const inv = parseInt(c.invites_sent)||0;
+        const appr = parseInt(c.invites_approved)||0;
+        const msgs = parseInt(c.messages_sent)||0;
+        const repl = parseInt(c.positive_replies)||0;
+        const apprPct = inv ? Math.round(appr/inv*100) : 0;
+        const shortAcc = (c.account_id||'').slice(0,8)+'…';
+        return `<tr onclick="openCampaignModal(${c.id})"><tr onclick="openCampaignModal(${c.id})">
+        <td>
+          <div style="font-weight:600;font-size:14px;color:#111827;">${esc(c.name)}</div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px;">
+            ${c.sequence_id ? `<span style="display:inline-flex;align-items:center;gap:3px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:5px;padding:2px 7px;font-size:10px;font-weight:600;color:#0369a1;">📋 Sequence</span>` : ''}
+            ${(parseInt(c.enrollment_count)||0) > 0 ? `<span style="display:inline-flex;align-items:center;gap:3px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:5px;padding:2px 7px;font-size:10px;font-weight:600;color:#15803d;">${parseInt(c.enrollment_count).toLocaleString()} enrolled</span>` : ''}
+            <div style="font-size:10px;color:#9ca3af;align-self:center;">✏️ Click to view</div>
+          </div>
+        </td>
+        <td>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#dbeafe,#c7f2d8);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#1e5f3e;flex-shrink:0;">${(c.account_display||c.account_id||'?').split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase()}</div>
+            <span style="font-size:12px;color:#6b7280;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:110px;" title="${esc(c.account_display||c.account_id||'')}">${esc(c.account_display||shortAcc)}</span>
+          </div>
+        </td>
+        <td>${c.list_name ? `<span style="display:inline-flex;align-items:center;gap:4px;background:#f0fdf8;border:1px solid #bbf7d0;border-radius:6px;padding:3px 9px;font-size:12px;color:#15803d;font-weight:500;">👥 ${esc(c.list_name)}</span>` : '<span style="color:#d1d5db;">—</span>'}</td>
+        <td><div class="stat-num">${inv.toLocaleString()}</div></td>
+        <td>
+          <div class="stat-num">${appr.toLocaleString()}</div>
+          <div style="display:flex;align-items:center;gap:5px;margin-top:4px;">
+            <div style="flex:1;height:4px;background:#e5e7eb;border-radius:2px;max-width:60px;"><div style="height:4px;background:#1D9E75;border-radius:2px;width:${apprPct}%;"></div></div>
+            <span style="font-size:10.5px;color:#10b981;font-weight:600;">${apprPct}%</span>
+          </div>
+        </td>
+        <td><div class="stat-num">${msgs.toLocaleString()}</div></td>
+        <td><div class="stat-num">${repl.toLocaleString()}</div>${repl>0?`<div class="stat-rate">${msgs?Math.round(repl/msgs*100):0}%</div>`:''}</td>
+        <td><span class="status-pill status-${esc(c.status)}">${esc(c.status)}</span></td>
+        <td onclick="event.stopPropagation()"><button class="action-btn danger" onclick="deleteCampaign(${c.id})">Delete</button></td>
+      </tr>`;
+
+      }).join('');
+      return pcSection + regularRows;
+    })()}
+    </tbody>
+  </table></div>`;
+}
+
+function togglePcDropdown() {
+  pcDropdownOpen = !pcDropdownOpen;
+  renderCampaigns();
+}
+
+async function deletePersonalCampaign(id) {
+  if (!confirm('Delete this personal campaign?')) return;
+  await fetch(`/api/campaigns/${id}?workspace_id=${workspaceId}`, { method: 'DELETE' });
+  await load();
+}
+
+async function deleteCampaign(id) {
+  if (!confirm('Delete this campaign?')) return;
+  await fetch(`/api/campaigns/${id}?workspace_id=${workspaceId}`, { method: 'DELETE' });
+  await load();
+}
+
+function openModal()  { wizard = resetWizard(); currentStep = 0; document.getElementById('modal').style.display='flex'; renderStep(); }
+function closeModal() { document.getElementById('modal').style.display='none'; }
+function renderStep() {
+  document.getElementById('modal-steps').innerHTML = STEPS.map((s,i)=>`<div class="modal-step ${i===currentStep?'active':i<currentStep?'done':''}">${i<currentStep?'\u2713 ':''}${s}</div>`).join('');
+  document.getElementById('btn-back').style.visibility = currentStep===0 ? 'hidden' : 'visible';
+  const btnNext = document.getElementById('btn-next');
+  btnNext.textContent = currentStep===STEPS.length-1 ? 'Create campaign' : 'Continue';
+  btnNext.disabled = (currentStep === 0 && !workspaceAccounts.length);
+  [renderStepAccount, renderStepAudience, renderStepSequence, renderStepName][currentStep](document.getElementById('modal-body'));
+}
+async function nextStep() {
+  if (currentStep===0 && !wizard.selectedAccount) return alert('Please select an account.');
+  if (currentStep===1) {
+    // In personal mode, list is optional (signal contact is added directly)
+    if (!wizard.list_id && !wizard.personalMode) return alert('Please select a list for this campaign.');
+  }
+  if (currentStep===STEPS.length-1) { await createCampaign(); return; }
+  currentStep++; renderStep();
+}
+function prevStep() { if (currentStep>0) { currentStep--; renderStep(); } }
+
+function renderStepAccount(body) {
+  if (!workspaceAccounts.length) {
+    body.innerHTML = `<div class="notice-box"><div class="notice-title">&#128273; Before you start, add at least one user.</div>No LinkedIn accounts connected yet. Please <a class="inline-link" href="${settingsUrl}">Add Users</a> in Settings, then come back here.</div>`;
+    return;
+  }
+  body.innerHTML = `<div class="section-label">Select LinkedIn account</div><div class="user-grid">${workspaceAccounts.map(a=>`<div class="user-card${wizard.selectedAccount===a.account_id?' selected':''}" onclick="selectAccount('${a.account_id}')"><div class="user-avatar">${initials(a.display_name)}</div><div><div class="user-name">${esc(a.display_name)}</div></div></div>`).join('')}</div>`;
+}
+function selectAccount(id) {
+  wizard.selectedAccount=id;
+  document.querySelectorAll('.user-card').forEach(el=>el.classList.toggle('selected',el.getAttribute('onclick')===`selectAccount('${id}')`));
+}
+
+function renderStepAudience(body) {
+  body.innerHTML = `<div class="section-label">Select a contacts list</div>
+    <p style="font-size:13px;color:#888;margin:-4px 0 14px">Choose which list to use. Create lists in the <strong>Lists</strong> tab.</p>
+    <div id="list-picker-grid" class="list-picker-grid"><div class="list-picker-loading">LoadingÃ¢ÂÂ¦</div></div>`;
+  loadListsForPicker();
+}
+function selectAudience(type) { wizard.audienceType=type; renderStepAudience(document.getElementById('modal-body')); }
+
+function renderAudienceDetail() {
+  const el = document.getElementById('audience-detail'); if (!el) return;
+  if (wizard.audienceType==='people') {
+    el.innerHTML=`<div class="field-label">Paste LinkedIn profile URLs (one per line)</div><textarea rows="5" placeholder="https://www.linkedin.com/in/johndoe" oninput="wizard.urlsPasted=this.value">${esc(wizard.urlsPasted)}</textarea><div style="font-size:12px;color:#999;margin-top:6px;" id="url-count">${countUrls(wizard.urlsPasted)} URLs detected</div>`;
+    el.querySelector('textarea').addEventListener('input',function(){document.getElementById('url-count').textContent=countUrls(this.value)+' URLs detected';});
+  } else if (wizard.audienceType==='company') {
+    if (!wizard.searchStatus) {
+      el.innerHTML=`
+        <div class="field-label">Paste LinkedIn company URLs (one per line)</div>
+        <textarea rows="4" placeholder="https://www.linkedin.com/company/bezeq\nhttps://www.linkedin.com/company/partner-communications" style="margin-bottom:12px;" oninput="wizard.companyUrls=this.value">${esc(wizard.companyUrls)}</textarea>
+        <div class="field-label">Job titles to search for</div>
+        <textarea rows="2" placeholder="VP R&D, Head of Engineering, CTO" style="margin-bottom:12px;" oninput="wizard.searchTitles=this.value">${esc(wizard.searchTitles)}</textarea>
+        <div class="field-label">Target country <span style="color:#aaa;font-weight:400;font-size:11px;">(optional Ã¢ÂÂ narrows LinkedIn geo-filter)</span></div>
+        <input type="text" class="country-input" placeholder="e.g. Israel, United States" value="${esc(wizard.targetCountry)}" oninput="wizard.targetCountry=this.value">
+        <p style="font-size:12px;color:#1D9E75;margin-top:12px;">&#9654; Click <strong>Continue</strong> to search across all companies at once.</p>`;
+    } else if (wizard.searchStatus==='loading') {
+      el.innerHTML=`<div class="search-progress"><div style="font-size:40px;color:#1D9E75;display:inline-block;animation:spin 0.8s linear infinite;">&#8635;</div><div style="font-size:13px;color:#888;margin-top:8px;">Searching LinkedIn&hellip; this takes a few seconds.</div></div>`;
+    } else {
+      const selCount = wizard.selectedContactIndices.size;
+      const allChecked = wizard.contacts.length > 0 && selCount === wizard.contacts.length;
+      const previewBanner = wizard.isPreview
+        ? `<div class="preview-notice">&#128203; <strong>First results shown</strong> \u2014 ${wizard.contacts.length} contacts found${wizard.targetCountry ? ' in <strong>'+esc(wizard.targetCountry)+'</strong>' : ''}. More will be fetched in the background after campaign creation.</div>`
+        : '';
+      const toolbar = `<div class="contacts-toolbar">
+        <div class="contacts-toolbar-left">
+          <input type="checkbox" class="contact-cb" id="cb-all" ${allChecked?'checked':''} onchange="toggleSelectAll(this.checked)">
+          <label for="cb-all" style="cursor:pointer;user-select:none;">
+            ${selCount > 0 ? `${selCount} selected` : `${wizard.contacts.length} contacts found`}
+          </label>
+        </div>
+        <div class="contacts-toolbar-right">
+          <button class="remove-sel-btn" onclick="removeSelected()" ${selCount===0?'disabled':''}>
+            Remove selected${selCount>0?' ('+selCount+')':''}
+          </button>
+          <button class="ghost-btn" style="font-size:12px;" onclick="resetSearch()">Reset</button>
+        </div>
+      </div>`;
+      const rows = wizard.contacts.map((c,i) => {
+        const checked = wizard.selectedContactIndices.has(i);
+        const name = esc(c.name||[c.first_name,c.last_name].filter(Boolean).join(' '));
+        const subtitle = esc((c.headline||c.title||'') + (c.company?' \u00b7 '+c.company:''));
+        return `<div class="contact-row${checked?' selected-row':''}">
+          <input type="checkbox" class="contact-cb" ${checked?'checked':''} onchange="toggleContactSelect(${i},this.checked)">
+          <div class="contact-info">
+            <div class="contact-name">${name}</div>
+            <div class="contact-title">${subtitle}</div>
+          </div>
+          <button class="contact-remove" onclick="removeWizContact(${i})" title="Remove">&times;</button>
+        </div>`;
+      }).join('');
+      el.innerHTML = `${previewBanner}${toolbar}<div class="contacts-list">${rows}</div>`;
+    }
+  }
+}
+
+function toggleSelectAll(checked) {
+  if (checked) { wizard.contacts.forEach((_,i) => wizard.selectedContactIndices.add(i)); }
+  else { wizard.selectedContactIndices.clear(); }
+  renderAudienceDetail();
+}
+function toggleContactSelect(i, checked) {
+  if (checked) wizard.selectedContactIndices.add(i);
+  else wizard.selectedContactIndices.delete(i);
+  const selCount = wizard.selectedContactIndices.size;
+  const total = wizard.contacts.length;
+  const allCb = document.getElementById('cb-all');
+  if (allCb) allCb.checked = selCount === total;
+  const label = allCb?.nextElementSibling;
+  if (label) label.textContent = selCount > 0 ? `${selCount} selected` : `${total} contacts found`;
+  const removeBtn = document.querySelector('.remove-sel-btn');
+  if (removeBtn) { removeBtn.disabled = selCount === 0; removeBtn.textContent = `Remove selected${selCount>0?' ('+selCount+')':''}`; }
+  const row = document.querySelectorAll('.contact-row')[i];
+  if (row) row.classList.toggle('selected-row', checked);
+}
+function removeSelected() {
+  if (!wizard.selectedContactIndices.size) return;
+  wizard.contacts = wizard.contacts.filter((_,i) => !wizard.selectedContactIndices.has(i));
+  wizard.selectedContactIndices.clear();
+  renderAudienceDetail();
+}
+function removeWizContact(i) {
+  wizard.contacts.splice(i, 1);
+  const newSel = new Set();
+  wizard.selectedContactIndices.forEach(idx => { if (idx < i) newSel.add(idx); else if (idx > i) newSel.add(idx - 1); });
+  wizard.selectedContactIndices = newSel;
+  renderAudienceDetail();
+}
+
+async function startSearch() {
+  if (!wizard.companyUrls.trim()) return;
+  if (!wizard.searchTitles.trim()) return;
+  const allUrls=wizard.companyUrls.split('\n').map(s=>s.trim()).filter(s=>s.includes('linkedin.com/company/'));
+  if (!allUrls.length) return;
+  wizard.allCompanyUrls = allUrls;
+  wizard.searchStatus='loading'; renderAudienceDetail();
+  try {
+    const ti=wizard.searchTitles.split(',').map(s=>s.trim()).filter(Boolean);
+    const res=await fetch('/api/campaigns/search-people',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({account_id:wizard.selectedAccount,company_urls:allUrls,titles:ti,target_country:wizard.targetCountry||''})});
+    const data=await res.json();
+    if(!res.ok) throw new Error(data.error||'Search failed');
+    wizard.searchStatus='done';
+    wizard.contacts=Array.isArray(data.items)?data.items:[];
+    wizard.selectedContactIndices=new Set();
+    wizard.companiesMeta=[];
+    wizard.keywordsQuery=data.keywords_query||'';
+    wizard.nextCursor=data.next_cursor||null;
+    wizard.totalCompanies=allUrls.length;
+    wizard.isPreview=!!data.next_cursor;
+  } catch(err){wizard.searchStatus=null;alert('Search failed: '+err.message);}
+  renderAudienceDetail();
+}
+function resetSearch() { wizard.searchStatus=null;wizard.contacts=[];wizard.selectedContactIndices=new Set();wizard.companiesMeta=[];wizard.isPreview=false;wizard.keywordsQuery='';wizard.nextCursor=null;wizard.targetCountry='';renderAudienceDetail(); }
+
+function renderStepSequence(body) {
+  const engHtml=ENGAGEMENT_ACTIONS.map(a=>`<div class="engagement-item"><div><div class="eng-label">${a.label}</div>${a.sub?`<div class="eng-sub">${a.sub}</div>`:''}</div><button class="toggle${wizard.engagement[a.key]?' on':''}" id="eng-${a.key}" onclick="toggleEng('${a.key}')"></button></div>`).join('');
+  // Personal campaign mode: show only new-contacts column + note
+  const pcNote = wizard.personalMode ? `
+    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px 14px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
+      <span style="font-size:20px;">🎯</span>
+      <div>
+        <div style="font-size:13px;font-weight:700;color:#1d4ed8;">Personal AI Campaign</div>
+        <div style="font-size:12px;color:#3b82f6;margin-top:2px;">Only "New Contacts" messages are shown. The AI-drafted message is pre-filled — edit it below.</div>
+      </div>
+    </div>` : '';
+
+  body.innerHTML=`${pcNote}
+    <!-- New system: link to sequence -->
+    <div class="section-label">Sequence (New system)</div>
+    <div style="margin-bottom:20px;padding:12px 14px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;">
+      <div style="font-size:12px;color:#0369a1;margin-bottom:8px;font-weight:500;">Link to a Sequence for automated follow-up after invite is accepted</div>
+      <select id="wiz-seq-select" style="width:100%;background:#fff;border:1px solid #bae6fd;border-radius:6px;padding:7px 10px;font-size:13px;color:#0f172a;" onchange="wizard.sequenceId=this.value?parseInt(this.value):null">
+        <option value="">— No sequence (manual messages only) —</option>
+      </select>
+    </div>
+    <div class="conn-section">
+      <div class="conn-row"><div><div class="conn-label">Send connection requests</div><div class="conn-sub">Automatically send LinkedIn invites to all prospects</div></div><button class="toggle${wizard.connectionEnabled?' on':''}" id="conn-toggle" onclick="toggleConn()"></button></div>
+      <div id="conn-opts" class="conn-options" style="display:${wizard.connectionEnabled?'':'none'};">
+        <div class="conn-opt-row"><div class="conn-opt-label">Withdraw if not accepted after</div><div style="display:flex;align-items:center;gap:8px;"><input class="num-input" type="number" value="${wizard.withdrawDays}" min="1" oninput="wizard.withdrawDays=this.value"> days<button class="toggle${wizard.withdrawEnabled?' on':''}" id="withdraw-toggle" onclick="toggleWithdraw()"></button></div></div>
+        <div id="resend-row" style="display:${wizard.withdrawEnabled?'':'none'};" class="conn-opt-row"><div class="conn-opt-label">Resend request after 21+ days</div><button class="toggle${wizard.resendEnabled?' on':''}" id="resend-toggle" onclick="toggleResend()"></button></div>
+      </div>
+    </div>
+    <div class="section-label">Message sequences</div>
+    <div class="sequence-grid">
+      <div class="sequence-canvas"><div class="seq-head"><div class="seq-head-title">New contacts</div><div class="seq-head-sub">Not yet connected</div></div><div class="seq-body" id="canvas-new">${renderMsgs(wizard.newMessages,'new')}<button class="add-msg-btn" onclick="openMsgDialog('new')">+ Add message</button></div></div>
+      ${wizard.personalMode ? '' : `<div style="display:flex;flex-direction:column;gap:10px;">
+        <div class="sequence-canvas"><div class="seq-head"><div class="seq-head-title">Existing \u2014 no history</div><div class="seq-head-sub">Connected, never messaged</div></div><div class="seq-body" id="canvas-existingNo">${renderMsgs(wizard.existingNoHistoryMessages,'existingNo')}<button class="add-msg-btn" onclick="openMsgDialog('existingNo')">+ Add message</button></div></div>
+        <div class="sequence-canvas"><div class="seq-head"><div class="seq-head-title">Existing \u2014 with history</div><div class="seq-head-sub">Connected, previous conversation</div></div><div class="seq-body" id="canvas-existingYes">${renderMsgs(wizard.existingWithHistoryMessages,'existingYes')}<button class="add-msg-btn" onclick="openMsgDialog('existingYes')">+ Add message</button></div></div>
+      </div>`}
+    </div>
+    <div class="section-label" style="margin-top:20px;">Engagement actions</div>
+    <div class="engagement-list">${engHtml}</div>`;
+
+  // Load sequences async
+  fetch(`/api/sequences?workspace_id=${workspaceId}`)
+    .then(r=>r.json()).then(d=>{
+      const sel = document.getElementById('wiz-seq-select');
+      if (!sel) return;
+      (d.items||[]).forEach(s=>{
+        const opt=document.createElement('option');
+        opt.value=s.id; opt.textContent=`${s.name} (${(s.steps||[]).length} steps)`;
+        if(wizard.sequenceId===s.id) opt.selected=true;
+        sel.appendChild(opt);
+      });
+    }).catch(()=>{});
+}
+function renderMsgs(msgs,canvas) {
+  return msgs.map((m,i)=>{const variants=m.variants||(m.text?[{label:'A',text:m.text}]:[]);const preview=variants[0]?.text||'';const badges=variants.length>1?`<span class="variant-badge">${variants.map(v=>`<span class="vbadge vbadge-${v.label.toLowerCase()}">${v.label}</span>`).join('')}</span>`:'';return `<div class="seq-msg"><button class="seq-msg-remove" onclick="removeMsg('${canvas}',${i})">&times;</button><div class="seq-msg-delay">Wait ${m.delay} ${m.unit} ${badges}</div><div class="seq-msg-text">${esc(preview.slice(0,80))}${preview.length>80?'...':''}</div></div>`;}).join('');
+}
+function toggleConn()    { wizard.connectionEnabled=!wizard.connectionEnabled;document.getElementById('conn-toggle').classList.toggle('on',wizard.connectionEnabled);document.getElementById('conn-opts').style.display=wizard.connectionEnabled?'':'none'; }
+function toggleWithdraw(){ wizard.withdrawEnabled=!wizard.withdrawEnabled;document.getElementById('withdraw-toggle').classList.toggle('on',wizard.withdrawEnabled);document.getElementById('resend-row').style.display=wizard.withdrawEnabled?'':'none'; }
+function toggleResend()  { wizard.resendEnabled=!wizard.resendEnabled;document.getElementById('resend-toggle').classList.toggle('on',wizard.resendEnabled); }
+function toggleEng(key)  { wizard.engagement[key]=!wizard.engagement[key];document.getElementById('eng-'+key).classList.toggle('on',wizard.engagement[key]); }
+function removeMsg(canvas,i) { if(canvas==='new')wizard.newMessages.splice(i,1);if(canvas==='existingNo')wizard.existingNoHistoryMessages.splice(i,1);if(canvas==='existingYes')wizard.existingWithHistoryMessages.splice(i,1);renderStep(); }
+
+function renderStepName(body) {
+  // Pre-fill name in personal mode if not already set
+  if (wizard.personalMode && !wizard.campaignName) {
+    const d = new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
+    wizard.campaignName = wizard.entityName
+      ? `Personal — ${wizard.entityName} (${d})`
+      : `Personal Campaign — ${d}`;
+  }
+  const acc=workspaceAccounts.find(a=>a.account_id===wizard.selectedAccount);
+  const fetchNotice = wizard.isPreview
+    ? `<div class="preview-notice" style="margin-top:12px;">&#9200; More contacts will be fetched automatically in the background after campaign creation.</div>`
+    : '';
+  const as = wizard.isPreview
+    ? `${wizard.contacts.length} contacts (${wizard.totalCompanies} companies${wizard.targetCountry?' ÃÂ· '+wizard.targetCountry:''})`
+    : wizard.audienceType==='people' ? countUrls(wizard.urlsPasted)+' profile URLs' : wizard.contacts.length+' contacts from search';
+  const daysHtml=DAYS.map(d=>{const h=wizard.hours[d.key];return `<div class="day-card${h.on?'':' off'}" id="wdc-${d.key}"><div class="day-head"><span class="day-name">${d.label}</span><button class="day-toggle${h.on?' on':''}" id="wdt-${d.key}" onclick="wizToggleDay('${d.key}')"></button></div><div id="wdts-${d.key}" style="display:${h.on?'':'none'}"><div class="time-inputs"><div class="time-row"><span class="time-lbl">from</span><input class="time-input" type="time" value="${h.from}" onchange="wizUpdateHour('${d.key}','from',this.value)"></div><div class="time-row"><span class="time-lbl">to</span><input class="time-input" type="time" value="${h.to}" onchange="wizUpdateHour('${d.key}','to',this.value)"></div></div></div><div id="wdof-${d.key}" class="day-off-label" style="display:${h.on?'none':''}">off</div></div>`;}).join('');
+  const ad=DAYS.filter(d=>wizard.hours[d.key].on).map(d=>d.label);
+  const fa=DAYS.find(d=>wizard.hours[d.key].on);
+  const hs=ad.length?ad.join(', ')+(fa?' \u00b7 '+wizard.hours[fa.key].from+'\u2013'+wizard.hours[fa.key].to:''):'No active days';
+  body.innerHTML=`<div class="section-label">Campaign name</div><input class="name-input" type="text" placeholder="e.g. CLY \u2014 VPs in Israeli Telcos" value="${esc(wizard.campaignName)}" oninput="wizard.campaignName=this.value" autofocus>${fetchNotice}<div style="margin-top:24px;"><div class="section-label">Working hours</div><div style="font-size:12px;color:#888;margin-bottom:10px;">The campaign only runs during these hours.</div><div class="hours-grid">${daysHtml}</div></div><div class="summary-box"><div style="font-size:12px;font-weight:600;color:#888;margin-bottom:10px;">Summary</div><div class="summary-row"><span class="summary-key">Account</span><span class="summary-val">${esc(acc?.display_name||'\u2014')}</span></div><div class="summary-row"><span class="summary-key">Audience</span><span class="summary-val">${wizard.personalMode && wizard.entityName ? `1 contact — ${esc(wizard.entityName)}` : as}</span></div>${wizard.targetCountry?`<div class="summary-row"><span class="summary-key">Target country</span><span class="summary-val">&#127757; ${esc(wizard.targetCountry)}</span></div>`:''}<div class="summary-row"><span class="summary-key">Connection requests</span><span class="summary-val">${wizard.connectionEnabled?'Yes':'No'}</span></div><div class="summary-row"><span class="summary-key">New contact messages</span><span class="summary-val">${wizard.newMessages.length} step${wizard.newMessages.length!==1?'s':''}</span></div><div class="summary-row"><span class="summary-key">Engagement actions</span><span class="summary-val">${Object.values(wizard.engagement).filter(Boolean).length} enabled</span></div><div class="summary-row"><span class="summary-key">Working hours</span><span class="summary-val" id="hours-summary">${esc(hs)}</span></div></div>`;
+}
+function wizToggleDay(key) {
+  const h=wizard.hours[key]; h.on=!h.on;
+  const card=document.getElementById('wdc-'+key),toggle=document.getElementById('wdt-'+key),times=document.getElementById('wdts-'+key),off=document.getElementById('wdof-'+key);
+  if(toggle)toggle.classList.toggle('on',h.on);if(card)card.classList.toggle('off',!h.on);
+  if(times)times.style.display=h.on?'':'none';if(off)off.style.display=h.on?'none':'';
+  const ad=DAYS.filter(d=>wizard.hours[d.key].on).map(d=>d.label);const fa=DAYS.find(d=>wizard.hours[d.key].on);
+  const el=document.getElementById('hours-summary');if(el)el.textContent=ad.length?ad.join(', ')+(fa?' \u00b7 '+wizard.hours[fa.key].from+'\u2013'+wizard.hours[fa.key].to:''):'No active days';
+}
+function wizUpdateHour(key,field,value){wizard.hours[key][field]=value;}
+
+async function loadListsForPicker() {
+  const grid = document.getElementById('list-picker-grid');
+  if (!grid) return;
+  try {
+    const data = await fetch('/api/lists?workspace_id=' + workspaceId).then(r=>r.json());
+    const lists = (data.items || []).filter(l => l.type === 'contacts');
+    if (!lists.length) {
+      grid.innerHTML = '<div class="list-picker-loading">No contact lists yet Ã¢ÂÂ go to <strong>Lists</strong> tab to create one.</div>';
+      return;
+    }
+    grid.innerHTML = lists.map(l => {
+      const sel = wizard.list_id === l.id;
+      const cnt = l.contact_count || 0;
+      const desc = l.description ? ' ÃÂ· ' + l.description : '';
+      return '<div class="list-picker-card' + (sel ? ' selected' : '') + '" data-id="' + l.id + '" data-name="' + (l.name||'').replace(/"/g,'&quot;') + '">' +
+        '<div class="lpc-icon">&#128101;</div>' +
+        '<div class="lpc-info">' +
+          '<div class="lpc-name">' + (l.name||'') + '</div>' +
+          '<div class="lpc-count">' + cnt + ' contacts' + desc + '</div>' +
+        '</div>' +
+        (sel ? '<div class="lpc-check">&#10003;</div>' : '') +
+        '</div>';
+    }).join('');
+    // Attach click handlers (no inline onclick = no escaping issues)
+    grid.querySelectorAll('.list-picker-card').forEach(function(card) {
+      card.addEventListener('click', function() {
+        selectList(parseInt(card.dataset.id), card.dataset.name);
+      });
+    });
+  } catch(e) {
+    grid.innerHTML = '<div class="list-picker-loading" style="color:#e53e3e">Failed: ' + e.message + '</div>';
+  }
+}
+
+
+function selectList(id, name) {
+  wizard.list_id = id;
+  wizard.list_name = name;
+  loadListsForPicker();
+}
+
+async function createCampaign() {
+  if (!wizard.campaignName.trim()) return alert('Please enter a campaign name.');
+  const btn=document.getElementById('btn-next');btn.disabled=true;btn.textContent='Creating...';
+  let contacts=[];
+  if (wizard.audienceType==='people') {
+    contacts=wizard.urlsPasted.split('\n').map(s=>s.trim()).filter(s=>s.includes('linkedin.com/in/')).map(url=>({li_profile_url:url}));
+  } else {
+    contacts=wizard.contacts.map(c=>({first_name:c.first_name||c.name?.split(' ')[0]||'',last_name:c.last_name||c.name?.split(' ').slice(1).join(' ')||'',company:c.company||'',title:c.headline||c.title||'',li_profile_url:c.public_profile_url||c.li_profile_url||''}));
+  }
+  // Personal campaign: always add the signal contact directly
+  if (wizard.personalMode && wizard.entityLiUrl) {
+    const nameParts = (wizard.entityName || '').trim().split(/\s+/).filter(Boolean);
+    const alreadyIn = contacts.some(c => c.li_profile_url === wizard.entityLiUrl);
+    if (!alreadyIn) {
+      contacts.push({
+        first_name: nameParts[0] || '',
+        last_name:  nameParts.slice(1).join(' ') || '',
+        company:    wizard.company || '',
+        title:      '',
+        li_profile_url: wizard.entityLiUrl,
+      });
+    }
+  }
+  try {
+    const campBody = {
+      workspace_id: workspaceId,
+      account_id: wizard.selectedAccount,
+      name: wizard.campaignName,
+      audience_type: wizard.personalMode ? 'personal' : wizard.audienceType,
+      contacts,
+      settings: {
+        connection: {enabled:wizard.connectionEnabled,withdraw_after_days:wizard.withdrawEnabled?parseInt(wizard.withdrawDays)||14:0,resend:wizard.resendEnabled},
+        engagement: wizard.engagement,
+        messages: {new:wizard.newMessages,existing_no_history:wizard.existingNoHistoryMessages,existing_with_history:wizard.existingWithHistoryMessages},
+        hours: wizard.hours,
+        searchConfig: wizard.audienceType==='company'?{titles:wizard.searchTitles.split(',').map(s=>s.trim()).filter(Boolean),companyUrls:wizard.allCompanyUrls||[],keywordsQuery:wizard.keywordsQuery||'',nextCursor:wizard.nextCursor||null,targetCountry:wizard.targetCountry||''}:null,
+      },
+    };
+    // Attach list_id if a list was selected
+    if (wizard.list_id) campBody.list_id = wizard.list_id;
+    // Attach sequence if selected
+    if (wizard.sequenceId) campBody.sequence_id = wizard.sequenceId;
+
+    const res=await fetch('/api/campaigns',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(campBody)});
+    const newCamp = await res.json();
+    if (!res.ok) throw new Error(newCamp.error);
+    if (wizard.audienceType==='company' && (wizard.allCompanyUrls||[]).length > 4) {
+      fetch(`/api/campaigns/${newCamp.id}/fetch-all-companies?workspace_id=${workspaceId}`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({workspace_id:workspaceId})}).catch(()=>{});
+    }
+    // Auto-enroll contacts if sequence is attached
+    if (wizard.sequenceId && newCamp.id) {
+      fetch(`/api/campaigns/${newCamp.id}/enroll`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({workspace_id: workspaceId})
+      }).catch(()=>{});
+    }
+    closeModal(); await load();
+  } catch(err){alert('Failed: '+err.message);btn.disabled=false;btn.textContent='Create campaign';}
+}
+
+const VARIANT_LABELS=['A','B','C'];
+
+function openMsgDialog(canvas) {
+  msgEditCanvas = null;
+  activeMsgCanvas=canvas;
+  const titles={new:'New contacts',existingNo:'Existing \u2014 no history',existingYes:'Existing \u2014 with history'};
+  document.getElementById('msg-dialog-title').textContent='Add message \u2014 '+titles[canvas];
+  document.getElementById('msg-delay-val').value=3;
+  document.getElementById('msg-delay-unit').value='days';
+  dlgVariants=[{label:'A',text:''}];
+  renderDlgVariants();
+  document.getElementById('msg-dialog').style.display='flex';
+}
+
+function renderDlgVariants() {
+  const VCLASS={A:'variant-a',B:'variant-b',C:'variant-c'};
+  document.getElementById('variant-sections').innerHTML=dlgVariants.map((v,i)=>`<div class="variant-section" style="border-color:${i===0?'#DDD6FE':i===1?'#BFDBFE':'#FDE68A'};"><div class="variant-section-head"><div class="variant-section-label"><span class="variant-pill ${VCLASS[v.label]}">${v.label}</span>${i===0?'<span style="font-size:11px;color:#888;">(required)</span>':'<span style="font-size:11px;color:#888;">(optional \u2014 A/B)</span>'}</div>${i>0?`<button class="variant-remove-btn" onclick="removeVariant(${i})">&times;</button>`:''}</div><div class="tokens-row"><button class="token-btn" onclick="insertVariantToken(${i},'{{first_name}}')">&#123;&#123;first_name&#125;&#125;</button><button class="token-btn" onclick="insertVariantToken(${i},'{{last_name}}')">&#123;&#123;last_name&#125;&#125;</button><button class="token-btn" onclick="insertVariantToken(${i},'{{company}}')">&#123;&#123;company&#125;&#125;</button></div><textarea id="variant-ta-${i}" rows="4" placeholder="Hi {{first_name}}, I came across your profile..." oninput="dlgVariants[${i}].text=this.value">${esc(v.text)}</textarea></div>`).join('');
+  const addEl=document.getElementById('add-variant-area');
+  addEl.innerHTML=dlgVariants.length<3?`<button class="add-variant-btn" onclick="addVariant()">+ Add Variant ${VARIANT_LABELS[dlgVariants.length]} (A/B test)</button>`:'';
+}
+
+function addVariant() { if(dlgVariants.length>=3)return; dlgVariants.push({label:VARIANT_LABELS[dlgVariants.length],text:''}); renderDlgVariants(); }
+function removeVariant(i) { dlgVariants.splice(i,1); dlgVariants=dlgVariants.map((v,idx)=>({...v,label:VARIANT_LABELS[idx]})); renderDlgVariants(); }
+function insertVariantToken(i,token) { const ta=document.getElementById('variant-ta-'+i);if(!ta)return;const p=ta.selectionStart;ta.value=ta.value.slice(0,p)+token+ta.value.slice(p);dlgVariants[i].text=ta.value;ta.selectionStart=ta.selectionEnd=p+token.length;ta.focus(); }
+function closeMsgDialog() { document.getElementById('msg-dialog').style.display='none'; }
+
+function saveMsgDialog() {
+  if (!dlgVariants[0]?.text?.trim()) return alert('Variant A cannot be empty.');
+  const variants=dlgVariants.map(v=>({label:v.label,text:v.text.trim()})).filter(v=>v.text);
+  const msg={delay:document.getElementById('msg-delay-val').value,unit:document.getElementById('msg-delay-unit').value,variants};
+  if (msgEditCanvas !== null) {
+    const key=CKEY[msgEditCanvas];
+    if (!cmSettings.messages) cmSettings.messages={};
+    if (!cmSettings.messages[key]) cmSettings.messages[key]=[];
+    cmSettings.messages[key].push(msg);
+    closeMsgDialog(); msgEditCanvas=null; refreshCMSeq(); return;
+  }
+  if (activeMsgCanvas==='new') wizard.newMessages.push(msg);
+  if (activeMsgCanvas==='existingNo') wizard.existingNoHistoryMessages.push(msg);
+  if (activeMsgCanvas==='existingYes') wizard.existingWithHistoryMessages.push(msg);
+  closeMsgDialog(); renderStep();
+}
+
+load();
+</script>
+<script src="campaign-modal.js?v=1775323981451">
+async function loadListsForPicker() {
+  const grid = document.getElementById('list-picker-grid');
+  if (!grid) return;
+  try {
+    const data = await fetch('/api/lists?workspace_id=' + workspaceId).then(r=>r.json());
+    const contactLists = (data.items||[]).filter(l => l.type === 'contacts');
+    if (!contactLists.length) {
+      grid.innerHTML = '<div class="list-picker-empty">No contact lists yet. <a href="javascript:void(0)" onclick="closeModal()">Go to Lists</a> to create one first.</div>';
+      return;
+    }
+    grid.innerHTML = contactLists.map(l => {
+      const isSel = wizard.list_id === l.id;
+      return '<div class="list-picker-card' + (isSel?' selected':'') + '" onclick="selectList(' + l.id + ',' + JSON.stringify(l.name) + ')">' +
+        '<span class="lpc-icon">Ã°ÂÂÂ¥</span>' +
+        '<div><div class="lpc-name">' + escHtml(l.name) + '</div>' +
+        '<div class="lpc-count">' + (l.contact_count||0) + ' contacts</div></div>' +
+        '<span class="lpc-check">Ã¢ÂÂ</span>' +
+        '</div>';
+    }).join('');
+  } catch(e) {
+    grid.innerHTML = '<div class="list-picker-loading" style="color:#ef4444">Failed to load lists: ' + e.message + '</div>';
+  }
+}
+
+function selectList(id, name) {
+  wizard.list_id = id;
+  wizard.list_name = name;
+  wizard.list_type = 'contacts';
+  document.querySelectorAll('.list-picker-card').forEach(el => el.classList.remove('selected'));
+  // Find clicked card and select it
+  const cards = document.querySelectorAll('.list-picker-card');
+  cards.forEach(el => {
+    if (el.querySelector('.lpc-name') && el.querySelector('.lpc-name').textContent === name) {
+      el.classList.add('selected');
+      el.querySelector('.lpc-check').style.display = 'block';
+    }
+  });
+}
+
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+</script>
+<!-- Personal Campaign Navigator Modal -->
+<div id="pcv-overlay" onclick="if(event.target===this)closePCView()"
+  style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10000;align-items:center;justify-content:center;">
+  <div id="pcv-modal" style="background:#fff;border-radius:16px;width:560px;max-width:95vw;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,.2);">
+    <!-- Header -->
+    <div style="padding:18px 22px 14px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div style="font-size:11px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:.5px;">🎯 Personal Campaign</div>
+        <div id="pcv-name" style="font-size:16px;font-weight:700;color:#0f172a;margin-top:2px;"></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div id="pcv-progress" style="font-size:12px;color:#94a3b8;"></div>
+        <button onclick="closePCView()" style="background:none;border:none;font-size:20px;color:#94a3b8;cursor:pointer;line-height:1;">×</button>
+      </div>
+    </div>
+    <!-- Navigator bar -->
+    <div style="padding:10px 22px;background:#f8fafc;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;">
+      <button id="pcv-prev" onclick="pcvNavigate(-1)"
+        style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:6px 14px;font-size:13px;cursor:pointer;">← Prev</button>
+      <div id="pcv-contact-indicator" style="display:flex;gap:6px;"></div>
+      <button id="pcv-next" onclick="pcvNavigate(1)"
+        style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:6px 14px;font-size:13px;cursor:pointer;">Next →</button>
+    </div>
+    <!-- Contact card -->
+    <div style="padding:18px 22px;flex:1;overflow-y:auto;">
+      <!-- Status badge -->
+      <div id="pcv-status-badge" style="margin-bottom:12px;"></div>
+      <!-- Person info -->
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
+        <div id="pcv-avatar" style="flex-shrink:0;"></div>
+        <div>
+          <div id="pcv-entity-name" style="font-size:16px;font-weight:700;color:#0f172a;"></div>
+          <div id="pcv-entity-sub" style="font-size:13px;color:#64748b;margin-top:2px;"></div>
+        </div>
+      </div>
+      <!-- Message editor -->
+      <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;">Your message</div>
+      <textarea id="pcv-textarea"
+        style="width:100%;min-height:120px;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;font-size:13px;font-family:inherit;resize:vertical;outline:none;color:#1e293b;line-height:1.6;transition:border-color .15s;"
+        onfocus="this.style.borderColor='#1d4ed8'" onblur="this.style.borderColor='#e2e8f0'"
+        placeholder="Personalized message…"></textarea>
+      <div id="pcv-send-status" style="margin-top:8px;font-size:12px;min-height:18px;"></div>
+    </div>
+    <!-- Action footer -->
+    <div style="padding:14px 22px;border-top:1px solid #f1f5f9;display:flex;gap:8px;justify-content:flex-end;">
+      <button id="pcv-save-btn" onclick="pcvSave()"
+        style="background:#fff;color:#475569;border:1px solid #e2e8f0;border-radius:8px;padding:9px 16px;font-size:13px;cursor:pointer;">
+        💾 Save
+      </button>
+      <button id="pcv-send-btn" onclick="pcvSend()"
+        style="background:#1D9E75;color:#fff;border:none;border-radius:8px;padding:9px 20px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;transition:background .15s;">
+        ↗ Approve &amp; Send
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Personal Campaign View ────────────────────────────────────────────────────
+let _pcvCampaignId = null;
+let _pcvContacts   = [];
+let _pcvIndex      = 0;
+const PCAV_COLORS = ['#EF4444','#F59E0B','#10B981','#3B82F6','#8B5CF6','#EC4899','#14B8A6','#F97316'];
+function pcvColor(n) { let h=0; for(const c of(n||''))h=(h*31+c.charCodeAt(0))%PCAV_COLORS.length; return PCAV_COLORS[h]; }
+function pcvIni(n) { return (n||'?').split(/\s+/).filter(Boolean).map(w=>w[0]).join('').slice(0,2).toUpperCase(); }
+function pcvAvatarHtml(name, size=44) {
+  const c = pcvColor(name||'?');
+  return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${c};display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*.35)}px;font-weight:700;color:#fff;">${pcvIni(name)}</div>`;
+}
+
+async function openPersonalCampaignView(campaignId) {
+  _pcvCampaignId = campaignId;
+  const r = await fetch(`/api/opportunities/personal-campaigns/${campaignId}/contacts`).then(r=>r.json());
+  _pcvContacts = r.contacts || [];
+  if (!_pcvContacts.length) { alert('No contacts in this campaign yet.'); return; }
+  _pcvIndex = 0;
+  // Get campaign name from campaigns list
+  const camp = (typeof campaigns !== 'undefined' ? campaigns : []).find(c=>c.id===campaignId);
+  document.getElementById('pcv-name').textContent = camp?.name || 'Personal Campaign';
+  pcvRenderContact();
+  document.getElementById('pcv-overlay').style.display = 'flex';
+}
+
+function closePCView() {
+  document.getElementById('pcv-overlay').style.display = 'none';
+}
+
+function pcvNavigate(dir) {
+  const newIdx = _pcvIndex + dir;
+  if (newIdx < 0 || newIdx >= _pcvContacts.length) return;
+  _pcvIndex = newIdx;
+  pcvRenderContact();
+}
+
+function pcvRenderContact() {
+  const c = _pcvContacts[_pcvIndex];
+  if (!c) return;
+  // Progress
+  document.getElementById('pcv-progress').textContent = `${_pcvIndex+1} / ${_pcvContacts.length}`;
+  // Nav dots
+  document.getElementById('pcv-contact-indicator').innerHTML = _pcvContacts.map((x,i)=>
+    `<div style="width:8px;height:8px;border-radius:50%;background:${i===_pcvIndex?'#1d4ed8':x.status==='sent'?'#10b981':x.status==='approved'?'#f59e0b':'#e2e8f0'};cursor:pointer;" onclick="pcvGoTo(${i})" title="${x.entity_name||''}"></div>`
+  ).join('');
+  // Nav buttons
+  document.getElementById('pcv-prev').disabled = _pcvIndex === 0;
+  document.getElementById('pcv-next').disabled = _pcvIndex === _pcvContacts.length - 1;
+  // Status badge
+  const statusBg = {sent:'#d1fae5',approved:'#fef9c3',pending:'#eff6ff'};
+  const statusLbl = {sent:'✅ Sent',approved:'⏳ Approved — pending send',pending:'📝 Draft'};
+  document.getElementById('pcv-status-badge').innerHTML =
+    `<span style="background:${statusBg[c.status]||'#f1f5f9'};color:#475569;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;">${statusLbl[c.status]||c.status}</span>`;
+  // Person info
+  document.getElementById('pcv-avatar').innerHTML = pcvAvatarHtml(c.entity_name, 44);
+  document.getElementById('pcv-entity-name').innerHTML = c.entity_li_url
+    ? `<a href="${c.entity_li_url}" target="_blank" style="color:#1d4ed8;text-decoration:none;">${c.entity_name||'Unknown'}</a>`
+    : (c.entity_name || 'Unknown');
+  document.getElementById('pcv-entity-sub').textContent = [c.company].filter(Boolean).join(' · ');
+  // Message
+  document.getElementById('pcv-textarea').value = c.personal_msg || '';
+  document.getElementById('pcv-send-status').textContent = '';
+  // Send button state
+  const sendBtn = document.getElementById('pcv-send-btn');
+  sendBtn.disabled = c.status === 'sent';
+  sendBtn.innerHTML = c.status==='sent' ? '✅ Sent' : '↗ Approve & Send';
+  sendBtn.style.background = c.status==='sent' ? '#9ca3af' : '#1D9E75';
+}
+
+function pcvGoTo(i) { _pcvIndex = i; pcvRenderContact(); }
+
+async function pcvSave() {
+  const c = _pcvContacts[_pcvIndex];
+  if (!c) return;
+  const msg = document.getElementById('pcv-textarea').value.trim();
+  document.getElementById('pcv-send-status').textContent = 'Saving…';
+  await fetch(`/api/opportunities/personal-campaigns/${_pcvCampaignId}/contacts/${c.id}`, {
+    method:'PUT', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ personal_msg: msg }),
+  });
+  _pcvContacts[_pcvIndex].personal_msg = msg;
+  document.getElementById('pcv-send-status').innerHTML = '<span style="color:#1D9E75">✓ Saved</span>';
+  setTimeout(()=>document.getElementById('pcv-send-status').textContent='', 1500);
+}
+
+async function pcvSend() {
+  const c = _pcvContacts[_pcvIndex];
+  if (!c || c.status === 'sent') return;
+  const msg = document.getElementById('pcv-textarea').value.trim();
+  if (!msg) { document.getElementById('pcv-send-status').innerHTML='<span style="color:#ef4444">Write a message first.</span>'; return; }
+  const btn = document.getElementById('pcv-send-btn');
+  const st  = document.getElementById('pcv-send-status');
+  btn.disabled = true;
+  btn.innerHTML = '⏳ Sending…';
+  // Save latest message first
+  await fetch(`/api/opportunities/personal-campaigns/${_pcvCampaignId}/contacts/${c.id}`, {
+    method:'PUT', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ personal_msg: msg }),
+  });
+  // Send
+  const r = await fetch(`/api/opportunities/personal-campaigns/${_pcvCampaignId}/contacts/${c.id}/send`, {
+    method:'POST'
+  }).then(r=>r.json());
+  if (r.error) {
+    st.innerHTML = `<span style="color:#ef4444">❌ ${r.error}</span>`;
+    btn.disabled = false;
+    btn.innerHTML = '↗ Approve & Send';
+  } else {
+    st.innerHTML = '<span style="color:#1D9E75">✅ Sent!</span>';
+    _pcvContacts[_pcvIndex].status = 'sent';
+    _pcvContacts[_pcvIndex].personal_msg = msg;
+    pcvRenderContact();
+    // Auto-advance to next pending
+    const nextPending = _pcvContacts.findIndex((x,i)=>i>_pcvIndex && x.status==='pending');
+    if (nextPending !== -1) setTimeout(()=>{ _pcvIndex=nextPending; pcvRenderContact(); }, 1200);
+  }
+}
+// ── Personal Campaign Wizard via postMessage ─────────────────────────────────
+window.addEventListener('message', function(ev) {
+  if (!ev.data || ev.data.type !== 'open-campaign-wizard') return;
+  if (!ev.data.personalMode) return;
+  // Open wizard in personal mode
+  wizard = resetWizard();
+  wizard.personalMode  = true;
+  wizard.aiMsg         = ev.data.aiMsg || '';
+  wizard.entityName    = ev.data.entityName || '';
+  wizard.entityLiUrl   = ev.data.entityLiUrl || null;
+  wizard.company       = ev.data.company || '';
+  // Pre-fill "New Contacts" with AI message (step=2, After connection accepted)
+  wizard.newMessages = [{
+    delay: 1, unit: 'days',
+    variants: [{ label: 'A', text: ev.data.aiMsg || '' }]
+  }];
+  currentStep = 0;
+  document.getElementById('modal').style.display = 'flex';
+  renderStep();
+});
+</script>
+
+</body>
+</html>

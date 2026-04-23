@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>El-Via — Automation Health</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f8fafc;color:#111827;line-height:1.5}
+.header{background:linear-gradient(135deg,#0f172a,#064e3b);color:white;padding:28px 40px;display:flex;align-items:center;justify-content:space-between}
+.header h1{font-size:22px;font-weight:700}
+.header-sub{font-size:13px;opacity:.6;margin-top:2px}
+.run-btn{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:white;padding:8px 18px;border-radius:8px;font-size:13px;cursor:pointer;transition:background .15s}
+.run-btn:hover{background:rgba(255,255,255,.2)}
+.run-btn.loading{opacity:.6;pointer-events:none}
+.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:24px 40px 0}
+.stat{background:white;border:1px solid #e5e7eb;border-radius:10px;padding:16px 20px}
+.stat-n{font-size:28px;font-weight:700;margin-bottom:2px}
+.stat-label{font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:.04em}
+.stat-n.green{color:#16a34a}.stat-n.red{color:#dc2626}.stat-n.blue{color:#2563eb}.stat-n.amber{color:#d97706}
+.container{padding:24px 40px}
+.section-title{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;margin-bottom:12px}
+.checks-grid{display:grid;gap:8px}
+.check{background:white;border:1px solid #e5e7eb;border-radius:10px;padding:14px 18px;display:grid;grid-template-columns:28px 1fr auto;gap:12px;align-items:center}
+.check.ok{border-left:3px solid #16a34a}
+.check.warn{border-left:3px solid #d97706}
+.check.fail{border-left:3px solid #dc2626}
+.check.unknown{border-left:3px solid #9ca3af}
+.dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.dot.ok{background:#16a34a}.dot.warn{background:#d97706}.dot.fail{background:#dc2626}.dot.unknown{background:#9ca3af}
+.check-name{font-size:14px;font-weight:600;margin-bottom:2px}
+.check-desc{font-size:12px;color:#6b7280}
+.check-reason{font-size:12px;color:#b91c1c;margin-top:4px}
+.check-meta{font-size:11px;color:#9ca3af;text-align:right;line-height:1.6}
+.badge{font-size:11px;font-weight:600;padding:2px 8px;border-radius:12px;white-space:nowrap}
+.badge.healed{background:#dcfce7;color:#166534}
+.badge.failed{background:#fee2e2;color:#991b1b}
+.badge.healthy{background:#f0fdf4;color:#166534}
+.badge.inprocess{background:#eff6ff;color:#1e40af}
+.badge.pending{background:#fef9c3;color:#854d0e}
+.last-run{font-size:12px;color:#6b7280;margin-top:4px;text-align:right}
+.env-note{background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:14px 18px;margin-bottom:20px;font-size:13px;color:#1e40af}
+.env-note code{background:#dbeafe;padding:2px 6px;border-radius:4px;font-size:12px}
+.refresh-note{font-size:12px;color:#9ca3af;margin-top:16px;text-align:center}
+.no-data{text-align:center;padding:60px 20px;color:#9ca3af}
+.no-data .big{font-size:48px;margin-bottom:12px}
+.no-data h3{font-size:18px;color:#374151;margin-bottom:8px}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:white;border-radius:50%;animation:spin .7s linear infinite;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ts{font-size:11px;color:rgba(255,255,255,.5);font-family:monospace}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>&#128295; Automation Health</h1>
+    <div class="header-sub">El-Via ABM &mdash; Daily checks + auto-heal</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <span class="ts" id="last-run-ts"></span>
+    <button class="run-btn" id="run-btn" onclick="runCheck()">&#9654; Run Check Now</button>
+  </div>
+</div>
+
+<div class="summary" id="summary" style="display:none">
+  <div class="stat"><div class="stat-n green" id="s-healthy">0</div><div class="stat-label">Healthy</div></div>
+  <div class="stat"><div class="stat-n amber" id="s-healed">0</div><div class="stat-label">Auto-healed</div></div>
+  <div class="stat"><div class="stat-n red" id="s-failed">0</div><div class="stat-label">Failed (alert sent)</div></div>
+  <div class="stat"><div class="stat-n blue" id="s-total">0</div><div class="stat-label">Total checks</div></div>
+</div>
+
+<div class="container">
+  <div class="env-note">
+    &#128276; <strong>Alert webhook:</strong> set <code>HEALTH_ALERT_WEBHOOK</code> env var in Railway to receive Slack/Discord alerts when auto-heal fails. Health check runs daily at <code>HEALTH_CHECK_HOUR</code> (default: 09:00 server time).
+    <br><br>
+    &#128279; <strong>Manual trigger:</strong> <code>POST /api/automations/health-check</code> &mdash; or click "Run Check Now" above.
+  </div>
+
+  <div class="section-title">Automation Status</div>
+  <div class="checks-grid" id="checks">
+    <div class="no-data">
+      <div class="big">&#9881;&#65039;</div>
+      <h3>No health check data yet</h3>
+      <p>Click "Run Check Now" to run the first health check, or wait for the daily check at 09:00.</p>
+    </div>
+  </div>
+  <div class="refresh-note" id="refresh-note"></div>
+</div>
+
+<script>
+function timeAgo(iso) {
+  if (!iso) return 'never';
+  const d = new Date(iso), now = new Date();
+  const diff = Math.round((now - d) / 60000);
+  if (diff < 2) return 'just now';
+  if (diff < 60) return diff + 'min ago';
+  if (diff < 1440) return Math.round(diff/60) + 'h ago';
+  return Math.round(diff/1440) + 'd ago';
+}
+
+function healClass(heal) {
+  if (!heal || heal === 'healthy') return 'healthy';
+  if (heal === 'healed') return 'healed';
+  if (heal.startsWith('in-process') || heal.includes('auto')) return 'inprocess';
+  if (heal.startsWith('failed') || heal.includes('exception')) return 'failed';
+  return 'pending';
+}
+
+function healLabel(heal) {
+  if (!heal || heal === 'healthy') return '&#10003; Healthy';
+  if (heal === 'healed') return '&#128295; Healed';
+  if (heal.startsWith('in-process') || heal.includes('auto')) return '&#128260; In-process';
+  if (heal.startsWith('failed') || heal.includes('exception')) return '&#10008; Heal failed';
+  return heal;
+}
+
+function checkClass(r) {
+  if (r.ok) return 'ok';
+  if (r.healResult === 'healed') return 'warn';
+  if (r.healResult && r.healResult.startsWith('in-process')) return 'ok';
+  if (r.healResult && r.healResult.startsWith('failed')) return 'fail';
+  if (!r.reason) return 'ok';
+  return 'warn';
+}
+
+function render(data) {
+  if (!data || !data.results) {
+    document.getElementById('checks').innerHTML = `
+      <div class="no-data">
+        <div class="big">&#9881;&#65039;</div>
+        <h3>No health check data yet</h3>
+        <p>Click "Run Check Now" to run the first check.</p>
+      </div>`;
+    return;
+  }
+
+  document.getElementById('summary').style.display = 'grid';
+  document.getElementById('s-healthy').textContent = data.healthy || 0;
+  document.getElementById('s-healed').textContent = data.healed || 0;
+  const failed = (data.results||[]).filter(r=>r.healResult&&r.healResult.startsWith('failed')).length;
+  document.getElementById('s-failed').textContent = failed;
+  document.getElementById('s-total').textContent = (data.results||[]).length;
+
+  const ts = data.runAt ? `Last run: ${timeAgo(data.runAt)}` : '';
+  document.getElementById('last-run-ts').textContent = ts;
+  document.getElementById('refresh-note').textContent = data.runAt
+    ? `Last check: ${new Date(data.runAt).toLocaleString()} — auto-runs daily at 09:00`
+    : '';
+
+  const html = (data.results||[]).map(r => `
+    <div class="check ${checkClass(r)}">
+      <div class="dot ${checkClass(r)}"></div>
+      <div>
+        <div class="check-name">${r.name}</div>
+        <div class="check-desc">${r.description || ''}</div>
+        ${r.reason ? `<div class="check-reason">&#9888; ${r.reason}</div>` : ''}
+      </div>
+      <div>
+        <div style="text-align:right"><span class="badge ${healClass(r.healResult)}">${healLabel(r.healResult)}</span></div>
+        <div class="check-meta">Last activity: ${timeAgo(r.lastRun)}<br>${r.lastRun ? new Date(r.lastRun).toLocaleTimeString() : ''}</div>
+      </div>
+    </div>`).join('');
+
+  document.getElementById('checks').innerHTML = html || '<div class="no-data"><p>No results</p></div>';
+}
+
+async function load() {
+  try {
+    const r = await fetch('/api/automations/status');
+    const data = await r.json();
+    render(data.results ? data : null);
+  } catch(e) {
+    console.error(e);
+  }
+}
+
+async function runCheck() {
+  const btn = document.getElementById('run-btn');
+  btn.classList.add('loading');
+  btn.innerHTML = '<span class="spinner"></span>Running...';
+  try {
+    const r = await fetch('/api/automations/health-check', {method:'POST'});
+    const data = await r.json();
+    render(data);
+  } catch(e) {
+    alert('Error running health check: ' + e.message);
+  } finally {
+    btn.classList.remove('loading');
+    btn.innerHTML = '&#9654; Run Check Now';
+  }
+}
+
+// Auto-refresh every 60s
+load();
+loadWatchdog();
+setInterval(load, 60000);
+setInterval(loadWatchdog, 60000);
+
+async function loadWatchdog() {
+  try {
+    const [wdRes, logRes] = await Promise.all([
+      fetch('/api/automations/watchdog').then(r=>r.json()),
+      fetch('/api/automations/watchdog/logs').then(r=>r.json()),
+    ]);
+    renderWatchdog(wdRes, logRes.logs || []);
+  } catch(e) { console.error(e); }
+}
+
+function renderWatchdog(status, logs) {
+  const el = document.getElementById('watchdog-section');
+  if (!el) return;
+  
+  const rows = Object.entries(status).map(([name, s]) => {
+    const cls = s.ok ? 'ok' : 'fail';
+    const age = s.lastTick ? timeAgo(s.lastTick) : 'never';
+    const restarts = s.restarts > 0 ? ` <span style="color:#d97706;font-size:11px">(restarted ${s.restarts}x)</span>` : '';
+    return `<div class="check ${cls}">
+      <div class="dot ${cls}"></div>
+      <div>
+        <div class="check-name">${name}${restarts}</div>
+        <div class="check-desc">Last tick: ${age} &middot; Stale after: ${s.staleAfterMinutes}min</div>
+        ${s.lastRestart ? `<div class="check-reason" style="color:#d97706">Last restart: ${timeAgo(s.lastRestart)}</div>` : ''}
+      </div>
+      <div>
+        <div style="text-align:right">
+          <button onclick="forceRestart('${name}')" style="font-size:11px;padding:3px 10px;border:1px solid #e5e7eb;border-radius:6px;cursor:pointer;background:white">&#128295; Restart</button>
+        </div>
+        <div class="check-meta">${s.ageMinutes}min ago</div>
+      </div>
+    </div>`;
+  }).join('');
+  
+  const logHtml = logs.slice(0,20).map(l => 
+    `<div style="font-size:12px;padding:4px 0;border-bottom:1px solid #f3f4f6;display:flex;gap:12px">
+      <span style="color:#9ca3af;font-family:monospace;min-width:140px">${new Date(l.created_at).toLocaleString()}</span>
+      <span style="font-weight:600;min-width:160px">${l.automation_name}</span>
+      <span style="color:${l.event.includes('fail')?'#dc2626':l.event.includes('restart')?'#d97706':'#16a34a'}">${l.event}</span>
+      <span style="color:#6b7280">${l.detail||''}</span>
+    </div>`
+  ).join('') || '<div style="color:#9ca3af;font-size:13px;padding:8px 0">No events yet</div>';
+  
+  el.innerHTML = `
+    <div class="section-title" style="margin-top:32px">Live Heartbeats (Watchdog)</div>
+    <div class="checks-grid" style="margin-bottom:24px">${rows || '<div style="color:#9ca3af;padding:20px;text-align:center">No heartbeat data yet — automations register on first run</div>'}</div>
+    <div class="section-title">Watchdog Event Log</div>
+    <div style="background:white;border:1px solid #e5e7eb;border-radius:10px;padding:14px 18px">${logHtml}</div>
+  `;
+}
+
+async function forceRestart(name) {
+  if (!confirm('Force restart ' + name + '?')) return;
+  const r = await fetch('/api/automations/restart/' + name, {method:'POST'}).then(r=>r.json());
+  alert(r.ok ? '✅ ' + r.message : '❌ ' + r.error);
+  loadWatchdog();
+}
+</script>
+<div id="watchdog-section" class="container" style="padding-top:0"></div>
+</body>
+</html>

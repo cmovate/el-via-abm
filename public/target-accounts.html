@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Target Accounts</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+
+.header { padding: 20px 24px 0; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; }
+.header h1 { font-size: 20px; font-weight: 600; color: #f1f5f9; }
+.header p  { font-size: 13px; color: #64748b; margin-top: 2px; }
+
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; transition: all .15s; }
+.btn-primary { background: #1D9E75; color: #fff; }
+.btn-primary:hover { background: #17875f; }
+.btn-secondary { background: #1e2333; color: #94a3b8; border: 1px solid #2d3748; }
+.btn-secondary:hover { background: #252c3f; color: #e2e8f0; }
+.btn-sm { padding: 5px 12px; font-size: 12px; }
+
+.content { padding: 16px 24px; }
+
+/* Search + filter row */
+.toolbar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+.search-input { background: #1e2333; border: 1px solid #2d3748; border-radius: 8px; color: #e2e8f0; font-size: 13px; padding: 8px 12px; min-width: 220px; }
+.search-input:focus { outline: none; border-color: #1D9E75; }
+select.filter { background: #1e2333; border: 1px solid #2d3748; border-radius: 8px; color: #94a3b8; font-size: 12px; padding: 8px 12px; cursor: pointer; }
+select.filter:focus { outline: none; border-color: #1D9E75; }
+
+/* Account cards grid */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+
+.account-card { background: #161b2e; border: 1px solid #1e2a3a; border-radius: 10px; padding: 16px; cursor: pointer; transition: border-color .15s; position: relative; }
+.account-card:hover { border-color: #2d4a6e; }
+.account-card.active { border-color: #1D9E75; background: #0d1e17; }
+
+.acc-header { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
+.acc-logo { width: 36px; height: 36px; border-radius: 8px; background: #1e2333; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #94a3b8; flex-shrink: 0; }
+.acc-name { font-size: 14px; font-weight: 600; color: #f1f5f9; }
+.acc-industry { font-size: 11px; color: #64748b; margin-top: 2px; }
+.acc-url { font-size: 11px; color: #1D9E75; text-decoration: none; }
+.acc-url:hover { text-decoration: underline; }
+
+.acc-scores { display: flex; gap: 10px; margin-bottom: 10px; }
+.score-box { background: #0f1117; border-radius: 6px; padding: 6px 10px; flex: 1; text-align: center; }
+.score-val { font-size: 18px; font-weight: 700; color: #f1f5f9; }
+.score-label { font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: .4px; margin-top: 1px; }
+
+.acc-meta { display: flex; gap: 8px; flex-wrap: wrap; }
+.acc-badge { font-size: 11px; background: #1e2333; color: #94a3b8; padding: 2px 7px; border-radius: 10px; }
+.acc-badge.green { background: #0d2a1f; color: #34d399; }
+
+.acc-actions { display: flex; gap: 6px; margin-top: 12px; }
+
+/* Detail panel */
+.detail-panel { background: #161b2e; border: 1px solid #1e2a3a; border-radius: 10px; padding: 20px; margin-top: 16px; display: none; }
+.detail-panel.open { display: block; }
+.detail-title { font-size: 16px; font-weight: 600; color: #f1f5f9; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; }
+.detail-close { background: none; border: none; color: #64748b; cursor: pointer; font-size: 18px; }
+.detail-close:hover { color: #e2e8f0; }
+
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.detail-section h3 { font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
+
+/* Contacts mini list */
+.contact-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #1e2a3a; }
+.contact-row:last-child { border-bottom: none; }
+.contact-avatar { width: 28px; height: 28px; border-radius: 50%; background: #1D9E75; color: #fff; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.contact-name { font-size: 13px; color: #f1f5f9; font-weight: 500; }
+.contact-title { font-size: 11px; color: #64748b; }
+.connected-badge { font-size: 10px; background: #0d2a1f; color: #34d399; padding: 1px 5px; border-radius: 8px; margin-left: auto; }
+
+/* Add modal */
+.modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.7); display: flex; align-items: center; justify-content: center; z-index: 100; }
+.modal { background: #161b2e; border: 1px solid #1e2a3a; border-radius: 12px; padding: 28px; width: 420px; }
+.modal h2 { font-size: 15px; font-weight: 600; color: #f1f5f9; margin-bottom: 16px; }
+.form-group { margin-bottom: 12px; }
+label { font-size: 11px; font-weight: 600; color: #64748b; display: block; margin-bottom: 4px; text-transform: uppercase; letter-spacing: .4px; }
+input, select.modal-sel { width: 100%; background: #0f1117; border: 1px solid #2d3748; border-radius: 7px; color: #e2e8f0; font-size: 13px; padding: 8px 12px; }
+input:focus, select.modal-sel:focus { outline: none; border-color: #1D9E75; }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
+
+/* Empty + loading */
+.empty { text-align: center; padding: 60px 20px; color: #475569; }
+.empty-icon { font-size: 40px; margin-bottom: 12px; }
+.loading { text-align: center; padding: 40px; color: #475569; font-size: 13px; }
+
+/* Pagination */
+.pagination { display: flex; gap: 6px; justify-content: center; margin-top: 16px; }
+.page-btn { background: #1e2333; border: 1px solid #2d3748; color: #94a3b8; padding: 6px 14px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+.page-info { font-size: 12px; color: #64748b; align-self: center; }
+
+/* Toast */
+.toast { position: fixed; bottom: 24px; right: 24px; background: #1e2a3a; border: 1px solid #2d3748; color: #e2e8f0; padding: 12px 18px; border-radius: 8px; font-size: 13px; z-index: 999; animation: fi .2s; }
+.toast.success { border-color: #1D9E75; color: #34d399; }
+.toast.error { border-color: #ef4444; color: #f87171; }
+@keyframes fi { from { opacity:0;transform:translateY(8px); } to { opacity:1;transform:translateY(0); } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>Target Accounts</h1>
+    <p>Companies as ABM entities — track engagement and contacts</p>
+  </div>
+  <button class="btn btn-primary" onclick="openAddModal()">+ Add Account</button>
+</div>
+
+<div class="content">
+  <div class="toolbar">
+    <input class="search-input" type="text" id="searchInput" placeholder="Search company…" oninput="onSearch()">
+    <select class="filter" id="sortSel" onchange="load()">
+      <option value="engagement_score_7d">Sort: 7-day engagement</option>
+      <option value="engagement_score">Sort: All-time score</option>
+      <option value="name">Sort: Name</option>
+      <option value="created_at">Sort: Newest</option>
+    </select>
+  </div>
+
+  <div class="grid" id="accountGrid"></div>
+  <div class="pagination" id="paginationEl" style="display:none"></div>
+
+  <!-- Detail panel -->
+  <div class="detail-panel" id="detailPanel">
+    <div class="detail-title">
+      <span id="detailName">—</span>
+      <button class="detail-close" onclick="closeDetail()">×</button>
+    </div>
+    <div class="detail-grid">
+      <div class="detail-section">
+        <h3>Contacts at this company</h3>
+        <div id="detailContacts"><div class="loading">Loading…</div></div>
+      </div>
+      <div class="detail-section">
+        <h3>Recent signals</h3>
+        <div id="detailSignals"><div class="loading">Loading…</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add modal -->
+<div class="modal-bg" id="addModal" style="display:none">
+  <div class="modal">
+    <h2>Add Target Account</h2>
+    <div class="form-group"><label>Company Name *</label><input type="text" id="taName" placeholder="Acme Corp"></div>
+    <div class="form-group"><label>LinkedIn Company URL</label><input type="text" id="taLiUrl" placeholder="https://linkedin.com/company/acme"></div>
+    <div class="form-group"><label>Website</label><input type="text" id="taWebsite" placeholder="https://acme.com"></div>
+    <div class="form-group"><label>Industry</label><input type="text" id="taIndustry" placeholder="SaaS, Fintech…"></div>
+    <div class="form-group"><label>Company Size</label>
+      <select class="modal-sel" id="taSize">
+        <option value="">— select —</option>
+        <option>1-10</option><option>11-50</option><option>51-200</option>
+        <option>201-500</option><option>501-1000</option><option>1001-5000</option><option>5000+</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeAddModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveAccount()">Add Account</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const params = new URLSearchParams(location.search);
+const WS_ID  = params.get('workspace_id') || 1;
+const BASE   = '';
+
+let accounts = [], currentPage = 1, totalPages = 1, searchTimer = null;
+
+async function api(path, opts={}) {
+  const r = await fetch(BASE+path, { headers:{'Content-Type':'application/json'}, ...opts });
+  return r.json();
+}
+
+function toast(msg, type='') {
+  const t = document.createElement('div');
+  t.className = 'toast'+(type?' '+type:'');
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(), 3000);
+}
+
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function ini(name) { return String(name||'?').split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase(); }
+
+function scoreColor(val) {
+  if (!val || val === 0) return '#475569';
+  if (val >= 50) return '#10B981';
+  if (val >= 20) return '#F59E0B';
+  return '#60A5FA';
+}
+
+async function load() {
+  const sort  = document.getElementById('sortSel').value;
+  const limit = 24;
+  const search = document.getElementById('searchInput').value.trim();
+  let url = `/api/target-accounts?workspace_id=${WS_ID}&sort=${sort}&limit=${limit}&page=${currentPage}`;
+  if (search) url += `&search=${encodeURIComponent(search)}`;
+
+  document.getElementById('accountGrid').innerHTML = '<div class="loading" style="grid-column:1/-1">Loading…</div>';
+
+  const data = await api(url);
+  accounts   = data.items || [];
+  totalPages = Math.ceil((data.total || 0) / limit) || 1;
+
+  renderGrid();
+  renderPagination(data.total, limit);
+}
+
+function renderGrid() {
+  const grid = document.getElementById('accountGrid');
+  if (!accounts.length) {
+    grid.innerHTML = `<div class="empty" style="grid-column:1/-1">
+      <div class="empty-icon">🏢</div>
+      <div style="font-size:14px">No target accounts yet</div>
+      <div style="font-size:12px;margin-top:6px;color:#334155">Add companies you're actively targeting to track engagement</div>
+    </div>`;
+    return;
+  }
+
+  grid.innerHTML = accounts.map(a => `
+    <div class="account-card" id="acc-${a.id}" onclick="openDetail(${a.id})">
+      <div class="acc-header">
+        <div class="acc-logo">${ini(a.name)}</div>
+        <div>
+          <div class="acc-name">${esc(a.name)}</div>
+          ${a.industry ? `<div class="acc-industry">${esc(a.industry)}</div>` : ''}
+          ${a.li_company_url ? `<a class="acc-url" href="${esc(a.li_company_url)}" target="_blank" onclick="event.stopPropagation()">LinkedIn ↗</a>` : ''}
+        </div>
+      </div>
+
+      <div class="acc-scores">
+        <div class="score-box">
+          <div class="score-val" style="color:${scoreColor(a.engagement_score_7d)}">${a.engagement_score_7d || 0}</div>
+          <div class="score-label">7d score</div>
+        </div>
+        <div class="score-box">
+          <div class="score-val" style="color:${scoreColor(a.engagement_score)}">${a.engagement_score || 0}</div>
+          <div class="score-label">total</div>
+        </div>
+        <div class="score-box">
+          <div class="score-val">${a.contacts_count || 0}</div>
+          <div class="score-label">contacts</div>
+        </div>
+      </div>
+
+      <div class="acc-meta">
+        ${a.company_size ? `<span class="acc-badge">${esc(a.company_size)}</span>` : ''}
+        ${a.active_enrollments > 0 ? `<span class="acc-badge green">${a.active_enrollments} in outreach</span>` : ''}
+        ${a.last_signal_at ? `<span class="acc-badge">Last signal ${timeAgo(a.last_signal_at)}</span>` : ''}
+      </div>
+
+      <div class="acc-actions">
+        <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();editAccount(${a.id})">Edit</button>
+        <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();deleteAccount(${a.id})">Delete</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderPagination(total, limit) {
+  const el = document.getElementById('paginationEl');
+  if (totalPages <= 1) { el.style.display = 'none'; return; }
+  el.style.display = 'flex';
+  let html = '';
+  if (currentPage > 1) html += `<button class="page-btn" onclick="goPage(${currentPage-1})">← Prev</button>`;
+  html += `<span class="page-info">Page ${currentPage} of ${totalPages} · ${total} accounts</span>`;
+  if (currentPage < totalPages) html += `<button class="page-btn" onclick="goPage(${currentPage+1})">Next →</button>`;
+  el.innerHTML = html;
+}
+
+function goPage(p) { currentPage = p; load(); }
+
+function onSearch() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => { currentPage = 1; load(); }, 300);
+}
+
+// ── Detail panel ──────────────────────────────────────────────────────────
+async function openDetail(id) {
+  document.querySelectorAll('.account-card').forEach(c => c.classList.toggle('active', c.id === `acc-${id}`));
+  const panel = document.getElementById('detailPanel');
+  panel.classList.add('open');
+  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  const acct = accounts.find(a => a.id === id);
+  document.getElementById('detailName').textContent = acct?.name || '—';
+
+  // Load contacts + signals in parallel
+  const [contacts, signals] = await Promise.all([
+    api(`/api/target-accounts/${id}/contacts?workspace_id=${WS_ID}`),
+    api(`/api/target-accounts/${id}/signals?workspace_id=${WS_ID}`),
+  ]);
+
+  // Render contacts
+  const contEl = document.getElementById('detailContacts');
+  if (!contacts.items?.length) {
+    contEl.innerHTML = '<div style="font-size:12px;color:#475569">No contacts linked yet</div>';
+  } else {
+    contEl.innerHTML = contacts.items.slice(0,8).map(c => `
+      <div class="contact-row">
+        <div class="contact-avatar">${ini(c.first_name + ' ' + c.last_name)}</div>
+        <div>
+          <div class="contact-name">${esc([c.first_name,c.last_name].filter(Boolean).join(' '))}</div>
+          <div class="contact-title">${esc(c.title||'')}</div>
+        </div>
+        ${c.already_connected ? '<span class="connected-badge">Connected</span>' : ''}
+      </div>
+    `).join('');
+  }
+
+  // Render signals
+  const sigEl = document.getElementById('detailSignals');
+  const TYPE_ICONS = { profile_view:'👁', post_like:'👍', post_comment:'💬', invite_received:'📨', invite_accepted:'🤝', message_received:'✉️', company_follow:'🏢' };
+  if (!signals.items?.length) {
+    sigEl.innerHTML = '<div style="font-size:12px;color:#475569">No signals yet</div>';
+  } else {
+    sigEl.innerHTML = signals.items.slice(0,6).map(s => `
+      <div class="contact-row">
+        <div style="font-size:16px">${TYPE_ICONS[s.type]||'📌'}</div>
+        <div>
+          <div class="contact-name" style="font-size:12px">${esc(s.actor_name||'Unknown')}</div>
+          <div class="contact-title">${s.type.replace(/_/g,' ')} · ${timeAgo(s.occurred_at||s.created_at)}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+}
+
+function closeDetail() {
+  document.getElementById('detailPanel').classList.remove('open');
+  document.querySelectorAll('.account-card').forEach(c => c.classList.remove('active'));
+}
+
+// ── CRUD ──────────────────────────────────────────────────────────────────
+function openAddModal() {
+  ['taName','taLiUrl','taWebsite','taIndustry'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('taSize').value = '';
+  window._editingTaId = null;
+  document.getElementById('addModal').style.display = 'flex';
+}
+
+async function editAccount(id) {
+  const acct = accounts.find(a => a.id === id);
+  if (!acct) return;
+  document.getElementById('taName').value    = acct.name || '';
+  document.getElementById('taLiUrl').value   = acct.li_company_url || '';
+  document.getElementById('taWebsite').value = acct.website || '';
+  document.getElementById('taIndustry').value= acct.industry || '';
+  document.getElementById('taSize').value    = acct.company_size || '';
+  window._editingTaId = id;
+  document.getElementById('addModal').style.display = 'flex';
+}
+
+function closeAddModal() { document.getElementById('addModal').style.display = 'none'; }
+
+async function saveAccount() {
+  const name = document.getElementById('taName').value.trim();
+  if (!name) { toast('Company name required', 'error'); return; }
+  const body = {
+    workspace_id: WS_ID, name,
+    li_company_url: document.getElementById('taLiUrl').value.trim()||null,
+    website:        document.getElementById('taWebsite').value.trim()||null,
+    industry:       document.getElementById('taIndustry').value.trim()||null,
+    company_size:   document.getElementById('taSize').value||null,
+  };
+  let r;
+  if (window._editingTaId) {
+    r = await api(`/api/target-accounts/${window._editingTaId}`, { method:'PATCH', body:JSON.stringify({ ...body }) });
+    toast('Account updated', 'success');
+  } else {
+    r = await api('/api/target-accounts', { method:'POST', body:JSON.stringify(body) });
+    toast('Account added', 'success');
+  }
+  if (r.error) { toast(r.error, 'error'); return; }
+  closeAddModal();
+  await load();
+}
+
+async function deleteAccount(id) {
+  if (!confirm('Delete this target account?')) return;
+  const r = await api(`/api/target-accounts/${id}?workspace_id=${WS_ID}`, { method:'DELETE' });
+  if (r.error) { toast(r.error, 'error'); return; }
+  toast('Deleted', 'success');
+  closeDetail();
+  await load();
+}
+
+function timeAgo(ts) {
+  if (!ts) return '';
+  const d = Math.floor((Date.now()-new Date(ts))/1000);
+  if (d<60) return 'just now';
+  if (d<3600) return Math.floor(d/60)+'m ago';
+  if (d<86400) return Math.floor(d/3600)+'h ago';
+  return Math.floor(d/86400)+'d ago';
+}
+
+load();
+</script>
+</body>
+</html>

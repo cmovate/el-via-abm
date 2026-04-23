@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="stylesheet" href="/ds.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Company Page Followers</title>
+<link rel="stylesheet" href="/elvia.css">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+/* Local aliases — ds.css provides the tokens */
+:root {
+  --acc: var(--green);
+  --acc2: var(--green-hover);
+  --acc-bg: var(--green-light);
+  --acc-border: var(--green-border);
+  --sub: var(--text-3);
+  --dim: var(--text-4);
+  --radius: var(--r-md);
+  --blue-bg: var(--blue-light);
+  --amber-bg: var(--amber-light);
+  --red-bg: var(--red-light);
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;overflow:hidden}
+.shell{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+
+/* Header */
+.header{flex-shrink:0;padding:14px var(--page-pad);background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;box-shadow:var(--shadow-xs)}
+.header-icon{font-size:20px}
+.header-title{font-size:17px;font-weight:800;letter-spacing:-.3px;color:var(--text)}
+.header-sub{font-size:12px;color:var(--sub);margin-left:auto}
+
+/* Main layout */
+.main{flex:1;overflow:hidden;display:flex;flex-direction:column;gap:0}
+
+/* Step 1 - persona input */
+.step-panel{flex-shrink:0;padding:20px 24px;background:var(--surface);border-bottom:2px solid var(--border)}
+.step-label{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);font-family:var(--f-mono);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.step-num{width:20px;height:20px;border-radius:50%;background:var(--acc);color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.persona-row{display:flex;gap:10px;align-items:flex-start}
+.persona-input{flex:1;border:1px solid var(--border2);border-radius:var(--radius);padding:12px 14px;font-size:13px;font-family:var(--f-sans);color:var(--text);resize:none;outline:none;line-height:1.55;transition:border-color .2s;min-height:72px}
+.persona-input:focus{border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-bg)}
+.persona-input::placeholder{color:var(--dim)}
+.parse-btn{padding:11px 22px;background:var(--acc);color:#fff;border:none;border-radius:var(--radius);font-family:var(--f-sans);font-size:13px;font-weight:800;cursor:pointer;transition:all .2s;white-space:nowrap;display:flex;align-items:center;gap:7px}
+.parse-btn:hover{background:var(--acc2);transform:translateY(-1px)}
+.parse-btn:disabled{background:var(--dim);cursor:not-allowed;transform:none}
+
+/* Parsed criteria chips */
+.criteria-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 24px;background:var(--acc-bg);border-bottom:1px solid var(--acc-border)}
+.criteria-label{font-size:10px;font-weight:700;color:var(--acc);font-family:var(--f-mono);letter-spacing:.5px;white-space:nowrap}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:#fff;border:1px solid var(--acc-border);color:var(--acc);cursor:pointer;transition:all .2s}
+.chip:hover{background:var(--red-bg);border-color:var(--red-border);color:var(--red)}
+.chip-add{background:transparent;border-style:dashed;color:var(--acc);cursor:pointer}
+.chip-add:hover{background:var(--acc-bg)}
+.criteria-summary{font-size:11px;color:var(--sub);margin-left:auto}
+
+/* Results area */
+.results-wrap{flex:1;overflow-y:auto;padding:16px 24px}
+
+/* Empty / loading states */
+.state-box{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:300px;gap:12px;text-align:center}
+.state-icon{font-size:40px;opacity:.3}
+.state-title{font-size:16px;font-weight:700;color:var(--sub)}
+.state-sub{font-size:12px;color:var(--dim);max-width:360px;line-height:1.6}
+.spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--acc);border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Account group */
+.account-group{margin-bottom:16px;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.account-header{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#f8fafc;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;transition:background .15s}
+.account-header:hover{background:#f1f5f9}
+.account-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--acc),#06b6d4);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0}
+.account-name{font-size:13px;font-weight:800;flex:1}
+.account-count{font-size:11px;font-weight:700;padding:2px 8px;background:var(--acc-bg);border:1px solid var(--acc-border);border-radius:10px;color:var(--acc);font-family:var(--f-mono)}
+.account-select-all{font-size:11px;font-weight:700;color:var(--blue);cursor:pointer;padding:3px 8px;border-radius:4px;transition:background .15s}
+.account-select-all:hover{background:var(--blue-bg)}
+.account-toggle{font-size:12px;color:var(--dim);transition:transform .2s}
+.account-toggle.open{transform:rotate(90deg)}
+.account-body{display:none}
+.account-body.open{display:block}
+
+/* Contact row */
+.contact-row{display:grid;grid-template-columns:auto auto 1fr auto auto;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);transition:background .1s}
+.contact-row:last-child{border-bottom:none}
+.contact-row:hover{background:#fafbfc}
+.contact-row.invited{background:var(--green-bg)}
+.contact-row.following{background:var(--blue-bg)}
+.contact-cb{width:16px;height:16px;accent-color:var(--acc);cursor:pointer;flex-shrink:0}
+.contact-avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#e2e8f0,#cbd5e1);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--sub);flex-shrink:0}
+.contact-info{min-width:0}
+.contact-name{font-size:13px;font-weight:700;margin-bottom:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.contact-title{font-size:11px;color:var(--sub);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.contact-company{font-size:10px;color:var(--dim)}
+.status-tag{font-size:9px;font-weight:800;padding:2px 7px;border-radius:10px;font-family:var(--f-mono);white-space:nowrap;flex-shrink:0}
+.tag-invited{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-border)}
+.tag-following{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border)}
+.tag-ok{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+
+/* Bottom action bar */
+.action-bar{flex-shrink:0;display:flex;align-items:center;gap:14px;padding:14px 24px;background:var(--surface);border-top:2px solid var(--border)}
+.sel-count{font-size:13px;font-weight:700;color:var(--text);font-family:var(--f-mono)}
+.sel-count span{color:var(--acc)}
+.send-btn{padding:10px 28px;background:var(--acc);color:#fff;border:none;border-radius:var(--radius);font-family:var(--f-sans);font-size:13px;font-weight:800;cursor:pointer;transition:all .2s;margin-left:auto;display:flex;align-items:center;gap:8px}
+.send-btn:hover{background:var(--acc2);transform:translateY(-1px)}
+.send-btn:disabled{background:var(--dim);cursor:not-allowed;transform:none}
+
+/* Progress */
+.progress-bar-wrap{flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden}
+.progress-bar-fill{height:100%;background:var(--acc);border-radius:4px;transition:width .4s ease;width:0%}
+
+/* Result toast */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:10px 20px;background:#0f172a;color:#fff;border-radius:var(--radius);font-size:13px;font-weight:700;animation:fadeUp .3s ease;z-index:999;box-shadow:0 8px 32px rgba(0,0,0,.25);display:flex;align-items:center;gap:8px}
+@keyframes fadeUp{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%)}}
+
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- Header -->
+  <div class="header">
+    <span class="header-icon">📣</span>
+    <div class="header-title">Company Page Followers</div>
+    <div class="header-sub" id="header-sub">Invite your connections to follow your company page</div>
+  </div>
+
+  <div class="main">
+
+    <!-- Company Page Selector -->
+    <div style="flex-shrink:0;padding:12px 24px;background:var(--c-surface-2);border-bottom:1px solid var(--c-border);display:flex;align-items:center;gap:12px">
+      <div style="font-size:12px;font-weight:700;color:var(--c-text-2);white-space:nowrap">Invite to Company Page:</div>
+      <select id="cp-select" onchange="onCompanyPageChange()"
+        style="flex:1;max-width:400px;padding:7px 12px;border:1px solid var(--c-border-strong);border-radius:var(--r-md);font-family:var(--f-sans);font-size:13px;color:var(--c-text);background:var(--c-surface);outline:none;cursor:pointer">
+        <option value="">⏳ Loading company pages…</option>
+      </select>
+      <span id="cp-urn-display" style="font-size:11px;color:var(--c-text-3);font-family:var(--f-mono)"></span>
+    </div>
+
+    <!-- Step 1: Persona input -->
+    <div class="step-panel">
+      <div class="step-label"><div class="step-num">1</div>Describe who you want to invite</div>
+      <div class="persona-row">
+        <textarea class="persona-input" id="persona-input" rows="3"
+          placeholder="e.g. VPs and Directors of Marketing, CTOs at SaaS companies, founders in tech — leave empty to see all your contacts"></textarea>
+        <button class="parse-btn" id="parse-btn" onclick="parseAndSearch()">
+          <span>🔍</span> Find Contacts
+        </button>
+      </div>
+    </div>
+
+    <!-- Criteria bar (shown after parse) -->
+    <div class="criteria-bar" id="criteria-bar" style="display:none">
+      <span class="criteria-label">Matching:</span>
+      <div id="chips-wrap" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+      <span class="criteria-summary" id="criteria-summary"></span>
+    </div>
+
+    <!-- Results -->
+    <div class="results-wrap" id="results-wrap">
+      <div class="state-box" id="empty-state">
+        <div class="state-icon">📣</div>
+        <div class="state-title">No search yet</div>
+        <div class="state-sub">Describe the type of people you want to invite to follow your company page, then click "Find Contacts".</div>
+      </div>
+    </div>
+
+    <!-- Action bar (shown when results exist) -->
+    <div class="action-bar" id="action-bar" style="display:none">
+      <div class="sel-count" id="sel-count"><span>0</span> selected</div>
+      <div class="progress-bar-wrap" id="prog-wrap" style="display:none">
+        <div class="progress-bar-fill" id="prog-bar"></div>
+      </div>
+      <div id="prog-label" style="display:none;font-size:12px;font-family:var(--f-mono);color:var(--sub)"></div>
+      <button class="send-btn" id="send-btn" onclick="sendInvites()" disabled>
+        📨 Send Invitations
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const params        = new URLSearchParams(location.search);
+const workspaceId   = params.get('workspace_id') || '1';
+const workspaceName = decodeURIComponent(params.get('workspace_name') || '');
+
+let _criteria      = null;
+let _byAccount     = [];
+let _selectedIds   = new Set();
+let _sending       = false;
+let _companyPages  = [];
+let _selectedPageUrn = null;
+
+// ── Parse + Search ─────────────────────────────────────────────────────────────
+async function parseAndSearch() {
+  const text = document.getElementById('persona-input').value.trim();
+  if (!text) return;
+
+  const btn = document.getElementById('parse-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<div style="width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite"></div> Analyzing…';
+
+  // Reset progress bar from any previous run
+  const progBar   = document.getElementById('prog-bar');
+  const progLabel = document.getElementById('prog-label');
+  const progWrap  = document.getElementById('prog-wrap');
+  if (progBar)   { progBar.style.width='0%'; progBar.style.background=''; }
+  if (progLabel) { progLabel.style.display='none'; progLabel.textContent=''; }
+  if (progWrap)  { progWrap.style.display='none'; }
+  _selectedIds = new Set();
+  _sending = false;
+
+  showLoading('Asking AI to build a LinkedIn search query…');
+
+  try {
+    // Step 1: AI parse
+    const pr = await fetch('/api/follow-invites/parse', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ text, workspace_id: workspaceId }),
+    });
+    const pd = await pr.json();
+    if (!pd.ok) throw new Error(pd.error || 'Parse failed');
+    _criteria = pd.criteria;
+
+    // Show criteria chips
+    renderCriteriaBar(_criteria);
+
+    // Step 2: Live LinkedIn search
+    showLoading(`Searching LinkedIn connections for: "${_criteria.keywords}"…`);
+
+    const sr = await fetch('/api/follow-invites/search', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        workspace_id: workspaceId,
+        keywords: _criteria.keywords,
+      }),
+    });
+    const sd = await sr.json();
+    if (!sd.ok) throw new Error(sd.error || 'Search failed');
+
+    _byAccount = sd.by_account || [];
+    _selectedIds = new Set();
+
+    renderResults(_byAccount, sd.total, sd.warning, sd);
+
+  } catch(e) {
+    showError(e.message);
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '<span>🔍</span> Find Contacts';
+}
+
+// ── Render criteria chips ──────────────────────────────────────────────────────
+function renderCriteriaBar(c) {
+  const bar   = document.getElementById('criteria-bar');
+  const chips = document.getElementById('chips-wrap');
+  const sum   = document.getElementById('criteria-summary');
+  chips.innerHTML = '';
+
+  // Show the keywords string as a single editable chip
+  if (c.keywords) {
+    const chip = document.createElement('div');
+    chip.className = 'chip';
+    chip.style.cursor = 'default';
+    chip.textContent = c.keywords;
+    chips.appendChild(chip);
+  }
+
+  sum.textContent = c.summary || '';
+  bar.style.display = 'flex';
+}
+
+// ── Render results ──────────────────────────────────────────────────────────────
+function renderResults(byAccount, total, warning, sd) { sd = sd || {};
+  const wrap = document.getElementById('results-wrap');
+  wrap.innerHTML = '';
+
+  document.getElementById('action-bar').style.display = 'flex';
+  document.getElementById('prog-wrap').style.display = 'none';
+  document.getElementById('prog-label').style.display = 'none';
+
+  if (warning) {
+    const w = document.createElement('div');
+    w.style.cssText = 'padding:10px 14px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;font-size:12px;color:#92400E;margin-bottom:12px;display:flex;align-items:flex-start;gap:10px';
+    const isRateLimit = warning.toLowerCase().includes('rate');
+    w.innerHTML = `<div style="flex:1">⚠ ${esc(warning)}</div>`
+      + (isRateLimit ? `<button onclick="parseAndSearch()" style="padding:4px 12px;background:#F59E0B;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">↻ Retry Live</button>` : '');
+    wrap.appendChild(w);
+  }
+
+  if (!byAccount.length) {
+    wrap.innerHTML += `<div class="state-box">
+      <div class="state-icon">🔍</div>
+      <div class="state-title">No matches found</div>
+      <div class="state-sub">Try different keywords or broaden the description. Note: only contacts who have been invited via a campaign appear here.</div>
+    </div>`;
+    updateSelCount();
+    return;
+  }
+
+  // Summary bar
+  const sumBar = document.createElement('div');
+  sumBar.style.cssText = 'display:flex;align-items:center;gap:10px;padding:8px 2px;margin-bottom:8px;flex-wrap:wrap';
+  const eligibleCount = byAccount.reduce((s, a) => s + a.contacts.filter(c => !c.already_invited && !c.already_following && a.can_send !== false && !!c.provider_id).length, 0);
+  const isLive = sd.source === 'linkedin';
+  const srcBadge = isLive
+    ? `<span style="font-size:11px;color:#065F46;background:#ECFDF5;border:1px solid #A7F3D0;padding:2px 8px;border-radius:10px;font-weight:600">🔗 Live LinkedIn</span>`
+    : `<span style="font-size:11px;color:#92400E;background:#FFFBEB;border:1px solid #FDE68A;padding:2px 8px;border-radius:10px;font-weight:600">🗃 From database</span>`;
+  sumBar.innerHTML =
+    `<div style="font-size:13px;font-weight:700">${total} contacts found</div>`+
+    srcBadge+
+    `<div style="font-size:12px;color:var(--sub)">${eligibleCount} eligible to invite</div>`+
+    `<button onclick="selectAll()" style="margin-left:auto;padding:5px 12px;background:var(--c-acc-bg,#ECFDF5);border:1px solid var(--c-acc-border,#A7F3D0);border-radius:6px;font-size:12px;font-weight:700;color:var(--c-acc,#1D9E75);cursor:pointer">Select All Eligible</button>`+
+    `<button onclick="selectNone()" style="padding:5px 12px;background:#f8fafc;border:1px solid var(--c-border,#E2E8F0);border-radius:6px;font-size:12px;font-weight:700;color:var(--sub);cursor:pointer">Clear</button>`;
+  wrap.appendChild(sumBar);
+
+  byAccount.forEach(acct => {
+    const group = renderAccountGroup(acct);
+    wrap.appendChild(group);
+  });
+
+  updateSelCount();
+}
+
+function renderAccountGroup(acct) {
+  const group = document.createElement('div');
+  group.className = 'account-group';
+
+  const initials = (acct.display_name || '?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const eligible = acct.contacts.filter(c => !c.already_invited && !c.already_following).length;
+  const canSend  = acct.can_send !== false;  // has company_page_urn
+
+  const hdr = document.createElement('div');
+  hdr.className = 'account-header';
+  hdr.onclick = () => { body.classList.toggle('open'); toggleEl.classList.toggle('open'); };
+  const srcTag = acct.source === 'linkedin'
+    ? `<span style="font-size:9px;color:#065F46;background:#ECFDF5;border:1px solid #A7F3D0;padding:1px 6px;border-radius:8px;font-weight:700">LinkedIn</span>`
+    : `<span style="font-size:9px;color:#92400E;background:#FFFBEB;border:1px solid #FDE68A;padding:1px 6px;border-radius:8px;font-weight:700">DB</span>`;
+  hdr.innerHTML =
+    `<div class="account-avatar">${initials}</div>`+
+    `<div class="account-name">${esc(acct.display_name)}</div>`+
+    `<span class="account-count">${acct.contacts.length}</span>`+
+    srcTag+
+    (!canSend ? `<span style="font-size:10px;color:#92400E;background:#FFFBEB;border:1px solid #FDE68A;padding:2px 7px;border-radius:10px;font-weight:600;margin-left:4px">⚠ No Company Page</span>` : '')+
+    (eligible && canSend ? `<button class="account-select-all" onclick="event.stopPropagation();selectAccount('${acct.account_id}')">Select ${eligible} eligible</button>` : '')+
+    `<span class="account-toggle open" id="tog-${acct.account_id}">▸</span>`;
+  group.appendChild(hdr);
+  const toggleEl = hdr.querySelector('.account-toggle');
+
+  const body = document.createElement('div');
+  body.className = 'account-body open';
+  // Sort: 1st degree first, then those with titles, then rest
+  const sorted = [...acct.contacts].sort((a, b) => {
+    if (a.is_connected !== b.is_connected) return a.is_connected ? -1 : 1;
+    if (!!a.title !== !!b.title) return a.title ? -1 : 1;
+    return (a.title||'').localeCompare(b.title||'');
+  });
+  sorted.forEach(c => {
+    const row = renderContactRow(c);
+    body.appendChild(row);
+  });
+  group.appendChild(body);
+  return group;
+}
+
+function renderContactRow(c) {
+  const row = document.createElement('div');
+  const alreadyInvited   = c.already_invited;
+  const alreadyFollowing = c.already_following;
+  const isConnected      = c.is_connected;
+  const eligible         = !alreadyInvited && !alreadyFollowing;
+  const acctCanSend      = _byAccount.find(a => a.account_id === c.account_id)?.can_send !== false;
+
+  row.className = 'contact-row' + (alreadyFollowing ? ' following' : alreadyInvited ? ' invited' : '');
+  row.dataset.id = c.id;
+
+  const initials = [(c.first_name||'')[0], (c.last_name||'')[0]].join('').toUpperCase() || '?';
+  const name     = ((c.first_name||'')+' '+(c.last_name||'')).trim() || '—';
+  const checkable = eligible && acctCanSend && !!c.provider_id;
+
+  const statusHtml =
+    alreadyFollowing ? '<span class="status-tag tag-following">Following</span>'    :
+    alreadyInvited   ? '<span class="status-tag tag-invited">Invited</span>'        :
+    isConnected      ? '<span class="status-tag" style="background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px">1st</span>' : '';
+
+  // Build full HTML in one go — no append+innerHTML mix (avoids double-checkbox)
+  row.innerHTML =
+    `<input type="checkbox" class="contact-cb" ${_selectedIds.has(c.id)?'checked':''} ${checkable?'':'disabled'}>`+
+    `<div class="contact-avatar">${esc(initials)}</div>`+
+    `<div class="contact-info">`+
+      `<div class="contact-name">${esc(name)}</div>`+
+      `<div class="contact-title">${esc(c.title||'—')}</div>`+
+      (c.company?`<div class="contact-company">${esc(c.company)}</div>`:'')+
+    `</div>`+
+    statusHtml+
+    `<a href="${esc(c.li_profile_url||'#')}" target="_blank" `+
+       `style="font-size:11px;color:#3B82F6;text-decoration:none;padding:3px 8px;`+
+       `border:1px solid #BFDBFE;border-radius:4px;flex-shrink:0">↗</a>`;
+
+  // Bind checkbox event
+  const cb = row.querySelector('.contact-cb');
+  if (cb) cb.onchange = () => {
+    if (cb.checked) _selectedIds.add(c.id);
+    else _selectedIds.delete(c.id);
+    updateSelCount();
+  };
+  return row;
+}
+
+// ── Selection helpers ──────────────────────────────────────────────────────────
+function selectAll() {
+  _selectedIds = new Set();
+  _byAccount.forEach(acct => {
+    acct.contacts.filter(c => !c.already_invited && !c.already_following).forEach(c => _selectedIds.add(c.id));
+  });
+  document.querySelectorAll('.contact-cb:not(:disabled)').forEach(cb => cb.checked = true);
+  updateSelCount();
+}
+function selectNone() {
+  _selectedIds = new Set();
+  document.querySelectorAll('.contact-cb').forEach(cb => cb.checked = false);
+  updateSelCount();
+}
+function selectAccount(accountId) {
+  const acct = _byAccount.find(a => a.account_id === accountId);
+  if (!acct) return;
+  acct.contacts.filter(c => !c.already_invited && !c.already_following).forEach(c => {
+    _selectedIds.add(c.id);
+    const row = document.querySelector(`.contact-row[data-id="${c.id}"]`);
+    if (row) { const cb = row.querySelector('.contact-cb'); if (cb) cb.checked = true; }
+  });
+  updateSelCount();
+}
+
+function updateSelCount() {
+  const n = _selectedIds.size;
+  document.getElementById('sel-count').innerHTML = `<span>${n}</span> selected`;
+  document.getElementById('send-btn').disabled = n === 0 || _sending;
+}
+
+// ── Send Invites ───────────────────────────────────────────────────────────────
+async function sendInvites() {
+  if (!_selectedIds.size || _sending) return;
+  if (!_selectedPageUrn) {
+    showToast('⚠ Please configure a Company Page in Settings first', 3000);
+    return;
+  }
+  _sending = true;
+  document.getElementById('send-btn').disabled = true;
+  document.getElementById('send-btn').innerHTML = '⏳ Sending…';
+
+  // Build invites list — for each selected ID, prefer the account that HAS
+  // company_page_urn so we don't accidentally send via an account that can't
+  const invites = [];
+  const seenKeys = new Set();
+  for (const selectedId of _selectedIds) {
+    // Find contact across all accounts — prefer can_send=true accounts
+    let best = null, bestAcct = null;
+    for (const acct of _byAccount) {
+      const c = acct.contacts.find(x => x.id === selectedId);
+      if (c) {
+        if (!best || (!bestAcct?.can_send && acct.can_send !== false)) {
+          best = c; bestAcct = acct;
+        }
+        if (bestAcct?.can_send) break;  // already found a sendable account
+      }
+    }
+    if (!best || !bestAcct) continue;
+    const key = best.provider_id || best.li_profile_url;
+    if (seenKeys.has(key)) continue;
+    seenKeys.add(key);
+    invites.push({
+      id:             best.id,
+      provider_id:    best.provider_id,
+      account_id:     bestAcct.account_id,
+      li_profile_url: best.li_profile_url,
+      name:           ((best.first_name||'')+' '+(best.last_name||'')).trim(),
+    });
+  }
+
+  if (!invites.length) {
+    _sending = false;
+    document.getElementById('send-btn').disabled = false;
+    document.getElementById('send-btn').innerHTML = '📨 Send Invitations';
+    showToast('⚠ No contacts to send — select contacts first', 3000);
+    return;
+  }
+
+  // Show progress
+  const progWrap  = document.getElementById('prog-wrap');
+  const progBar   = document.getElementById('prog-bar');
+  const progLabel = document.getElementById('prog-label');
+  progWrap.style.display = 'block';
+  progLabel.style.display = 'block';
+  progLabel.textContent = '0 / ' + invites.length;
+
+  try {
+    const resp = await fetch('/api/follow-invites/send', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ workspace_id: workspaceId, invites, company_page_urn: _selectedPageUrn }),
+    });
+
+    const reader  = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const lines = buf.split('\n'); buf = lines.pop();
+      let evt = null;
+      for (const line of lines) {
+        if (line.startsWith('event: ')) evt = line.slice(7).trim();
+        if (line.startsWith('data: ')) {
+          try {
+            const p = JSON.parse(line.slice(6));
+            if (evt === 'progress') {
+              const pct = Math.round((p.sent + (p.failed||0)) / p.total * 100);
+              progBar.style.width = pct + '%';
+              progLabel.textContent = p.sent + ' sent / ' + (p.failed||0) + ' failed of ' + p.total;
+              // Mark row as invited
+              const row = document.querySelector(`.contact-row[data-id="${p.id || p.contact_id}"]`);
+              if (row) {
+                row.classList.add('invited');
+                const cb = row.querySelector('.contact-cb'); if (cb) { cb.checked = false; cb.disabled = true; }
+                // Add invited tag
+                let tag = row.querySelector('.status-tag'); if (!tag) { tag = document.createElement('span'); tag.className='status-tag tag-invited'; row.insertBefore(tag, row.querySelector('a')); }
+                tag.className='status-tag tag-ok'; tag.textContent='✓ Sent';
+              }
+            } else if (evt === 'complete') {
+              progBar.style.width = '100%';
+              progBar.style.background = p.sent > 0 ? 'var(--c-green,#10B981)' : 'var(--c-amber,#F59E0B)';
+              const failNote = p.failed ? `, ${p.failed} skipped` : '';
+              progLabel.textContent = `✓ ${p.sent} sent${failNote} of ${p.total}`;
+              if (p.sent > 0) showToast('✅ ' + p.sent + ' invitations sent!', 4000);
+              else if (p.failed > 0) showToast('⚠ ' + p.failed + ' contacts skipped — no LinkedIn ID in database', 5000);
+              // Don't clear selection — let user see what was attempted
+            }
+          } catch(e) {}
+        }
+      }
+    }
+  } catch(e) {
+    showToast('❌ Error: ' + e.message, 5000);
+  }
+
+  _sending = false;
+  document.getElementById('send-btn').innerHTML = '📨 Send Invitations';
+  updateSelCount();  // re-evaluates disabled state based on current selection
+}
+
+// ── UI helpers ─────────────────────────────────────────────────────────────────
+function showLoading(msg) {
+  document.getElementById('results-wrap').innerHTML =
+    `<div class="state-box"><div class="spinner"></div><div style="font-size:13px;color:var(--sub);font-family:var(--f-mono)">${esc(msg)}</div></div>`;
+  document.getElementById('action-bar').style.display = 'none';
+}
+function showError(msg) {
+  document.getElementById('results-wrap').innerHTML =
+    `<div class="state-box"><div class="state-icon">❌</div><div class="state-title">Error</div><div class="state-sub">${esc(msg)}</div></div>`;
+  document.getElementById('action-bar').style.display = 'none';
+}
+function showToast(msg, dur=3000) {
+  const t = document.createElement('div'); t.className='toast'; t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), dur);
+}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+
+// Load company pages for selector
+(async function loadCompanyPages() {
+  const sel = document.getElementById('cp-select');
+  if (!sel) return;
+  if (!workspaceId) {
+    sel.innerHTML = '<option value="">⚠ No workspace</option>';
+    return;
+  }
+  try {
+    const r = await fetch('/api/company-pages?workspace_id=' + workspaceId);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+    _companyPages = d.pages || [];
+    if (!_companyPages.length) {
+      sel.innerHTML = '<option value="">⚠ No company pages — go to Settings to add one</option>';
+      _selectedPageUrn = null;
+    } else {
+      sel.innerHTML = _companyPages.map(p =>
+        `<option value="${esc(p.company_page_urn)}">${esc(p.name)}</option>`
+      ).join('');
+      const defaultPage = _companyPages.find(p => p.is_default) || _companyPages[0];
+      sel.value = defaultPage.company_page_urn;
+      _selectedPageUrn = defaultPage.company_page_urn;
+      const urnDisp = document.getElementById('cp-urn-display');
+      if (urnDisp) urnDisp.textContent = defaultPage.company_page_urn;
+    }
+  } catch(e) {
+    sel.innerHTML = '<option value="">⚠ Could not load company pages</option>';
+    console.error('[follow-invites] loadCompanyPages failed:', e.message);
+  }
+})();
+
+function onCompanyPageChange() {
+  const sel = document.getElementById('cp-select');
+  _selectedPageUrn = sel.value || null;
+  document.getElementById('cp-urn-display').textContent = _selectedPageUrn || '';
+}
+
+// Load stats on init
+(async function loadStats() {
+  try {
+    const r = await fetch('/api/follow-invites/stats?workspace_id=' + workspaceId);
+    const d = await r.json();
+    if (d.ok) {
+      const sub = document.getElementById('header-sub');
+      const parts = [];
+      if (parseInt(d.sent_today)) parts.push(`<span style="color:var(--acc);font-weight:700">${d.sent_today} sent today</span>`);
+      if (parseInt(d.total_invited)) parts.push(`${d.total_invited} total invited`);
+      if (parseInt(d.confirmed_followers)) parts.push(`${d.confirmed_followers} now following`);
+      if (parts.length) sub.innerHTML = parts.join(' &middot; ');
+    }
+  } catch(e) {}
+})();
+
+// Enter to search
+document.getElementById('persona-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) parseAndSearch();
+});
+</script>
+</body>
+</html>

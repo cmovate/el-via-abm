@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sequences</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+
+.header { padding: 20px 24px 0; display: flex; align-items: center; justify-content: space-between; }
+.header h1 { font-size: 20px; font-weight: 600; color: #f1f5f9; }
+.header p { font-size: 13px; color: #64748b; margin-top: 2px; }
+
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; transition: all .15s; }
+.btn-primary { background: #1D9E75; color: #fff; }
+.btn-primary:hover { background: #17875f; }
+.btn-secondary { background: #1e2333; color: #94a3b8; border: 1px solid #2d3748; }
+.btn-secondary:hover { background: #252c3f; color: #e2e8f0; }
+.btn-danger { background: transparent; color: #ef4444; border: 1px solid #ef4444; padding: 5px 10px; font-size: 12px; }
+.btn-danger:hover { background: #ef4444; color: #fff; }
+.btn-sm { padding: 5px 12px; font-size: 12px; }
+
+.content { padding: 20px 24px; }
+
+/* Sequence list */
+.seq-grid { display: grid; gap: 12px; }
+.seq-card { background: #161b2e; border: 1px solid #1e2a3a; border-radius: 10px; padding: 18px 20px; cursor: pointer; transition: border-color .15s; }
+.seq-card:hover { border-color: #1D9E75; }
+.seq-card.active { border-color: #1D9E75; background: #0d1e17; }
+.seq-name { font-size: 15px; font-weight: 600; color: #f1f5f9; }
+.seq-desc { font-size: 12px; color: #64748b; margin-top: 4px; }
+.seq-meta { display: flex; gap: 16px; margin-top: 10px; }
+.seq-badge { font-size: 11px; color: #94a3b8; background: #1e2333; padding: 3px 8px; border-radius: 10px; }
+.seq-badge.green { background: #0d2a1f; color: #34d399; }
+.seq-actions { display: flex; gap: 8px; margin-top: 12px; }
+
+/* Editor panel */
+.editor { background: #161b2e; border: 1px solid #1e2a3a; border-radius: 10px; padding: 24px; margin-top: 16px; display: none; }
+.editor.open { display: block; }
+.editor-title { font-size: 16px; font-weight: 600; color: #f1f5f9; margin-bottom: 16px; }
+
+.form-group { margin-bottom: 14px; }
+label { font-size: 12px; font-weight: 500; color: #94a3b8; display: block; margin-bottom: 5px; text-transform: uppercase; letter-spacing: .5px; }
+input[type="text"], textarea, select {
+  width: 100%; background: #0f1117; border: 1px solid #2d3748; border-radius: 7px;
+  color: #e2e8f0; font-size: 13px; padding: 9px 12px;
+}
+input[type="text"]:focus, textarea:focus, select:focus { outline: none; border-color: #1D9E75; }
+textarea { min-height: 90px; resize: vertical; font-family: inherit; }
+
+/* Steps */
+.steps-header { display: flex; align-items: center; justify-content: space-between; margin: 20px 0 12px; }
+.steps-header h3 { font-size: 13px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: .5px; }
+
+.step-card { background: #0f1117; border: 1px solid #2d3748; border-radius: 8px; padding: 14px 16px; margin-bottom: 8px; }
+.step-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.step-num { width: 24px; height: 24px; border-radius: 50%; background: #1D9E75; color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.step-type { font-size: 13px; font-weight: 500; color: #f1f5f9; flex: 1; }
+.step-delay { font-size: 12px; color: #64748b; }
+.step-remove { background: none; border: none; color: #475569; cursor: pointer; font-size: 16px; padding: 0 4px; }
+.step-remove:hover { color: #ef4444; }
+
+.step-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.step-full { grid-column: 1/-1; }
+
+.variant-tabs { display: flex; gap: 4px; margin-bottom: 8px; }
+.var-tab { padding: 4px 10px; border-radius: 5px; font-size: 11px; font-weight: 600; cursor: pointer; border: 1px solid #2d3748; color: #64748b; background: transparent; }
+.var-tab.active { background: #1D9E75; color: #fff; border-color: #1D9E75; }
+.var-add { border: 1px dashed #2d3748; }
+.var-add:hover { border-color: #1D9E75; color: #1D9E75; }
+
+.token-hints { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.token { font-size: 11px; background: #1e2333; color: #94a3b8; padding: 2px 7px; border-radius: 4px; cursor: pointer; font-family: monospace; }
+.token:hover { background: #1D9E75; color: #fff; }
+
+.empty { text-align: center; padding: 40px 20px; color: #475569; }
+.empty-icon { font-size: 36px; margin-bottom: 10px; }
+.empty-text { font-size: 14px; }
+
+.save-bar { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; padding-top: 16px; border-top: 1px solid #1e2a3a; }
+
+.step-type-icon { font-size: 14px; }
+
+/* Toast */
+.toast { position: fixed; bottom: 24px; right: 24px; background: #1e2a3a; border: 1px solid #2d3748; color: #e2e8f0; padding: 12px 18px; border-radius: 8px; font-size: 13px; z-index: 999; animation: fadeIn .2s; }
+.toast.success { border-color: #1D9E75; color: #34d399; }
+.toast.error { border-color: #ef4444; color: #f87171; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>Sequences</h1>
+    <p>Reusable outreach scripts with steps, delays, and A/B variants</p>
+  </div>
+  <button class="btn btn-primary" onclick="newSequence()">+ New Sequence</button>
+</div>
+
+<div class="content">
+  <div class="seq-grid" id="seqList"></div>
+  <div class="editor" id="editor">
+    <div class="editor-title" id="editorTitle">New Sequence</div>
+    <div class="form-group">
+      <label>Name</label>
+      <input type="text" id="seqName" placeholder="e.g. My Campaign — Invite + Follow-up">
+    </div>
+    <div class="form-group">
+      <label>Description (optional)</label>
+      <input type="text" id="seqDesc" placeholder="Short description of this sequence's purpose">
+    </div>
+
+    <div class="steps-header">
+      <h3>Steps</h3>
+      <button class="btn btn-secondary btn-sm" onclick="addStep()">+ Add Step</button>
+    </div>
+    <div id="stepsList"></div>
+
+    <div class="save-bar">
+      <button class="btn btn-secondary" onclick="closeEditor()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveSequence()">Save Sequence</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const params = new URLSearchParams(location.search);
+const WS_ID = params.get('workspace_id') || 1;
+const BASE = '';
+
+let sequences = [];
+let editingId = null;
+let steps = [];
+
+const STEP_TYPES = {
+  invite:          { label: 'Send Invite',         icon: '🤝' },
+  message:         { label: 'Send Message',         icon: '💬' },
+  view_profile:    { label: 'View Profile',         icon: '👁' },
+  like_post:       { label: 'Like Post',            icon: '👍' },
+  follow_company:  { label: 'Follow Company',       icon: '🏢' },
+};
+
+const TOKENS = ['{{first_name}}', '{{last_name}}', '{{company}}', '{{title}}'];
+
+async function api(path, opts = {}) {
+  const r = await fetch(BASE + path, {
+    headers: { 'Content-Type': 'application/json' },
+    ...opts,
+  });
+  return r.json();
+}
+
+function toast(msg, type = '') {
+  const t = document.createElement('div');
+  t.className = 'toast' + (type ? ' ' + type : '');
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+// ── Load sequences ─────────────────────────────────────────────────────────
+async function load() {
+  const data = await api(`/api/sequences?workspace_id=${WS_ID}`);
+  sequences = data.items || [];
+  renderList();
+}
+
+function renderList() {
+  const el = document.getElementById('seqList');
+  if (!sequences.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">No sequences yet. Create your first outreach script.</div></div>`;
+    return;
+  }
+  el.innerHTML = sequences.map(s => `
+    <div class="seq-card ${editingId === s.id ? 'active' : ''}" id="seq-${s.id}">
+      <div class="seq-name">${esc(s.name)}</div>
+      ${s.description ? `<div class="seq-desc">${esc(s.description)}</div>` : ''}
+      <div class="seq-meta">
+        <span class="seq-badge green">${(s.steps||[]).length} step${(s.steps||[]).length !== 1 ? 's' : ''}</span>
+        <span class="seq-badge">${s.campaigns_count || 0} campaign${s.campaigns_count !== 1 ? 's' : ''}</span>
+      </div>
+      <div class="seq-actions">
+        <button class="btn btn-secondary btn-sm" onclick="editSequence(${s.id})">Edit</button>
+        ${+s.campaigns_count === 0 ? `<button class="btn btn-danger" onclick="deleteSequence(${s.id}, event)">Delete</button>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── New / edit ─────────────────────────────────────────────────────────────
+function newSequence() {
+  editingId = null;
+  steps = [{ type: 'invite', delay_days: 0, variants: [{ label: 'A', text: '' }] }];
+  document.getElementById('seqName').value = '';
+  document.getElementById('seqDesc').value = '';
+  document.getElementById('editorTitle').textContent = 'New Sequence';
+  renderSteps();
+  showEditor();
+}
+
+async function editSequence(id) {
+  const seq = await api(`/api/sequences/${id}?workspace_id=${WS_ID}`);
+  editingId = id;
+  steps = (seq.steps || []).map(s => ({
+    ...s,
+    variants: Array.isArray(s.variants) && s.variants.length ? s.variants : [{ label: 'A', text: '' }],
+  }));
+  document.getElementById('seqName').value = seq.name || '';
+  document.getElementById('seqDesc').value = seq.description || '';
+  document.getElementById('editorTitle').textContent = 'Edit Sequence';
+  renderSteps();
+  showEditor();
+  renderList();
+}
+
+function showEditor() {
+  document.getElementById('editor').classList.add('open');
+  document.getElementById('editor').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function closeEditor() {
+  editingId = null;
+  document.getElementById('editor').classList.remove('open');
+  renderList();
+}
+
+// ── Steps ──────────────────────────────────────────────────────────────────
+function addStep() {
+  steps.push({ type: 'message', delay_days: 3, variants: [{ label: 'A', text: '' }] });
+  renderSteps();
+}
+
+function removeStep(i) {
+  steps.splice(i, 1);
+  renderSteps();
+}
+
+function addVariant(stepIdx) {
+  const labels = 'ABCDEFGH';
+  const step = steps[stepIdx];
+  const next = labels[step.variants.length] || 'X';
+  step.variants.push({ label: next, text: '' });
+  renderSteps();
+}
+
+function setActiveVariant(stepIdx, varIdx) {
+  document.querySelectorAll(`#step-${stepIdx} .var-tab`).forEach((t,i) => {
+    t.classList.toggle('active', i === varIdx);
+  });
+  document.querySelectorAll(`#step-${stepIdx} .var-body`).forEach((b,i) => {
+    b.style.display = i === varIdx ? 'block' : 'none';
+  });
+}
+
+function insertToken(stepIdx, varIdx, token) {
+  const ta = document.getElementById(`var-text-${stepIdx}-${varIdx}`);
+  if (!ta) return;
+  const start = ta.selectionStart, end = ta.selectionEnd;
+  ta.value = ta.value.slice(0, start) + token + ta.value.slice(end);
+  ta.selectionStart = ta.selectionEnd = start + token.length;
+  ta.focus();
+  collectSteps();
+}
+
+function collectSteps() {
+  steps = steps.map((s, i) => ({
+    ...s,
+    type: document.getElementById(`step-type-${i}`)?.value || s.type,
+    delay_days: parseInt(document.getElementById(`step-delay-${i}`)?.value || 0),
+    variants: s.variants.map((v, j) => ({
+      ...v,
+      text: document.getElementById(`var-text-${i}-${j}`)?.value || v.text,
+    })),
+  }));
+}
+
+function renderSteps() {
+  const el = document.getElementById('stepsList');
+  if (!steps.length) {
+    el.innerHTML = `<div style="text-align:center;padding:20px;color:#475569;font-size:13px;">No steps yet. Add your first step above.</div>`;
+    return;
+  }
+
+  el.innerHTML = steps.map((s, i) => `
+    <div class="step-card" id="step-${i}">
+      <div class="step-header">
+        <div class="step-num">${i+1}</div>
+        <div class="step-type">
+          <span class="step-type-icon">${STEP_TYPES[s.type]?.icon || '📌'}</span>
+          ${STEP_TYPES[s.type]?.label || s.type}
+        </div>
+        ${i > 0 ? `<div class="step-delay">after ${s.delay_days} day${s.delay_days !== 1 ? 's' : ''}</div>` : '<div class="step-delay">immediately</div>'}
+        <button class="step-remove" onclick="removeStep(${i})">×</button>
+      </div>
+      <div class="step-row">
+        <div class="form-group">
+          <label>Type</label>
+          <select id="step-type-${i}" onchange="collectSteps();renderSteps()">
+            ${Object.entries(STEP_TYPES).map(([k,v]) =>
+              `<option value="${k}" ${s.type === k ? 'selected' : ''}>${v.icon} ${v.label}</option>`
+            ).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Delay (days)</label>
+          <input type="text" id="step-delay-${i}" value="${s.delay_days}" oninput="collectSteps()" ${i === 0 ? 'disabled placeholder="0 (immediate)"' : ''}>
+        </div>
+      </div>
+      ${['message','invite'].includes(s.type) ? `
+        <div class="form-group step-full">
+          <label>Message${s.variants.length > 1 ? ' Variants (A/B test)' : ''}</label>
+          <div class="variant-tabs">
+            ${s.variants.map((v,j) => `<button class="var-tab ${j===0?'active':''}" onclick="setActiveVariant(${i},${j})">${v.label}</button>`).join('')}
+            ${s.variants.length < 5 ? `<button class="var-tab var-add" onclick="addVariant(${i})">+ B/C</button>` : ''}
+          </div>
+          ${s.variants.map((v,j) => `
+            <div class="var-body" style="display:${j===0?'block':'none'}">
+              <textarea id="var-text-${i}-${j}" placeholder="${s.type === 'invite' ? 'Invite note (optional — leave blank for no note)' : 'Message text...'}" oninput="collectSteps()">${esc(v.text||'')}</textarea>
+              <div class="token-hints">
+                ${TOKENS.map(t => `<span class="token" onclick="insertToken(${i},${j},'${t}')">${t}</span>`).join('')}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
+    </div>
+  `).join('');
+}
+
+// ── Save ───────────────────────────────────────────────────────────────────
+async function saveSequence() {
+  collectSteps();
+  const name = document.getElementById('seqName').value.trim();
+  if (!name) { toast('Sequence name is required', 'error'); return; }
+
+  const body = {
+    workspace_id: WS_ID,
+    name,
+    description: document.getElementById('seqDesc').value.trim() || null,
+    steps: steps.map((s, i) => ({
+      step_index: i,
+      type: s.type,
+      delay_days: parseInt(s.delay_days) || 0,
+      variants: s.variants.filter(v => v.text !== undefined),
+    })),
+  };
+
+  let result;
+  if (editingId) {
+    result = await api(`/api/sequences/${editingId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ workspace_id: WS_ID, steps: body.steps }),
+    });
+    await api(`/api/sequences/${editingId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ workspace_id: WS_ID, name, description: body.description }),
+    });
+    toast('Sequence updated', 'success');
+  } else {
+    result = await api('/api/sequences', { method: 'POST', body: JSON.stringify(body) });
+    toast('Sequence created', 'success');
+  }
+
+  closeEditor();
+  await load();
+}
+
+async function deleteSequence(id, e) {
+  e.stopPropagation();
+  if (!confirm('Delete this sequence? This cannot be undone.')) return;
+  const r = await api(`/api/sequences/${id}?workspace_id=${WS_ID}`, { method: 'DELETE' });
+  if (r.error) { toast(r.error, 'error'); return; }
+  toast('Deleted', 'success');
+  await load();
+}
+
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+load();
+</script>
+</body>
+</html>

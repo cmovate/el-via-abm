@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Opportunities</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+
+.header { padding: 20px 24px 0; display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.header h1 { font-size: 20px; font-weight: 600; color: #f1f5f9; }
+.header p  { font-size: 13px; color: #64748b; margin-top: 2px; }
+
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 7px; font-size: 12px; font-weight: 500; cursor: pointer; border: none; transition: all .15s; }
+.btn-secondary { background: #1e2333; color: #94a3b8; border: 1px solid #2d3748; }
+.btn-secondary:hover { background: #252c3f; color: #e2e8f0; }
+.btn-primary { background: #1D9E75; color: #fff; }
+.btn-primary:hover { background: #17875f; }
+
+.content { padding: 16px 24px; }
+
+.stats { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+.stat { background: #161b2e; border: 1px solid #1e2a3a; border-radius: 8px; padding: 12px 16px; min-width: 120px; }
+.stat-val { font-size: 22px; font-weight: 700; color: #1D9E75; }
+.stat-label { font-size: 11px; color: #64748b; margin-top: 2px; text-transform: uppercase; letter-spacing: .4px; }
+
+.filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
+.filter-label { font-size: 12px; color: #64748b; }
+select.filter-sel { background: #1e2333; border: 1px solid #2d3748; border-radius: 6px; color: #e2e8f0; font-size: 12px; padding: 6px 10px; cursor: pointer; }
+select.filter-sel:focus { outline: none; border-color: #1D9E75; }
+
+.company-list { display: flex; flex-direction: column; gap: 8px; }
+
+.company-card { background: #161b2e; border: 1px solid #1e2a3a; border-radius: 10px; overflow: hidden; }
+.company-header { padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: background .15s; }
+.company-header:hover { background: #1a2035; }
+.company-name { font-size: 14px; font-weight: 600; color: #f1f5f9; display: flex; align-items: center; gap: 8px; }
+.company-meta { font-size: 12px; color: #64748b; margin-top: 2px; }
+.badge { background: #1D9E75; color: #fff; border-radius: 20px; padding: 2px 8px; font-size: 11px; font-weight: 600; }
+.chevron { color: #64748b; font-size: 12px; transition: transform .2s; }
+.chevron.open { transform: rotate(180deg); }
+
+.contacts-table { border-top: 1px solid #1e2a3a; display: none; }
+.contacts-table.open { display: block; }
+.contact-row { display: grid; grid-template-columns: 1fr 2fr 1fr auto; gap: 12px; padding: 10px 16px; border-bottom: 1px solid #131929; align-items: center; font-size: 12px; }
+.contact-row:last-child { border-bottom: none; }
+.contact-row:hover { background: #131929; }
+.contact-name { font-weight: 500; color: #e2e8f0; }
+.contact-name a { color: #1D9E75; text-decoration: none; font-size: 11px; margin-left: 6px; opacity: .7; }
+.contact-name a:hover { opacity: 1; }
+.contact-title { color: #94a3b8; }
+.via-tag { display: inline-flex; align-items: center; gap: 4px; background: #0d1e17; border: 1px solid #1D9E75; color: #1D9E75; border-radius: 12px; padding: 2px 8px; font-size: 10px; font-weight: 500; }
+.col-header { display: grid; grid-template-columns: 1fr 2fr 1fr auto; gap: 12px; padding: 8px 16px; background: #0f1620; border-top: 1px solid #1e2a3a; }
+.col-header span { font-size: 10px; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: .5px; }
+
+.empty { text-align: center; padding: 60px 24px; color: #475569; }
+.btn-msg { background:#1D9E75;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap; }
+.btn-msg:hover { background:#17875f; }
+.chat-badge { font-size:12px; }
+.empty-icon { font-size: 40px; margin-bottom: 12px; }
+.empty h3 { font-size: 15px; color: #64748b; margin-bottom: 6px; }
+.empty p { font-size: 13px; }
+
+.sync-info { font-size: 11px; color: #475569; margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>🎯 Opportunities</h1>
+    <p>1st-degree LinkedIn connections at your target companies</p>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <span class="sync-info" id="sync-info"></span>
+  </div>
+</div>
+
+<div class="content">
+  <div class="stats" id="stats"></div>
+
+  <div class="filters">
+    <span class="filter-label">Filter by list:</span>
+    <select class="filter-sel" id="list-filter" onchange="applyFilter()">
+      <option value="">All lists</option>
+    </select>
+    <select class="filter-sel" id="account-filter" onchange="applyFilter()">
+      <option value="">All accounts</option>
+    </select>
+    <input type="text" id="search-input" placeholder="Search company..." oninput="applyFilter()"
+      style="background:#1e2333;border:1px solid #2d3748;border-radius:6px;color:#e2e8f0;font-size:12px;padding:6px 10px;outline:none;width:180px;">
+  </div>
+
+  <div class="company-list" id="company-list">
+    <div class="empty">
+      <div class="empty-icon">⏳</div>
+      <h3>Loading...</h3>
+    </div>
+  </div>
+</div>
+
+<script>
+const WS_ID = (new URLSearchParams(location.search).get('workspace_id') ||
+               window.parent?.location?.search && new URLSearchParams(window.parent.location.search).get('id'));
+
+let allData = null;
+
+async function load() {
+  try {
+    const [data, stats] = await Promise.all([
+      fetch(`/api/opportunities?workspace_id=${WS_ID}`).then(r=>r.json()),
+      fetch(`/api/opportunities/stats?workspace_id=${WS_ID}`).then(r=>r.json()),
+    ]);
+
+    allData = data;
+
+    // Stats
+    document.getElementById('stats').innerHTML = `
+      <div class="stat"><div class="stat-val">${stats.companies_with_connections||0}</div><div class="stat-label">Companies</div></div>
+      <div class="stat"><div class="stat-val">${stats.total_connections||0}</div><div class="stat-label">Connections</div></div>
+      <div class="stat"><div class="stat-val">${stats.accounts_with_connections||0}</div><div class="stat-label">Accounts</div></div>
+    `;
+
+    if (stats.last_synced_at) {
+      const d = new Date(stats.last_synced_at);
+      document.getElementById('sync-info').textContent = 'Last synced: ' + d.toLocaleString();
+    }
+
+    // Populate list filter
+    const listSel = document.getElementById('list-filter');
+    (data.lists||[]).forEach(l => {
+      const o = document.createElement('option');
+      o.value = l.id; o.textContent = l.name + ' (' + l.company_count + ')';
+      listSel.appendChild(o);
+    });
+
+    // Populate account filter
+    const accSel = document.getElementById('account-filter');
+    (data.accounts||[]).forEach(a => {
+      const o = document.createElement('option');
+      o.value = a.account_id; o.textContent = a.display_name;
+      accSel.appendChild(o);
+    });
+
+    renderCompanies(data.companies || []);
+  } catch(e) {
+    document.getElementById('company-list').innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><h3>Error loading</h3><p>${e.message}</p></div>`;
+  }
+}
+
+function applyFilter() {
+  if (!allData) return;
+  const listId   = document.getElementById('list-filter').value;
+  const accountId = document.getElementById('account-filter').value;
+  const search   = document.getElementById('search-input').value.toLowerCase().trim();
+
+  let companies = allData.companies || [];
+
+  if (listId) companies = companies.filter(c => String(c.list_id) === listId);
+  if (search) companies = companies.filter(c => c.company_name.toLowerCase().includes(search));
+  if (accountId) {
+    companies = companies.map(c => ({
+      ...c,
+      connections: c.connections.filter(x => x.connected_via_account_id === accountId)
+    })).filter(c => c.connections.length > 0);
+  }
+
+  renderCompanies(companies);
+}
+
+function renderCompanies(companies) {
+  const el = document.getElementById('company-list');
+  if (!companies.length) {
+    el.innerHTML = `<div class="empty">
+      <div class="empty-icon">🔍</div>
+      <h3>No connections found yet</h3>
+      <p>Add companies to a List — the system scans for 1st-degree connections every 2 hours.</p>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = companies.map((co, i) => `
+    <div class="company-card">
+      <div class="company-header" onclick="toggleCard(${i})">
+        <div>
+          <div class="company-name">
+            ${esc(co.company_name)}
+            <span class="badge">${co.connections.length}</span>
+          </div>
+          <div class="company-meta">
+            ${co.list_name ? '📋 ' + esc(co.list_name) : ''}
+            ${co.li_company_url ? ` · <a href="${esc(co.li_company_url)}" target="_blank" style="color:#64748b">LinkedIn ↗</a>` : ''}
+          </div>
+        </div>
+        <span class="chevron" id="chev-${i}">▼</span>
+      </div>
+      <div class="contacts-table" id="table-${i}">
+        <div class="col-header">
+          <span>Name</span><span>Title</span><span>Connected via</span><span></span>
+        </div>
+        ${co.connections.map(c => `
+          <div class="contact-row">
+            <div class="contact-name">
+              ${esc((c.first_name + ' ' + c.last_name).trim()) || '—'}
+              ${c.li_profile_url ? `<a href="${esc(c.li_profile_url)}" target="_blank">↗</a>` : ''}
+            </div>
+            <div class="contact-title">${esc(c.title)||'—'}</div>
+            <div><span class="via-tag">👤 ${esc(c.connected_via_name)}</span>${c.chat_id ? ' <span title="Has chat history">💬</span>' : ''}</div>
+            <div><button class="btn-msg" onclick='openInbox(JSON.parse(this.dataset.contact))'
+              data-contact='${esc(JSON.stringify(c))}'>${c.chat_id ? '💬 Open chat' : '✉️ Message'}</button></div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleCard(i) {
+  const table = document.getElementById('table-' + i);
+  const chev  = document.getElementById('chev-' + i);
+  table.classList.toggle('open');
+  chev.classList.toggle('open');
+}
+
+function openInbox(contact) {
+  // Pass control to parent workspace — switch to inbox and open this contact
+  const payload = {
+    action: 'open_inbox_contact',
+    chat_id: contact.chat_id || null,
+    provider_id: contact.provider_id || null,
+    li_profile_url: contact.li_profile_url || null,
+    account_id: contact.connected_via_account_id,
+    name: ((contact.first_name||'') + ' ' + (contact.last_name||'')).trim() || contact.title || 'Contact'
+  };
+  // Send to parent frame (workspace.html)
+  if (window.parent && window.parent !== window) {
+    window.parent.postMessage(payload, '*');
+  }
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+load();
+</script>
+</body>
+</html>

@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Outreach Analytics</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; font-size: 13px; }
+
+.header { padding: 20px 24px 0; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px; }
+.header h1 { font-size: 20px; font-weight: 600; color: #f1f5f9; }
+.header p  { font-size: 13px; color: #64748b; margin-top: 2px; }
+
+/* Period selector */
+.period-bar { display: flex; gap: 6px; flex-wrap: wrap; padding: 14px 24px 0; }
+.period-btn { padding: 5px 14px; border-radius: 20px; border: 1px solid #2d3748; background: transparent; color: #64748b; font-size: 12px; font-weight: 500; cursor: pointer; transition: all .15s; }
+.period-btn:hover { border-color: #1D9E75; color: #e2e8f0; }
+.period-btn.active { background: #1D9E75; color: #fff; border-color: #1D9E75; }
+
+.content { padding: 16px 24px; }
+
+/* KPI row */
+.kpi-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; margin-bottom: 20px; }
+.kpi { background: #161b2e; border: 1px solid #1e2a3a; border-radius: 10px; padding: 14px 16px; }
+.kpi.accent { border-color: #1D9E75; background: #0d1e17; }
+.kpi-val { font-size: 26px; font-weight: 700; color: #f1f5f9; line-height: 1; }
+.kpi.accent .kpi-val { color: #34d399; }
+.kpi-label { font-size: 11px; color: #64748b; margin-top: 4px; text-transform: uppercase; letter-spacing: .5px; }
+.kpi-sub { font-size: 11px; color: #1D9E75; margin-top: 2px; font-weight: 600; }
+
+/* Two column layout */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+@media (max-width: 700px) { .grid-2 { grid-template-columns: 1fr; } }
+
+.card { background: #161b2e; border: 1px solid #1e2a3a; border-radius: 10px; padding: 18px 20px; }
+.card-title { font-size: 12px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 14px; }
+
+/* Funnel */
+.funnel-step { margin-bottom: 8px; }
+.funnel-label-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
+.funnel-label { font-size: 12px; color: #94a3b8; font-weight: 500; }
+.funnel-count { font-size: 12px; font-weight: 700; color: #f1f5f9; }
+.funnel-conv  { font-size: 11px; color: #64748b; }
+.funnel-bar   { height: 8px; background: #1e2333; border-radius: 4px; overflow: hidden; }
+.funnel-fill  { height: 100%; border-radius: 4px; transition: width .5s ease; }
+
+/* Per-campaign table */
+.camp-table { width: 100%; border-collapse: collapse; }
+.camp-table th { text-align: left; font-size: 10px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: .5px; padding: 6px 8px; border-bottom: 1px solid #1e2a3a; }
+.camp-table td { padding: 8px; border-bottom: 1px solid #0f1117; font-size: 12px; vertical-align: middle; }
+.camp-table tr:hover td { background: #1e2333; }
+.camp-name { color: #f1f5f9; font-weight: 500; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.status-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 5px; }
+.dot-green { background: #22c55e; }
+.dot-grey  { background: #475569; }
+
+/* Enrollment status breakdown */
+.status-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { padding: 3px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+
+/* Timeline mini chart */
+.timeline-wrap { overflow-x: auto; }
+.timeline-bars { display: flex; gap: 3px; align-items: flex-end; height: 80px; padding-bottom: 20px; position: relative; }
+.t-bar-group { display: flex; gap: 1px; align-items: flex-end; flex: 1; min-width: 8px; }
+.t-bar { width: 6px; border-radius: 2px 2px 0 0; cursor: pointer; }
+.t-bar:hover { opacity: .8; }
+.t-label { font-size: 9px; color: #475569; text-align: center; margin-top: 4px; writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; }
+
+/* Loading */
+.loading { text-align: center; padding: 40px; color: #475569; }
+.empty-hint { font-size: 12px; color: #475569; text-align: center; padding: 20px; }
+
+/* Last updated */
+.last-updated { font-size: 11px; color: #475569; text-align: right; padding: 4px 0 0; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>Outreach Analytics</h1>
+    <p id="ws-label">Loading…</p>
+  </div>
+  <div class="last-updated" id="lastUpdated"></div>
+</div>
+
+<div class="period-bar">
+  <button class="period-btn" onclick="setPeriod(1)">Today</button>
+  <button class="period-btn active" onclick="setPeriod(7)">7 days</button>
+  <button class="period-btn" onclick="setPeriod(30)">30 days</button>
+  <button class="period-btn" onclick="setPeriod(90)">90 days</button>
+  <button class="period-btn" onclick="setPeriod(0)">All time</button>
+</div>
+
+<div class="content">
+  <div class="kpi-row" id="kpiRow"><div class="loading">Loading…</div></div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Outreach Funnel</div>
+      <div id="funnelEl"><div class="empty-hint">No data yet</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Enrollment Status</div>
+      <div id="enrollEl"><div class="empty-hint">No enrollments yet</div></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title">Per Campaign</div>
+    <div id="campTableEl"><div class="loading">Loading…</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Daily Activity — last 14 days</div>
+    <div class="timeline-wrap" id="timelineEl"><div class="empty-hint">No activity yet</div></div>
+  </div>
+</div>
+
+<script>
+const params = new URLSearchParams(location.search);
+const WS_ID  = params.get('workspace_id') || 1;
+const BASE   = '';
+let days = 7;
+
+async function api(path) {
+  const r = await fetch(BASE + path);
+  return r.json();
+}
+
+function num(n) { return (parseInt(n)||0).toLocaleString(); }
+function pct(a,b) { return b > 0 ? Math.round(a/b*100) + '%' : '—'; }
+function esc(s)  { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function setPeriod(d) {
+  days = d;
+  document.querySelectorAll('.period-btn').forEach((b,i) => {
+    b.classList.toggle('active', [1,7,30,90,0][i] === d);
+  });
+  load();
+}
+
+function dateRange() {
+  if (days === 0) return { from: '', to: '' };
+  const to   = new Date();
+  const from = new Date(to.getTime() - (days - 1) * 86400000);
+  const fmt  = d => d.toISOString().slice(0,10);
+  return { from: fmt(from), to: fmt(to) };
+}
+
+async function load() {
+  const { from, to } = dateRange();
+  const analyticsUrl  = from ? `/api/admin/analytics?from=${from}&to=${to}` : '/api/admin/analytics';
+  const enrollUrl     = `/api/admin/enrollment-stats?workspace_id=${WS_ID}`;
+  const timelineUrl   = `/api/admin/analytics?from=${new Date(Date.now()-13*86400000).toISOString().slice(0,10)}&to=${new Date().toISOString().slice(0,10)}`;
+
+  const [analytics, enroll, timelineData, workspace] = await Promise.all([
+    api(analyticsUrl),
+    api(enrollUrl),
+    api(timelineUrl),
+    api(`/api/workspaces`),
+  ]);
+
+  const ws = workspace.items?.find(w => +w.id === +WS_ID);
+  document.getElementById('ws-label').textContent = ws?.name || `Workspace ${WS_ID}`;
+
+  // Filter analytics to this workspace
+  const s = analytics.summary || {};
+  const byCamp = (analytics.by_campaign || []).filter(c => +c.workspace_id === +WS_ID);
+
+  renderKPIs(s, byCamp);
+  renderFunnel(s);
+  renderEnrollStatus(enroll);
+  renderCampTable(byCamp);
+  renderTimeline(timelineData.timeline || []);
+
+  document.getElementById('lastUpdated').textContent = 'Updated ' + new Date().toLocaleTimeString();
+}
+
+function renderKPIs(s, byCamp) {
+  const inv  = parseInt(s.invites_sent)   || 0;
+  const appr = parseInt(s.invites_approved) || 0;
+  const msgs = parseInt(s.messages_sent)  || 0;
+  const repl = parseInt(s.messages_replied) || 0;
+  const pos  = parseInt(s.positive_replies) || 0;
+  const apprRate = inv > 0 ? Math.round(appr/inv*100) : 0;
+  const replyRate = msgs > 0 ? Math.round(repl/msgs*100) : 0;
+
+  document.getElementById('kpiRow').innerHTML = [
+    { val: num(inv),   label: 'Invites Sent',   sub: '', accent: false },
+    { val: num(appr),  label: 'Approved',        sub: apprRate + '% rate', accent: appr > 0 },
+    { val: num(msgs),  label: 'Messages Sent',   sub: '', accent: false },
+    { val: num(repl),  label: 'Replied',         sub: replyRate + '% rate', accent: repl > 0 },
+    { val: num(pos),   label: 'Positive Replies',sub: '', accent: pos > 0 },
+    { val: byCamp.length, label: 'Active Campaigns', sub: '', accent: false },
+  ].map(k => `
+    <div class="kpi ${k.accent ? 'accent' : ''}">
+      <div class="kpi-val">${k.val}</div>
+      <div class="kpi-label">${k.label}</div>
+      ${k.sub ? `<div class="kpi-sub">${k.sub}</div>` : ''}
+    </div>
+  `).join('');
+}
+
+function renderFunnel(s) {
+  const steps = [
+    { label: 'Contacts',       val: parseInt(s.contacts_added) || 0,   color: '#475569' },
+    { label: 'Invites Sent',   val: parseInt(s.invites_sent) || 0,     color: '#1D9E75' },
+    { label: 'Approved',       val: parseInt(s.invites_approved) || 0, color: '#3B82F6' },
+    { label: 'Messaged',       val: parseInt(s.messages_sent) || 0,    color: '#8B5CF6' },
+    { label: 'Replied',        val: parseInt(s.messages_replied) || 0, color: '#F59E0B' },
+    { label: 'Positive',       val: parseInt(s.positive_replies) || 0, color: '#10B981' },
+  ].filter(st => st.val > 0);
+
+  if (!steps.length) { document.getElementById('funnelEl').innerHTML = '<div class="empty-hint">No activity in this period</div>'; return; }
+  const max = steps[0].val;
+  document.getElementById('funnelEl').innerHTML = steps.map((st, i) => `
+    <div class="funnel-step">
+      <div class="funnel-label-row">
+        <span class="funnel-label">${st.label}</span>
+        <span>
+          <span class="funnel-count">${num(st.val)}</span>
+          ${i > 0 ? `<span class="funnel-conv"> (${pct(st.val, steps[i-1].val)})</span>` : ''}
+        </span>
+      </div>
+      <div class="funnel-bar">
+        <div class="funnel-fill" style="width:${Math.round(st.val/max*100)}%;background:${st.color}"></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderEnrollStatus(enroll) {
+  const el = document.getElementById('enrollEl');
+  const byStatus = enroll.by_status || {};
+  const total = enroll.total || 0;
+  if (!total) { el.innerHTML = '<div class="empty-hint">No enrollments yet.<br>Run "Enroll contacts" from the Enrollments page.</div>'; return; }
+
+  const STATUS_STYLES = {
+    pending:        { bg:'#1e2333', color:'#94a3b8' },
+    invite_sent:    { bg:'#0d2a1f', color:'#34d399' },
+    approved:       { bg:'#0d2240', color:'#60a5fa' },
+    messaged:       { bg:'#1a1a00', color:'#fbbf24' },
+    replied:        { bg:'#160d2e', color:'#a78bfa' },
+    positive_reply: { bg:'#0d2a1f', color:'#10b981' },
+    done:           { bg:'#1e2333', color:'#475569' },
+    withdrawn:      { bg:'#1a0a0a', color:'#f87171' },
+    error:          { bg:'#2a0a0a', color:'#ef4444' },
+  };
+
+  const chips = Object.entries(byStatus).filter(([,n])=>n>0).map(([s,n]) => {
+    const st = STATUS_STYLES[s] || { bg:'#1e2333', color:'#94a3b8' };
+    return `<span class="chip" style="background:${st.bg};color:${st.color}">${s.replace(/_/g,' ')} <b>${num(n)}</b></span>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div style="font-size:22px;font-weight:700;color:#f1f5f9;margin-bottom:12px">${num(total)} <span style="font-size:13px;color:#64748b;font-weight:400">enrolled</span></div>
+    <div class="status-chips">${chips}</div>
+    ${enroll.by_campaign?.length ? `
+      <div style="margin-top:14px;font-size:11px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Per campaign</div>
+      ${enroll.by_campaign.map(c => {
+        const campTotal = Object.values(c.statuses).reduce((s,n)=>s+n,0);
+        const inv = c.statuses.invite_sent || 0;
+        const appr = c.statuses.approved || 0;
+        const msg = c.statuses.messaged || 0;
+        return `<div style="font-size:12px;padding:4px 0;border-bottom:1px solid #1e2a3a;display:flex;justify-content:space-between">
+          <span style="color:#94a3b8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px">${esc(c.name)}</span>
+          <span style="color:#64748b">${num(campTotal)} enrolled · ${num(inv)} sent · ${num(appr)} appr · ${num(msg)} msg</span>
+        </div>`;
+      }).join('')}
+    ` : ''}
+  `;
+}
+
+function renderCampTable(byCamp) {
+  const el = document.getElementById('campTableEl');
+  if (!byCamp.length) { el.innerHTML = '<div class="empty-hint">No campaign data in this period</div>'; return; }
+  el.innerHTML = `<div style="overflow-x:auto"><table class="camp-table">
+    <thead><tr>
+      <th>Campaign</th><th>Invites</th><th>Approved</th><th>Msgs</th><th>Replies</th><th>Approval %</th>
+    </tr></thead>
+    <tbody>
+      ${byCamp.map(c => `<tr>
+        <td><span class="status-dot ${+c.invites_sent>0?'dot-green':'dot-grey'}"></span><span class="camp-name">${esc(c.campaign_name||c.name||'—')}</span></td>
+        <td style="color:#f1f5f9;font-weight:600">${num(c.invites_sent)}</td>
+        <td style="color:#34d399">${num(c.invites_approved)}</td>
+        <td style="color:#a78bfa">${num(c.messages_sent)}</td>
+        <td style="color:#fbbf24">${num(c.messages_replied)}</td>
+        <td style="color:#64748b">${pct(+c.invites_approved, +c.invites_sent)}</td>
+      </tr>`).join('')}
+    </tbody>
+  </table></div>`;
+}
+
+function renderTimeline(timeline) {
+  const el = document.getElementById('timelineEl');
+  if (!timeline?.length) return;
+
+  const maxVal = Math.max(...timeline.map(d => parseInt(d.invites_sent)||0));
+  if (maxVal === 0) return;
+
+  const bars = timeline.slice(-14).map(d => {
+    const inv  = parseInt(d.invites_sent)   || 0;
+    const appr = parseInt(d.invites_approved) || 0;
+    const msgs = parseInt(d.messages_sent)  || 0;
+    const h1 = Math.round(inv/maxVal*68);
+    const h2 = Math.round(appr/maxVal*68);
+    const h3 = Math.round(msgs/maxVal*68);
+    const label = d.date?.slice(5) || '';
+    return `<div style="display:flex;flex-direction:column;align-items:center;gap:0;flex:1">
+      <div style="display:flex;gap:1px;align-items:flex-end;height:72px">
+        ${h1 ? `<div class="t-bar" style="height:${h1}px;background:#1D9E75;width:5px" title="Invites: ${inv}"></div>` : ''}
+        ${h2 ? `<div class="t-bar" style="height:${h2}px;background:#3B82F6;width:5px" title="Approved: ${appr}"></div>` : ''}
+        ${h3 ? `<div class="t-bar" style="height:${h3}px;background:#8B5CF6;width:5px" title="Msgs: ${msgs}"></div>` : ''}
+      </div>
+      <div class="t-label">${label}</div>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div style="display:flex;gap:10px;margin-bottom:8px;flex-wrap:wrap">
+      <span style="font-size:11px;color:#1D9E75">■ Invites</span>
+      <span style="font-size:11px;color:#3B82F6">■ Approved</span>
+      <span style="font-size:11px;color:#8B5CF6">■ Messages</span>
+    </div>
+    <div class="timeline-bars">${bars}</div>
+  `;
+}
+
+load();
+</script>
+</body>
+</html>

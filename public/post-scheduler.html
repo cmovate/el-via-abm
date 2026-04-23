@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="stylesheet" href="/ds.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Post Scheduler</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f7f6f3; --surface: #ffffff; --border: #e8e4de;
+    --text: #1a1a18; --muted: #8a8680;
+    --accent: #1D9E75; --accent-dark: #167a5b; --accent-light: #e8f7f2;
+    --warn: #e8811a; --danger: #d93030;
+    --scheduled: #1D9E75; --draft: #8a8680; --published: #0a66c2;
+    --comment-color: #7c3aed; --comment-light: #f3f0ff;
+    --radius: 10px;
+  }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; height: 100vh; overflow: hidden; }
+  .layout { display: flex; height: 100vh; }
+  .main { flex: 1; overflow-y: auto; padding: 24px; min-width: 0; }
+
+  /* Header */
+  .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .page-header h1 { font-size: 20px; font-weight: 700; }
+  .header-actions { display: flex; gap: 8px; }
+
+  /* Account bar */
+  .account-bar { display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 14px; margin-bottom: 16px; }
+  .account-bar label { font-size: 12px; color: var(--muted); font-weight: 500; white-space: nowrap; }
+  .account-bar select { border: none; outline: none; font-size: 13px; font-weight: 600; color: var(--text); background: transparent; cursor: pointer; }
+
+  /* Calendar — 2 months */
+  .calendar-section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 20px; overflow: hidden; }
+  .calendar-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+  .calendar-header h3 { font-size: 13px; font-weight: 600; }
+  .cal-nav { display: flex; gap: 4px; }
+  .cal-nav button { border: 1px solid var(--border); background: var(--bg); border-radius: 6px; padding: 4px 10px; font-size: 12px; cursor: pointer; }
+  .cal-nav button:hover { background: var(--border); }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); }
+  .cal-weekday-label { text-align: center; font-size: 11px; font-weight: 600; color: var(--muted); padding: 8px 4px; text-transform: uppercase; letter-spacing: .4px; }
+  .cal-cell { min-height: 52px; padding: 4px; border: 1px solid transparent; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); cursor: pointer; position: relative; }
+  .cal-cell:hover { background: #fafaf8; }
+  .cal-cell.other-month .cal-cell-num { color: #ccc; }
+  .cal-cell.today .cal-cell-num { background: var(--accent); color: #fff; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+  .cal-cell-num { font-size: 12px; font-weight: 500; margin-bottom: 2px; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; }
+  .cal-events { display: flex; flex-direction: column; gap: 2px; }
+  .cal-event { font-size: 10px; border-radius: 3px; padding: 1px 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cal-event.post { background: var(--accent-light); color: var(--accent); }
+  .cal-event.comment { background: var(--comment-light); color: var(--comment-color); }
+  .cal-month-label { grid-column: 1 / -1; background: var(--bg); padding: 6px 12px; font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid var(--border); }
+
+  /* Stats */
+  .stats-row { display: flex; gap: 12px; margin-bottom: 20px; }
+  .stat-card { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 18px; }
+  .stat-card .stat-num { font-size: 24px; font-weight: 700; }
+  .stat-card .stat-label { font-size: 11px; color: var(--muted); margin-top: 2px; text-transform: uppercase; letter-spacing: .5px; }
+  .stat-card.s-scheduled .stat-num { color: var(--scheduled); }
+  .stat-card.s-draft .stat-num { color: var(--draft); }
+  .stat-card.s-comments .stat-num { color: var(--comment-color); }
+
+  /* Posts list */
+  .posts-section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .section-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+  .section-title { font-size: 13px; font-weight: 600; }
+  .filter-tabs { display: flex; gap: 4px; }
+  .filter-tab { padding: 4px 12px; border-radius: 20px; font-size: 12px; cursor: pointer; border: 1px solid transparent; color: var(--muted); background: transparent; }
+  .filter-tab.active { background: var(--accent-light); color: var(--accent); border-color: var(--accent); font-weight: 600; }
+  .filter-tab:hover:not(.active) { background: var(--bg); }
+
+  .post-row { border-bottom: 1px solid var(--border); }
+  .post-row:last-child { border-bottom: none; }
+  .post-main { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; cursor: pointer; transition: background .15s; }
+  .post-main:hover { background: #fafaf8; }
+  .post-avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; flex-shrink: 0; }
+  .post-avatar.comment-av { background: var(--comment-color); }
+  .post-body { flex: 1; min-width: 0; }
+  .post-account { font-size: 12px; font-weight: 600; margin-bottom: 2px; }
+  .post-text { font-size: 13px; line-height: 1.5; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .post-meta { display: flex; align-items: center; gap: 8px; margin-top: 5px; flex-wrap: wrap; }
+  .badge { display: inline-flex; align-items: center; gap: 3px; padding: 2px 7px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .badge.scheduled { background: var(--accent-light); color: var(--accent); }
+  .badge.draft { background: #f0eeeb; color: var(--muted); }
+  .badge.published { background: #e8f0fb; color: var(--published); }
+  .post-time { font-size: 11px; color: var(--muted); }
+  .post-actions-row { display: flex; gap: 6px; opacity: 0; transition: opacity .15s; flex-shrink: 0; }
+  .post-main:hover .post-actions-row { opacity: 1; }
+  .icon-btn { width: 26px; height: 26px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--muted); }
+  .icon-btn:hover { background: var(--bg); color: var(--text); }
+  .icon-btn.danger:hover { background: #fce8e8; color: var(--danger); border-color: #f5c5c5; }
+  .icon-btn.add-comment:hover { background: var(--comment-light); color: var(--comment-color); border-color: var(--comment-color); }
+
+  /* Comments thread under post */
+  .comments-thread { border-top: 1px solid var(--border); background: #fafaf8; }
+  .comment-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 16px 10px 46px; border-bottom: 1px solid var(--border); cursor: pointer; }
+  .comment-item:last-child { border-bottom: none; }
+  .comment-item:hover { background: #f5f4f0; }
+  .comment-body { flex: 1; min-width: 0; }
+  .comment-account { font-size: 11px; font-weight: 600; color: var(--comment-color); margin-bottom: 2px; }
+  .comment-text { font-size: 12px; color: var(--text); line-height: 1.5; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; }
+  .comment-time { font-size: 11px; color: var(--muted); white-space: nowrap; }
+  .comment-del { width: 22px; height: 22px; border-radius: 5px; border: 1px solid transparent; background: transparent; cursor: pointer; font-size: 12px; color: var(--muted); opacity: 0; }
+  .comment-item:hover .comment-del { opacity: 1; }
+  .comment-del:hover { background: #fce8e8; color: var(--danger); border-color: #f5c5c5; }
+
+  .add-comment-btn { display: flex; align-items: center; gap: 6px; padding: 8px 16px 8px 46px; font-size: 12px; color: var(--comment-color); cursor: pointer; background: none; border: none; font-family: inherit; }
+  .add-comment-btn:hover { background: var(--comment-light); }
+
+  .empty-state { padding: 40px 24px; text-align: center; color: var(--muted); }
+  .empty-state .empty-icon { font-size: 32px; margin-bottom: 10px; }
+
+  /* Compose panel */
+  .compose-panel { width: 440px; flex-shrink: 0; border-left: 1px solid var(--border); background: var(--surface); height: 100vh; overflow-y: auto; display: flex; flex-direction: column; }
+  .compose-header { padding: 16px 20px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+  .compose-header h3 { font-size: 15px; font-weight: 700; }
+  .compose-close { width: 26px; height: 26px; border-radius: 6px; border: none; background: var(--bg); cursor: pointer; font-size: 15px; color: var(--muted); }
+  .compose-close:hover { background: var(--border); }
+  .compose-body { flex: 1; padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+  .compose-footer { padding: 14px 18px; border-top: 1px solid var(--border); display: flex; gap: 8px; flex-shrink: 0; }
+
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+  .field select, .field input[type=datetime-local] {
+    border: 1.5px solid var(--border); border-radius: 8px; padding: 8px 11px;
+    font-size: 13px; font-family: inherit; color: var(--text); background: var(--surface);
+    outline: none; transition: border-color .15s; width: 100%;
+  }
+  .field select:focus, .field input:focus { border-color: var(--accent); }
+
+  .textarea-wrap { position: relative; }
+  .post-textarea { width: 100%; min-height: 130px; border: 1.5px solid var(--border); border-radius: 8px; padding: 10px 12px; font-size: 13px; font-family: inherit; color: var(--text); resize: vertical; outline: none; transition: border-color .15s; line-height: 1.6; }
+  .post-textarea:focus { border-color: var(--accent); }
+  .comment-textarea { min-height: 70px; }
+  .char-count { position: absolute; bottom: 8px; right: 10px; font-size: 11px; color: var(--muted); pointer-events: none; }
+  .char-count.warn { color: var(--warn); }
+  .char-count.over { color: var(--danger); }
+
+  .ai-row { display: flex; gap: 5px; flex-wrap: wrap; }
+  .ai-chip { padding: 4px 9px; border-radius: 20px; font-size: 12px; border: 1px solid var(--border); background: var(--bg); cursor: pointer; color: var(--text); display: flex; align-items: center; gap: 3px; transition: all .15s; }
+  .ai-chip:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+  .ai-chip.loading { opacity: .6; pointer-events: none; }
+
+  .schedule-toggle { display: flex; gap: 6px; }
+  .toggle-btn { flex: 1; padding: 7px; border-radius: 8px; border: 1.5px solid var(--border); background: var(--surface); cursor: pointer; font-size: 12px; font-weight: 600; color: var(--muted); text-align: center; transition: all .15s; }
+  .toggle-btn.active { border-color: var(--accent); background: var(--accent-light); color: var(--accent); }
+
+  /* Comments section inside compose */
+  .comments-compose { border: 1.5px solid var(--comment-color); border-radius: 10px; overflow: hidden; }
+  .comments-compose-header { background: var(--comment-light); padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #ddd6fe; }
+  .comments-compose-header span { font-size: 12px; font-weight: 700; color: var(--comment-color); }
+  .comment-entry { border-bottom: 1px solid #ede9fe; padding: 12px; background: var(--surface); }
+  .comment-entry:last-child { border-bottom: none; }
+  .comment-entry-row { display: flex; gap: 8px; align-items: flex-start; }
+  .comment-avatar-sm { width: 26px; height: 26px; border-radius: 50%; background: var(--comment-color); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; flex-shrink: 0; margin-top: 2px; }
+  .comment-fields { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+  .comment-meta-row { display: flex; gap: 6px; }
+  .comment-meta-row select, .comment-meta-row input { border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px; font-size: 12px; font-family: inherit; outline: none; }
+  .comment-meta-row select:focus, .comment-meta-row input:focus { border-color: var(--comment-color); }
+  .comment-meta-row select { flex: 1; }
+  .comment-meta-row input[type=datetime-local] { flex: 1; }
+  .comment-content-input { width: 100%; border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; font-size: 12px; font-family: inherit; resize: vertical; min-height: 50px; outline: none; }
+  .comment-content-input:focus { border-color: var(--comment-color); }
+  .comment-remove { width: 22px; height: 22px; border-radius: 5px; border: 1px solid var(--border); background: transparent; cursor: pointer; font-size: 12px; color: var(--muted); flex-shrink: 0; margin-top: 2px; }
+  .comment-remove:hover { background: #fce8e8; color: var(--danger); border-color: #f5c5c5; }
+  .add-comment-entry-btn { display: flex; align-items: center; gap: 5px; padding: 9px 14px; font-size: 12px; font-weight: 600; color: var(--comment-color); cursor: pointer; background: none; border: none; font-family: inherit; border-top: 1px solid #ede9fe; width: 100%; }
+  .add-comment-entry-btn:hover { background: var(--comment-light); }
+
+  /* Preview */
+  .li-preview { border: 1px solid var(--border); border-radius: 10px; padding: 12px; background: #fff; font-size: 13px; }
+  .li-preview-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .li-preview-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; }
+  .li-preview-name { font-weight: 700; font-size: 13px; }
+  .li-preview-headline { font-size: 11px; color: var(--muted); }
+  .li-preview-text { font-size: 13px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
+  .li-preview-text.empty { color: var(--muted); font-style: italic; }
+
+  /* Buttons */
+  .btn { padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all .15s; display: inline-flex; align-items: center; gap: 5px; }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-primary:hover { background: var(--accent-dark); }
+  .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  .btn-ghost:hover { background: var(--bg); color: var(--text); }
+
+  /* Toast */
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: #1a1a18; color: #fff; padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 500; transition: transform .3s; z-index: 1000; white-space: nowrap; pointer-events: none; }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.success { background: var(--accent); }
+  .toast.error { background: var(--danger); }
+
+  /* Divider */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 2px 0; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="layout">
+  <div class="main">
+    <div class="page-header">
+      <h1>📅 Post Scheduler</h1>
+      <div class="header-actions">
+        <button class="btn btn-primary" onclick="openCompose()">✏️ New Post</button>
+      </div>
+    </div>
+
+    <div class="account-bar">
+      <label>Filter by account:</label>
+      <select id="account-sel" onchange="renderAll()">
+        <option value="">All accounts</option>
+      </select>
+    </div>
+
+    <!-- 2-month calendar -->
+    <div class="calendar-section">
+      <div class="calendar-header">
+        <h3 id="cal-month-title">April – May 2026</h3>
+        <div class="cal-nav">
+          <button onclick="calNav(-1)">‹ Prev</button>
+          <button onclick="calNav(0)">Today</button>
+          <button onclick="calNav(1)">Next ›</button>
+        </div>
+      </div>
+      <div id="cal-grid"></div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card s-scheduled">
+        <div class="stat-num" id="stat-scheduled">0</div>
+        <div class="stat-label">Scheduled Posts</div>
+      </div>
+      <div class="stat-card s-draft">
+        <div class="stat-num" id="stat-drafts">0</div>
+        <div class="stat-label">Drafts</div>
+      </div>
+      <div class="stat-card s-comments">
+        <div class="stat-num" id="stat-comments">0</div>
+        <div class="stat-label">Scheduled Comments</div>
+      </div>
+    </div>
+
+    <!-- Posts -->
+    <div class="posts-section">
+      <div class="section-header">
+        <span class="section-title">Posts & Comments</span>
+        <div class="filter-tabs">
+          <button class="filter-tab active" onclick="setFilter('all',this)">All</button>
+          <button class="filter-tab" onclick="setFilter('scheduled',this)">Scheduled</button>
+          <button class="filter-tab" onclick="setFilter('draft',this)">Drafts</button>
+          <button class="filter-tab" onclick="setFilter('published',this)">Published</button>
+        </div>
+      </div>
+      <div id="posts-list">
+        <div class="empty-state"><div class="empty-icon">📝</div><p>No posts yet.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Compose panel -->
+  <div class="compose-panel" id="compose-panel" style="display:none;">
+    <div class="compose-header">
+      <h3 id="compose-title">New Post</h3>
+      <button class="compose-close" onclick="closeCompose()">✕</button>
+    </div>
+    <div class="compose-body">
+      <div class="field">
+        <label>Post as</label>
+        <select id="compose-account" onchange="updatePreview()"></select>
+      </div>
+
+      <div class="field">
+        <label>Content</label>
+        <div class="textarea-wrap">
+          <textarea class="post-textarea" id="post-content" placeholder="What do you want to share on LinkedIn?" oninput="onContentInput()" maxlength="3000"></textarea>
+          <span class="char-count" id="char-count">0 / 3000</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>AI Assist</label>
+        <div class="ai-row">
+          <button class="ai-chip" onclick="aiAssist('improve',event)">✨ Improve</button>
+          <button class="ai-chip" onclick="aiAssist('shorten',event)">✂️ Shorten</button>
+          <button class="ai-chip" onclick="aiAssist('hooks',event)">🎯 Hook</button>
+          <button class="ai-chip" onclick="aiAssist('emojis',event)">😊 Emojis</button>
+          <button class="ai-chip" onclick="aiAssist('cta',event)">📣 CTA</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Preview</label>
+        <div class="li-preview">
+          <div class="li-preview-header">
+            <div class="li-preview-avatar" id="preview-avatar">?</div>
+            <div>
+              <div class="li-preview-name" id="preview-name">Select account</div>
+              <div class="li-preview-headline">LinkedIn</div>
+            </div>
+          </div>
+          <div class="li-preview-text empty" id="preview-text">Your post will appear here...</div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>When to post</label>
+        <div class="schedule-toggle">
+          <button class="toggle-btn active" id="tog-sched" onclick="setMode('schedule')">📅 Schedule</button>
+          <button class="toggle-btn" id="tog-draft" onclick="setMode('draft')">💾 Draft</button>
+        </div>
+      </div>
+
+      <div class="field" id="datetime-field">
+        <label>Date & Time</label>
+        <input type="datetime-local" id="schedule-dt" />
+      </div>
+
+      <!-- Scheduled Comments section -->
+      <div class="field">
+        <label>Scheduled Comments</label>
+        <div class="comments-compose" id="comments-compose">
+          <div class="comments-compose-header">
+            <span>💬 Comments to post after this post goes live</span>
+          </div>
+          <div id="comment-entries"></div>
+          <button class="add-comment-entry-btn" onclick="addCommentEntry()">+ Add scheduled comment</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="compose-footer">
+      <button class="btn btn-ghost" onclick="closeCompose()">Cancel</button>
+      <button class="btn btn-primary" id="save-btn" onclick="savePost()" style="margin-left:auto;">📅 Schedule</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const params  = new URLSearchParams(window.location.search);
+const wsId    = params.get('workspace_id');
+const SK      = `el-via-sched-v2-${wsId}`;
+
+let accounts = [], posts = [], editingId = null;
+let filter = 'all', mode = 'schedule';
+let calStart = new Date(); // first day shown in calendar
+
+calStart = new Date(calStart.getFullYear(), calStart.getMonth(), 1); // first of current month
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+async function init() {
+  await loadAccounts();
+  await load();
+  renderCalendar();
+  renderAll();
+  setDefaultDT();
+}
+
+async function loadAccounts() {
+  try {
+    const d = await fetch(`/api/workspaces/${wsId}/accounts`).then(r=>r.json());
+    accounts = d.items || [];
+    const opts = accounts.map(a=>`<option value="${a.account_id}">${esc(a.display_name)}</option>`).join('');
+    document.getElementById('account-sel').innerHTML = '<option value="">All accounts</option>' + opts;
+    document.getElementById('compose-account').innerHTML = opts;
+    updatePreview();
+  } catch(e) {}
+}
+
+// ── Storage — API backed ──────────────────────────────────────────────────────
+async function load() {
+  try {
+    const d = await fetch(`/api/scheduled-posts?workspace_id=${wsId}`).then(r=>r.json());
+    posts = (d.items || []).map(apiToLocal);
+    // Migrate any leftover localStorage posts to DB
+    try {
+      const old = JSON.parse(localStorage.getItem(SK)||'[]');
+      if (old.length) {
+        for (const p of old) { if (!posts.find(x => x._old_id === p.id)) await apiCreate(p, true); }
+        localStorage.removeItem(SK);
+        const d2 = await fetch(`/api/scheduled-posts?workspace_id=${wsId}`).then(r=>r.json());
+        posts = (d2.items || []).map(apiToLocal);
+      }
+    } catch(e) {}
+  } catch(e) { posts = []; }
+}
+function save() { /* no-op — all writes go directly to API */ }
+
+function apiToLocal(p) {
+  return {
+    id: String(p.id),
+    _db_id: p.id,
+    ws: wsId,
+    account_id: p.account_id,
+    account_name: accounts.find(a=>a.account_id===p.account_id)?.display_name || p.account_id,
+    content: p.content,
+    status: p.status,
+    scheduled_at: p.scheduled_at,
+    comments: (p.comments||[]).map(c=>({
+      id: String(c.id), _db_id: c.id,
+      account_id: c.account_id,
+      account_name: accounts.find(a=>a.account_id===c.account_id)?.display_name || c.account_id,
+      content: c.content, status: c.status, scheduled_at: c.scheduled_at,
+    })),
+    created_at: p.created_at,
+  };
+}
+
+async function apiCreate(postObj, isMigration=false) {
+  const r = await fetch('/api/scheduled-posts', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      workspace_id: wsId,
+      account_id: postObj.account_id,
+      content: postObj.content,
+      status: postObj.status,
+      scheduled_at: postObj.scheduled_at || null,
+    }),
+  }).then(r=>r.json());
+  const postId = r.id;
+  if (!postId) return;
+  for (const c of postObj.comments||[]) {
+    await fetch(`/api/scheduled-posts/${postId}/comments`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ workspace_id: wsId, account_id: c.account_id, content: c.content, scheduled_at: c.scheduled_at||null }),
+    });
+  }
+}
+
+// ── Post CRUD — API backed ─────────────────────────────────────────────────────
+async function savePost() {
+  const content = document.getElementById('post-content').value.trim();
+  if (!content) { toast('Write some content first','error'); return; }
+  const accountId = document.getElementById('compose-account').value;
+  const acc = accounts.find(a=>a.account_id===accountId);
+  const dt = mode==='schedule' ? document.getElementById('schedule-dt').value : null;
+  if (mode==='schedule' && !dt) { toast('Select a date & time','error'); return; }
+
+  const comments = collectComments();
+  const status = mode==='schedule' ? 'scheduled' : 'draft';
+
+  if (editingId) {
+    const existing = posts.find(p=>p.id===editingId);
+    const dbId = existing?._db_id;
+    if (dbId) {
+      await fetch(`/api/scheduled-posts/${dbId}`, {
+        method: 'PATCH', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ workspace_id: wsId, account_id: accountId, content, status, scheduled_at: dt||null }),
+      });
+    }
+  } else {
+    const r = await fetch('/api/scheduled-posts', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ workspace_id: wsId, account_id: accountId, content, status, scheduled_at: dt||null }),
+    }).then(r=>r.json());
+    const postId = r.id;
+    if (postId) {
+      for (const c of comments) {
+        await fetch(`/api/scheduled-posts/${postId}/comments`, {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ workspace_id: wsId, account_id: c.account_id||accountId, content: c.content, scheduled_at: c.scheduled_at||null }),
+        });
+      }
+    }
+  }
+
+  await load(); renderAll(); renderCalendar(); closeCompose();
+  toast(mode==='schedule' ? '📅 Post scheduled!' : '💾 Draft saved!', 'success');
+}
+
+async function deletePost(id, e) {
+  e.stopPropagation();
+  if (!confirm('Delete this post and all its scheduled comments?')) return;
+  const p = posts.find(x=>x.id===id);
+  if (p?._db_id) {
+    await fetch(`/api/scheduled-posts/${p._db_id}?workspace_id=${wsId}`, { method: 'DELETE' });
+  }
+  await load(); renderAll(); renderCalendar();
+  toast('Deleted');
+}
+
+function editPost(id, e) {
+  if (e) e.stopPropagation();
+  const p = posts.find(x=>x.id===id); if(!p) return;
+  editingId = id;
+  document.getElementById('compose-title').textContent = 'Edit Post';
+  document.getElementById('post-content').value = p.content;
+  document.getElementById('schedule-dt').value = p.scheduled_at?.slice(0,16)||'';
+  document.getElementById('compose-account').value = p.account_id;
+  setMode(p.status==='draft'?'draft':'schedule');
+  onContentInput(); updatePreview();
+  // Restore comments
+  document.getElementById('comment-entries').innerHTML = '';
+  (p.comments||[]).forEach(c => addCommentEntry(c));
+  document.getElementById('compose-panel').style.display = 'flex';
+  document.getElementById('post-content').focus();
+}
+
+function openCompose(post) {
+  editingId = null;
+  document.getElementById('compose-title').textContent = 'New Post';
+  document.getElementById('post-content').value = '';
+  document.getElementById('comment-entries').innerHTML = '';
+  setMode('schedule');
+  setDefaultDT();
+  onContentInput(); updatePreview();
+  document.getElementById('compose-panel').style.display = 'flex';
+  document.getElementById('post-content').focus();
+}
+
+function closeCompose() {
+  document.getElementById('compose-panel').style.display = 'none';
+  editingId = null;
+}
+
+// ── Comments ──────────────────────────────────────────────────────────────────
+let commentIdSeq = 0;
+
+function addCommentEntry(data) {
+  const cid = 'ce_' + (++commentIdSeq);
+  const defaultDt = (() => {
+    const dt = document.getElementById('schedule-dt').value;
+    if (!dt) { const n=new Date(); n.setHours(n.getHours()+2,0,0,0); return n.toISOString().slice(0,16); }
+    const d = new Date(dt); d.setMinutes(d.getMinutes()+30);
+    return d.toISOString().slice(0,16);
+  })();
+
+  const opts = accounts.map(a=>`<option value="${a.account_id}">${esc(a.display_name)}</option>`).join('');
+  const el = document.createElement('div');
+  el.className = 'comment-entry';
+  el.id = cid;
+  el.innerHTML = `
+    <div class="comment-entry-row">
+      <div class="comment-avatar-sm" id="${cid}_av">?</div>
+      <div class="comment-fields">
+        <div class="comment-meta-row">
+          <select onchange="updateCommentAv('${cid}')">${opts}</select>
+          <input type="datetime-local" value="${data?.scheduled_at?.slice(0,16)||defaultDt}" />
+        </div>
+        <textarea class="comment-content-input" placeholder="Write a comment...">${data?.content||''}</textarea>
+      </div>
+      <button class="comment-remove" onclick="document.getElementById('${cid}').remove()">✕</button>
+    </div>`;
+  document.getElementById('comment-entries').appendChild(el);
+  if (data?.account_id) el.querySelector('select').value = data.account_id;
+  updateCommentAv(cid);
+}
+
+function updateCommentAv(cid) {
+  const el = document.getElementById(cid);
+  if (!el) return;
+  const accId = el.querySelector('select').value;
+  const acc = accounts.find(a=>a.account_id===accId);
+  const initials = (acc?.display_name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  document.getElementById(cid+'_av').textContent = initials;
+}
+
+function collectComments() {
+  const entries = document.querySelectorAll('#comment-entries .comment-entry');
+  return Array.from(entries).map(el => {
+    const accId   = el.querySelector('select').value;
+    const acc     = accounts.find(a=>a.account_id===accId);
+    const dt      = el.querySelector('input[type=datetime-local]').value;
+    const content = el.querySelector('textarea').value.trim();
+    return { id: Date.now().toString()+Math.random(), account_id: accId, account_name: acc?.display_name||'', scheduled_at: dt, content };
+  }).filter(c=>c.content);
+}
+
+async function deleteComment(postId, commentId, e) {
+  e.stopPropagation();
+  const p = posts.find(x=>x.id===postId); if(!p) return;
+  const c = (p.comments||[]).find(x=>x.id===commentId);
+  if (c?._db_id) {
+    await fetch(`/api/scheduled-posts/comments/${c._db_id}?workspace_id=${wsId}`, { method: 'DELETE' });
+  }
+  await load(); renderAll();
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function renderAll() {
+  renderPosts();
+  updateStats();
+}
+
+function renderPosts() {
+  const list = document.getElementById('posts-list');
+  const accFilter = document.getElementById('account-sel').value;
+  let filtered = posts.filter(p=>p.ws===wsId);
+  if (accFilter) filtered = filtered.filter(p=>p.account_id===accFilter);
+  if (filter!=='all') filtered = filtered.filter(p=>p.status===filter);
+  filtered.sort((a,b)=>{
+    if (a.scheduled_at&&b.scheduled_at) return new Date(a.scheduled_at)-new Date(b.scheduled_at);
+    if (a.scheduled_at) return -1; if (b.scheduled_at) return 1;
+    return new Date(b.created_at)-new Date(a.created_at);
+  });
+  if (!filtered.length) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">📝</div><p>No posts yet.</p></div>`; return;
+  }
+  list.innerHTML = filtered.map(p => renderPostRow(p)).join('');
+}
+
+function renderPostRow(p) {
+  const initials = (p.account_name||'U').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const preview  = p.content.replace(/\n/g,' ').slice(0,120)+(p.content.length>120?'…':'');
+  const timeStr  = p.scheduled_at ? fmtDate(p.scheduled_at) : (p.status==='published'?'Published':'Draft');
+  const comments = p.comments||[];
+
+  const commentsHtml = comments.length ? `
+    <div class="comments-thread">
+      ${comments.map(c=>{
+        const ci = (c.account_name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+        return `<div class="comment-item" onclick="editPost('${p.id}',event)">
+          <div class="post-avatar comment-av" style="width:26px;height:26px;font-size:10px;">${ci}</div>
+          <div class="comment-body">
+            <div class="comment-account">${esc(c.account_name)} 💬</div>
+            <div class="comment-text">${esc(c.content)}</div>
+          </div>
+          <div class="comment-time">${c.scheduled_at?fmtDate(c.scheduled_at):''}</div>
+          <button class="comment-del" onclick="deleteComment('${p.id}','${c.id}',event)" title="Delete comment">✕</button>
+        </div>`;
+      }).join('')}
+    </div>` : '';
+
+  return `<div class="post-row" id="pr_${p.id}">
+    <div class="post-main" onclick="editPost('${p.id}',event)">
+      <div class="post-avatar">${initials}</div>
+      <div class="post-body">
+        <div class="post-account">${esc(p.account_name)}</div>
+        <div class="post-text">${esc(preview)}</div>
+        <div class="post-meta">
+          <span class="badge ${p.status}">${statusLabel(p.status)}</span>
+          <span class="post-time">${timeStr}</span>
+          ${comments.length ? `<span style="font-size:11px;color:var(--comment-color)">💬 ${comments.length} comment${comments.length>1?'s':''}</span>` : ''}
+        </div>
+      </div>
+      <div class="post-actions-row">
+        <button class="icon-btn add-comment" title="Add comment" onclick="editPost('${p.id}',event);setTimeout(addCommentEntry,100)">💬</button>
+        <button class="icon-btn" title="Edit" onclick="editPost('${p.id}',event)">✏️</button>
+        <button class="icon-btn danger" title="Delete" onclick="deletePost('${p.id}',event)">🗑</button>
+      </div>
+    </div>
+    ${commentsHtml}
+  </div>`;
+}
+
+function updateStats() {
+  const ws = posts.filter(p=>p.ws===wsId);
+  document.getElementById('stat-scheduled').textContent = ws.filter(p=>p.status==='scheduled').length;
+  document.getElementById('stat-drafts').textContent    = ws.filter(p=>p.status==='draft').length;
+  const totalComments = ws.reduce((s,p)=>s+(p.comments||[]).length,0);
+  document.getElementById('stat-comments').textContent  = totalComments;
+}
+
+// ── Calendar ──────────────────────────────────────────────────────────────────
+function calNav(dir) {
+  if (dir===0) { calStart = new Date(); calStart = new Date(calStart.getFullYear(),calStart.getMonth(),1); }
+  else calStart = new Date(calStart.getFullYear(), calStart.getMonth()+dir, 1);
+  renderCalendar();
+}
+
+function renderCalendar() {
+  const grid = document.getElementById('cal-grid');
+  const months = [calStart, new Date(calStart.getFullYear(), calStart.getMonth()+1, 1)];
+  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const today  = new Date(); today.setHours(0,0,0,0);
+
+  // Collect scheduled dates
+  const postDates    = {}; // date -> [{account, content}]
+  const commentDates = {};
+  posts.filter(p=>p.ws===wsId).forEach(p=>{
+    if (p.scheduled_at) {
+      const d = p.scheduled_at.slice(0,10);
+      (postDates[d]=postDates[d]||[]).push(p.account_name?.split(' ')[0]||'Post');
+    }
+    (p.comments||[]).forEach(c=>{
+      if (c.scheduled_at) {
+        const d = c.scheduled_at.slice(0,10);
+        (commentDates[d]=commentDates[d]||[]).push(c.account_name?.split(' ')[0]||'Comment');
+      }
+    });
+  });
+
+  document.getElementById('cal-month-title').textContent =
+    `${MONTHS[months[0].getMonth()]} – ${MONTHS[months[1].getMonth()]} ${months[1].getFullYear()}`;
+
+  let html = '<div style="display:grid;grid-template-columns:repeat(7,1fr)">';
+  ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(w=>{
+    html += `<div class="cal-weekday-label">${w}</div>`;
+  });
+  html += '</div>';
+
+  months.forEach((monthStart, mi) => {
+    const year = monthStart.getFullYear(), month = monthStart.getMonth();
+    const firstDay = monthStart.getDay();
+    const daysInMonth = new Date(year,month+1,0).getDate();
+
+    html += `<div style="padding:4px 12px;background:var(--bg);font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border)">${MONTHS[month]} ${year}</div>`;
+    html += '<div style="display:grid;grid-template-columns:repeat(7,1fr)">';
+
+    // Leading empty cells
+    for (let i=0;i<firstDay;i++) html += '<div class="cal-cell other-month"></div>';
+
+    for (let d=1;d<=daysInMonth;d++) {
+      const dt = new Date(year,month,d); dt.setHours(0,0,0,0);
+      const iso = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const isToday = dt.getTime()===today.getTime();
+      const pList = postDates[iso]||[];
+      const cList = commentDates[iso]||[];
+      html += `<div class="cal-cell" onclick="filterByDate('${iso}')">
+        <div class="cal-cell-num ${isToday?'today':''}">${d}</div>
+        <div class="cal-events">
+          ${pList.slice(0,2).map(n=>`<div class="cal-event post">${esc(n)}</div>`).join('')}
+          ${cList.slice(0,1).map(n=>`<div class="cal-event comment">💬 ${esc(n)}</div>`).join('')}
+          ${(pList.length+cList.length>3)?`<div style="font-size:10px;color:var(--muted)">+${pList.length+cList.length-3} more</div>`:''}
+        </div>
+      </div>`;
+    }
+    html += '</div>';
+  });
+
+  grid.innerHTML = html;
+}
+
+function filterByDate(iso) {
+  // Could scroll to or highlight posts on that date
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function setFilter(f, el) {
+  filter = f;
+  document.querySelectorAll('.filter-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderPosts();
+}
+
+function setMode(m) {
+  mode = m;
+  document.getElementById('tog-sched').classList.toggle('active', m==='schedule');
+  document.getElementById('tog-draft').classList.toggle('active', m==='draft');
+  document.getElementById('datetime-field').style.display = m==='schedule'?'':'none';
+  document.getElementById('save-btn').textContent = m==='schedule'?'📅 Schedule':'💾 Save Draft';
+}
+
+function setDefaultDT() {
+  const n=new Date(); n.setHours(n.getHours()+1,0,0,0);
+  document.getElementById('schedule-dt').value = n.toISOString().slice(0,16);
+}
+
+function onContentInput() {
+  const ta = document.getElementById('post-content');
+  const len = ta.value.length;
+  const cc  = document.getElementById('char-count');
+  cc.textContent = `${len} / 3000`;
+  cc.className   = 'char-count'+(len>2800?' warn':'')+(len>3000?' over':'');
+  const prev = document.getElementById('preview-text');
+  prev.textContent  = ta.value||'Your post will appear here...';
+  prev.className    = 'li-preview-text'+(ta.value?'':' empty');
+}
+
+function updatePreview() {
+  const sel = document.getElementById('compose-account');
+  const acc = accounts.find(a=>a.account_id===sel?.value);
+  if (acc) {
+    const i = acc.display_name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    document.getElementById('preview-avatar').textContent = i;
+    document.getElementById('preview-name').textContent   = acc.display_name;
+  }
+}
+
+function fmtDate(iso) {
+  const d = new Date(iso), now = new Date(), diff = d - now;
+  if (diff>0&&diff<86400000) return 'Today '+d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  if (diff>0&&diff<172800000) return 'Tomorrow '+d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric'})+' '+d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+}
+
+function statusLabel(s) {
+  return {scheduled:'📅 Scheduled',draft:'📝 Draft',published:'✅ Published',failed:'❌ Failed'}[s]||s;
+}
+
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function toast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className   = 'toast show'+(type?' '+type:'');
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+// ── AI Assist ─────────────────────────────────────────────────────────────────
+async function aiAssist(action, event) {
+  const ta = document.getElementById('post-content');
+  const content = ta.value.trim();
+  if (!content&&action!=='hooks') { toast('Write some content first','error'); return; }
+  const btn = event.target;
+  const origText = btn.textContent;
+  btn.classList.add('loading'); btn.textContent='⏳ ...';
+  const prompts = {
+    improve: `Improve this LinkedIn post to be more engaging. Keep the language and tone similar. Return ONLY the improved post text:\n\n${content}`,
+    shorten: `Shorten this LinkedIn post while keeping the key message. Return ONLY the shortened text:\n\n${content}`,
+    hooks:   `${content?'Add a compelling hook as the first line to this LinkedIn post':'Write a compelling LinkedIn post hook'}. Return ONLY the post text:\n\n${content}`,
+    emojis:  `Add relevant emojis to this LinkedIn post. Don't overdo it. Return ONLY the post text with emojis:\n\n${content}`,
+    cta:     `Add a strong call-to-action at the end of this LinkedIn post. Return ONLY the complete post text:\n\n${content}`,
+  };
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompts[action]}]})
+    });
+    const d = await res.json();
+    const text = d?.content?.[0]?.text||'';
+    if (text) { ta.value=text; onContentInput(); toast('✨ Updated!','success'); }
+  } catch(e) { toast('AI error: '+e.message,'error'); }
+  finally { btn.classList.remove('loading'); btn.textContent=origText; }
+}
+
+init();
+</script>
+</body>
+</html>

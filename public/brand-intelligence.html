@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Brand Intelligence</title>
+<link rel="stylesheet" href="/elvia.css">
+<style>
+/* ── Page-specific overrides ──────────────────────────────────────────────── */
+html, body { overflow: hidden; height: 100%; }
+
+.pg-shell { display: flex; flex-direction: column; height: 100vh; }
+
+/* Context panel */
+.ctx-panel {
+  position: fixed; top: 0; right: -440px; width: 420px; height: 100vh;
+  background: var(--c-surface); border-left: 1px solid var(--c-border);
+  z-index: 200; display: flex; flex-direction: column;
+  transition: right .3s cubic-bezier(.4,0,.2,1);
+  box-shadow: var(--shadow-lg);
+}
+.ctx-panel.open { right: 0; }
+.ctx-hdr {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px; border-bottom: 1px solid var(--c-border);
+  flex-shrink: 0; background: var(--c-surface-2);
+}
+.ctx-hdr-title { font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.ctx-close {
+  background: none; border: none; color: var(--c-text-3);
+  cursor: pointer; font-size: 16px; padding: 4px 8px;
+  border-radius: var(--r-sm); transition: all .15s;
+}
+.ctx-close:hover { background: var(--c-surface-3); color: var(--c-text); }
+.ctx-body {
+  flex: 1; overflow-y: auto; padding: 16px 20px;
+  display: flex; flex-direction: column; gap: 16px;
+}
+.ctx-field-label {
+  font-size: 11px; font-weight: 700; letter-spacing: .8px;
+  text-transform: uppercase; color: var(--c-text-3);
+  margin-bottom: 6px;
+}
+.ctx-hint { font-size: 11px; color: var(--c-text-3); margin-top: 4px; line-height: 1.4; }
+.upload-drop {
+  border: 2px dashed var(--c-border-strong); border-radius: var(--r-md);
+  padding: 16px; text-align: center; cursor: pointer; transition: all .15s;
+  color: var(--c-text-3); font-size: 12px;
+}
+.upload-drop:hover, .upload-drop.drag {
+  border-color: var(--c-acc); color: var(--c-acc-text); background: var(--c-acc-bg);
+}
+.doc-list { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+.doc-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 10px; background: var(--c-surface-2);
+  border: 1px solid var(--c-border); border-radius: var(--r-sm); font-size: 11px;
+}
+.doc-item-name { flex: 1; color: var(--c-text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.doc-del { background: none; border: none; color: var(--c-text-3); cursor: pointer; padding: 1px 5px; border-radius: 3px; transition: all .15s; }
+.doc-del:hover { color: var(--c-red); background: var(--c-red-bg); }
+.terr-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+.terr-chip {
+  display: flex; align-items: center; gap: 6px; padding: 6px 10px;
+  background: var(--c-surface); border: 1px solid var(--c-border);
+  border-radius: var(--r-sm); cursor: pointer; font-size: 12px;
+  transition: all .15s; user-select: none;
+}
+.terr-chip:hover { border-color: var(--c-border-strong); }
+.terr-chip.sel {
+  border-color: var(--c-acc); background: var(--c-acc-bg);
+  color: var(--c-acc-text); font-weight: 600;
+}
+#ctx-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(15,23,42,.3); z-index: 199;
+}
+
+/* ── Status bar ───────────────────────────────────────────────────────────── */
+.status-bar {
+  display: none; align-items: center; gap: 10px;
+  padding: 8px 24px; background: var(--c-acc-bg);
+  border-bottom: 1px solid var(--c-acc-border);
+  font-size: 12px; color: var(--c-acc-text);
+}
+.status-bar.active { display: flex; }
+.blink-dots { display: flex; gap: 3px; }
+.blink-dots span {
+  width: 4px; height: 4px; background: var(--c-acc);
+  border-radius: 50%; animation: blink 1.2s infinite;
+}
+.blink-dots span:nth-child(2) { animation-delay: .2s; }
+.blink-dots span:nth-child(3) { animation-delay: .4s; }
+@keyframes blink { 0%,80%,100%{opacity:.25} 40%{opacity:1} }
+
+/* ── Dashboard layout ─────────────────────────────────────────────────────── */
+.dash-grid { display: flex; flex-direction: column; gap: 14px; }
+.dash-row { display: grid; gap: 14px; }
+.r3 { grid-template-columns: 200px 1fr 1.5fr; }
+.r2 { grid-template-columns: 1fr 1fr; }
+
+/* ── Health gauge ─────────────────────────────────────────────────────────── */
+.health-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 6px 0; }
+.ring-wrap { position: relative; width: 150px; height: 150px; }
+.ring-wrap svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring-track { fill: none; stroke: var(--c-border); stroke-width: 14; stroke-linecap: round; }
+.ring-fill  { fill: none; stroke-width: 14; stroke-linecap: round; }
+.ring-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.ring-num   { font-family: var(--f-mono); font-size: 38px; font-weight: 700; line-height: 1; }
+.ring-denom { font-size: 11px; font-weight: 600; color: var(--c-text-3); letter-spacing: .5px; }
+
+/* ── Sentiment bars ───────────────────────────────────────────────────────── */
+.sent-rows { display: flex; flex-direction: column; gap: 12px; }
+.sent-row  { display: grid; grid-template-columns: 68px 1fr 38px; align-items: center; gap: 10px; }
+.sent-lbl  { font-size: 12px; font-weight: 600; color: var(--c-text-2); display: flex; align-items: center; gap: 6px; }
+.sent-dot  { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.sent-track { height: 8px; background: var(--c-border); border-radius: 4px; overflow: hidden; }
+.sent-fill  { height: 100%; border-radius: 4px; transition: width 1.2s cubic-bezier(.4,0,.2,1); }
+.sent-pct   { font-family: var(--f-mono); font-size: 12px; font-weight: 700; text-align: right; }
+
+/* ── Themes ───────────────────────────────────────────────────────────────── */
+.theme-list { display: flex; flex-direction: column; gap: 12px; }
+.theme-hdr  { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; gap: 8px; }
+.theme-name { font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px; flex: 1; }
+.theme-dot  { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.theme-ch   { font-size: 10px; color: var(--c-text-3); font-family: var(--f-mono); white-space: nowrap; flex-shrink: 0; margin-top: 2px; }
+.theme-bar  { height: 4px; background: var(--c-border); border-radius: 2px; overflow: hidden; margin-bottom: 5px; }
+.theme-fill { height: 100%; border-radius: 2px; transition: width 1.2s cubic-bezier(.4,0,.2,1); }
+.theme-ev   { font-size: 12px; color: var(--c-text-2); line-height: 1.5; }
+
+/* ── People reputation ────────────────────────────────────────────────────── */
+.people-list { display: flex; flex-direction: column; gap: 8px; }
+.person-row  {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 14px; background: var(--c-surface-2);
+  border: 1px solid var(--c-border); border-radius: var(--r-md);
+  transition: border-color .15s;
+}
+.person-row:hover { border-color: var(--c-border-strong); }
+.p-info { flex: 1; min-width: 0; }
+.p-name { font-size: 13px; font-weight: 700; margin-bottom: 2px; display: flex; align-items: center; gap: 6px; }
+.p-sub  { font-size: 11px; color: var(--c-text-2); }
+.p-plat { font-size: 10px; color: var(--c-text-3); margin-top: 1px; }
+.p-score-wrap { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.p-score { font-family: var(--f-mono); font-size: 22px; font-weight: 700; line-height: 1; }
+.p-score-lbl { font-size: 9px; color: var(--c-text-3); letter-spacing: .8px; text-transform: uppercase; }
+
+/* ── Competitive ──────────────────────────────────────────────────────────── */
+.comp-inner { display: grid; grid-template-columns: 240px 1fr; gap: 16px; }
+.comp-list  { display: flex; flex-direction: column; gap: 6px; }
+.comp-row   {
+  background: var(--c-surface-2); border: 1px solid var(--c-border);
+  border-radius: var(--r-md); overflow: hidden; transition: border-color .15s;
+}
+.comp-row:hover { border-color: var(--c-border-strong); }
+.comp-row.you { border-color: var(--c-acc-border); background: var(--c-acc-bg); }
+.comp-main {
+  display: grid; grid-template-columns: 1fr auto auto;
+  align-items: center; gap: 10px;
+  padding: 9px 12px; cursor: pointer; position: relative;
+}
+.comp-name { font-size: 13px; font-weight: 700; margin-bottom: 1px; display: flex; align-items: center; gap: 6px; }
+.comp-narr { font-size: 11px; color: var(--c-text-2); }
+.comp-scores { display: flex; flex-direction: column; gap: 3px; min-width: 80px; }
+.c-score-row { display: flex; align-items: center; gap: 4px; }
+.c-lbl { font-size: 9px; color: var(--c-text-3); font-family: var(--f-mono); width: 14px; }
+.c-bar { flex: 1; height: 4px; background: var(--c-border); border-radius: 2px; overflow: hidden; }
+.c-fill { height: 100%; border-radius: 2px; transition: width 1.2s; }
+.c-num { font-size: 10px; font-family: var(--f-mono); font-weight: 700; width: 22px; text-align: right; }
+/* Competitor people expand */
+.comp-people { display: none; padding: 0 12px 10px; border-top: 1px solid var(--c-border); }
+.comp-people.open { display: block; }
+.cp-grid { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+.cp-person {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 10px; background: var(--c-surface);
+  border: 1px solid var(--c-border); border-radius: var(--r-sm);
+}
+.cp-info { flex: 1; min-width: 0; }
+.cp-name  { font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 5px; }
+.cp-title { font-size: 10px; color: var(--c-text-3); }
+.cp-score { font-family: var(--f-mono); font-size: 14px; font-weight: 700; }
+
+/* Radar canvas */
+canvas.radar { display: block; }
+
+/* ── Signals ──────────────────────────────────────────────────────────────── */
+.signals-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
+}
+.signal-card {
+  display: flex; gap: 10px; padding: 12px 14px;
+  background: var(--c-surface-2); border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+}
+.signal-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+.signal-text { font-size: 12px; line-height: 1.5; color: var(--c-text); margin-bottom: 6px; }
+
+/* Add competitor input */
+.add-wrap { display: flex; gap: 6px; }
+.add-input {
+  background: var(--c-surface); border: 1px solid var(--c-border-strong);
+  color: var(--c-text); border-radius: var(--r-md); padding: 6px 10px;
+  font-size: 12px; font-family: var(--f-sans); outline: none;
+  transition: border-color .15s; width: 160px;
+}
+.add-input:focus { border-color: var(--c-acc); box-shadow: 0 0 0 3px var(--c-acc-bg); }
+.add-input::placeholder { color: var(--c-text-4); }
+
+/* ── Summary italic text ──────────────────────────────────────────────────── */
+.summary-text {
+  font-size: 13px; color: var(--c-text-2); line-height: 1.7;
+  border-left: 3px solid var(--c-acc); padding-left: 14px;
+  font-style: italic;
+}
+.src-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+.src-tag {
+  font-size: 10px; font-family: var(--f-mono); color: var(--c-text-3);
+  background: var(--c-surface-2); border: 1px solid var(--c-border);
+  padding: 2px 8px; border-radius: var(--r-xs);
+}
+
+/* ── Context save btn ─────────────────────────────────────────────────────── */
+.ctx-save-btn {
+  width: 100%; padding: 10px; background: var(--c-acc); color: #fff;
+  border: none; border-radius: var(--r-md); font-size: 13px; font-weight: 700;
+  cursor: pointer; font-family: var(--f-sans); transition: background .15s;
+}
+.ctx-save-btn:hover { background: var(--c-acc-dark); }
+</style>
+</head>
+<body>
+<div class="pg-shell">
+
+  <!-- Topbar -->
+  <div class="pg-topbar">
+    <div style="font-size:16px">🌐</div>
+    <div class="pg-topbar-title">Brand Intelligence</div>
+    <span class="badge badge-acc" id="company-badge" style="font-size:12px">—</span>
+    <div class="pg-topbar-sep"></div>
+    <span class="pg-topbar-sub" id="scan-meta" style="font-size:12px"></span>
+    <button class="btn btn-secondary btn-sm" id="ctx-btn" onclick="toggleContext()" style="gap:5px">
+      ⚙ Context
+    </button>
+    <button class="btn btn-primary" id="scan-btn" onclick="startScan()" style="gap:6px">
+      <span style="font-size:14px">↻</span> Scan Now
+    </button>
+  </div>
+
+  <!-- Status bar -->
+  <div class="status-bar" id="status-bar">
+    <div class="blink-dots"><span></span><span></span><span></span></div>
+    <span id="status-text">Scanning…</span>
+  </div>
+
+  <!-- Context overlay -->
+  <div id="ctx-overlay" onclick="toggleContext()"></div>
+
+  <!-- Context Panel -->
+  <div class="ctx-panel" id="ctx-panel">
+    <div class="ctx-hdr">
+      <div class="ctx-hdr-title">⚙ Company Context</div>
+      <button class="ctx-close" onclick="toggleContext()">✕</button>
+    </div>
+    <div class="ctx-body">
+      <div>
+        <div class="ctx-field-label">Company Description</div>
+        <textarea class="input textarea" id="ctx-desc" rows="5"
+          placeholder="Describe what your company does, its core product/service, target market and value proposition."></textarea>
+      </div>
+      <div>
+        <div class="ctx-field-label">Website URL</div>
+        <div class="add-wrap">
+          <input class="input add-input" id="ctx-website" type="url" placeholder="https://yourcompany.com" style="width:100%;flex:1">
+          <button class="btn btn-secondary btn-sm" id="fetch-btn" onclick="fetchWebsite()">↓ Fetch</button>
+        </div>
+        <div id="fetch-status" class="ctx-hint" style="display:none"></div>
+      </div>
+      <div>
+        <div class="ctx-field-label">Documents & Files</div>
+        <div class="upload-drop" id="upload-drop"
+          onclick="document.getElementById('file-input').click()"
+          ondragover="event.preventDefault();this.classList.add('drag')"
+          ondragleave="this.classList.remove('drag')"
+          ondrop="handleDrop(event)">
+          <input type="file" id="file-input" multiple accept=".pdf,.txt,.md,.csv" style="display:none"
+            onchange="handleFiles(event.target.files);this.value=''">
+          <div style="font-size:20px;margin-bottom:4px">📎</div>
+          <div style="font-weight:600;color:var(--c-text-2);margin-bottom:2px">Drop files or click to upload</div>
+          <div style="font-size:11px">PDF, TXT, MD, CSV — extracted for AI context</div>
+        </div>
+        <div class="doc-list" id="doc-list"></div>
+      </div>
+      <div>
+        <div class="ctx-field-label">Territory Focus</div>
+        <div class="terr-grid" id="terr-grid">
+          <div class="terr-chip sel" data-val="global" onclick="pickTerritory(this)">🌐 Global</div>
+          <div class="terr-chip" data-val="North America" onclick="pickTerritory(this)">🇺🇸 North America</div>
+          <div class="terr-chip" data-val="Europe" onclick="pickTerritory(this)">🇪🇺 Europe</div>
+          <div class="terr-chip" data-val="Israel" onclick="pickTerritory(this)">🇮🇱 Israel</div>
+          <div class="terr-chip" data-val="UK" onclick="pickTerritory(this)">🇬🇧 UK</div>
+          <div class="terr-chip" data-val="Netherlands" onclick="pickTerritory(this)">🇳🇱 Netherlands</div>
+          <div class="terr-chip" data-val="APAC" onclick="pickTerritory(this)">🌏 APAC</div>
+          <div class="terr-chip" data-val="LATAM" onclick="pickTerritory(this)">🌎 LATAM</div>
+          <div class="terr-chip" data-val="Middle East" onclick="pickTerritory(this)">🌍 Middle East</div>
+          <div class="terr-chip" data-val="DACH" onclick="pickTerritory(this)">🇩🇪 DACH</div>
+        </div>
+      </div>
+      <div>
+        <div class="ctx-field-label">Known Competitors</div>
+        <textarea class="input textarea" id="ctx-comps" rows="3"
+          placeholder="One per line or comma-separated:&#10;Vonage, Twilio, AudioCodes"></textarea>
+        <div class="ctx-hint">Seeded into analysis — AI will research their key people too</div>
+      </div>
+      <button class="ctx-save-btn" onclick="saveContext()">💾 Save &amp; Ready to Scan</button>
+      <div id="ctx-saved-msg" style="display:none;text-align:center;font-size:12px;color:var(--c-acc);font-weight:600">✓ Context saved — run Scan Now for updated analysis</div>
+    </div>
+  </div>
+
+  <!-- Main scroll area -->
+  <div class="pg-content" id="main-content">
+    <div class="empty-state" id="empty-state">
+      <div class="empty-state-icon">🌐</div>
+      <div class="empty-state-title">No analysis yet</div>
+      <div class="empty-state-sub">Set up your company context (⚙ Context), then click "↻ Scan Now" to analyze your brand's online presence and competitive landscape.</div>
+      <button class="btn btn-primary" onclick="toggleContext()" style="margin-top:8px">⚙ Set Up Context</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const params        = new URLSearchParams(location.search);
+const workspaceId   = params.get('workspace_id') || '1';
+const workspaceName = decodeURIComponent(params.get('workspace_name') || 'Company');
+
+let _analysis    = null;
+let _competitors = [];
+let _context     = null;
+let _scanActive  = false;
+
+document.getElementById('company-badge').textContent = workspaceName;
+
+(async function init() {
+  await Promise.all([loadCompetitors(), loadContext()]);
+  const r = await fetch('/api/brand-intelligence?workspace_id=' + workspaceId);
+  const d = await r.json();
+  if (d.analysis) { _analysis = d.analysis; renderDashboard(_analysis, d.scanned_at); }
+})();
+
+async function loadCompetitors() {
+  const r = await fetch('/api/brand-intelligence/competitors?workspace_id=' + workspaceId);
+  _competitors = (await r.json()).competitors || [];
+}
+
+async function loadContext() {
+  try {
+    const d = await fetch('/api/brand-intelligence/context?workspace_id=' + workspaceId).then(r=>r.json());
+    _context = d.context;
+    if (_context) fillContextPanel(_context);
+  } catch(e) {}
+}
+
+function fillContextPanel(ctx) {
+  if (ctx.description) document.getElementById('ctx-desc').value = ctx.description;
+  if (ctx.website)     document.getElementById('ctx-website').value = ctx.website;
+  if (ctx.known_competitors) document.getElementById('ctx-comps').value = ctx.known_competitors;
+  const terrs = Array.isArray(ctx.territory) ? ctx.territory : (ctx.territory||'global').split(',').map(s=>s.trim());
+  document.querySelectorAll('.terr-chip').forEach(c => c.classList.toggle('sel', terrs.includes(c.dataset.val)));
+  renderDocList(ctx.documents || []);
+}
+
+function renderDocList(docs) {
+  const list = document.getElementById('doc-list'); if (!list) return;
+  list.innerHTML = '';
+  (docs||[]).forEach((doc, i) => {
+    const item = el('div','doc-item');
+    item.innerHTML = '<div class="doc-item-name">📄 '+esc(doc.name)+'</div><button class="doc-del" onclick="deleteDoc('+i+')">✕</button>';
+    list.appendChild(item);
+  });
+}
+
+function toggleContext() {
+  const panel = document.getElementById('ctx-panel');
+  const overlay = document.getElementById('ctx-overlay');
+  const btn = document.getElementById('ctx-btn');
+  const open = panel.classList.toggle('open');
+  overlay.style.display = open ? 'block' : 'none';
+  btn.classList.toggle('active', open);
+}
+
+function pickTerritory(chip) {
+  const val = chip.dataset.val;
+  if (val === 'global') {
+    document.querySelectorAll('.terr-chip').forEach(c => c.classList.toggle('sel', c.dataset.val==='global'));
+  } else {
+    document.querySelector('[data-val="global"]').classList.remove('sel');
+    chip.classList.toggle('sel');
+    if (![...document.querySelectorAll('.terr-chip')].some(c=>c.classList.contains('sel')))
+      document.querySelector('[data-val="global"]').classList.add('sel');
+  }
+}
+function getTerritory() { return [...document.querySelectorAll('.terr-chip.sel')].map(c=>c.dataset.val).join(','); }
+
+async function fetchWebsite() {
+  const url = document.getElementById('ctx-website').value.trim(); if (!url) return;
+  const btn = document.getElementById('fetch-btn');
+  const status = document.getElementById('fetch-status');
+  btn.textContent = '⏳'; btn.disabled = true;
+  status.textContent = 'Fetching…'; status.style.display='block'; status.style.color='var(--c-text-3)';
+  try {
+    const d = await fetch('/api/brand-intelligence/context', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ workspace_id:workspaceId, website:url,
+        description:document.getElementById('ctx-desc').value||null,
+        territory:getTerritory(), known_competitors:document.getElementById('ctx-comps').value||null })
+    }).then(r=>r.json());
+    status.textContent = d.website_fetched ? '✓ Content fetched' : '⚠ Could not fetch — site may block bots';
+    status.style.color = d.website_fetched ? 'var(--c-acc)' : 'var(--c-amber)';
+    await loadContext();
+  } catch(e) { status.textContent='Error: '+e.message; status.style.color='var(--c-red)'; }
+  btn.textContent='↓ Fetch'; btn.disabled=false;
+}
+
+function handleDrop(e) { e.preventDefault(); e.currentTarget.classList.remove('drag'); handleFiles(e.dataTransfer.files); }
+function handleFiles(files) {
+  [...files].forEach(file => {
+    const reader = new FileReader();
+    reader.onload = async ev => {
+      const content = file.type==='application/pdf' ? '[PDF: '+file.name+']' : String(ev.target.result).slice(0,3000);
+      try {
+        await fetch('/api/brand-intelligence/context/document', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({workspace_id:workspaceId, name:file.name, content, type:file.type})
+        });
+        await loadContext();
+      } catch(ex) {}
+    };
+    file.type==='application/pdf' ? reader.readAsDataURL(file) : reader.readAsText(file);
+  });
+}
+async function deleteDoc(idx) {
+  try { await fetch('/api/brand-intelligence/context/document/'+idx+'?workspace_id='+workspaceId,{method:'DELETE'}); await loadContext(); } catch(e) {}
+}
+async function saveContext() {
+  const btn = document.querySelector('.ctx-save-btn');
+  const msg = document.getElementById('ctx-saved-msg');
+  btn.textContent='⏳ Saving…'; btn.disabled=true;
+  try {
+    await fetch('/api/brand-intelligence/context', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ workspace_id:workspaceId,
+        description:document.getElementById('ctx-desc').value||null,
+        website:document.getElementById('ctx-website').value||null,
+        territory:getTerritory(),
+        known_competitors:document.getElementById('ctx-comps').value||null })
+    });
+    await loadContext();
+    msg.style.display='block';
+    setTimeout(()=>{ msg.style.display='none'; }, 3500);
+  } catch(e) {}
+  btn.textContent='💾 Save & Ready to Scan'; btn.disabled=false;
+}
+
+async function startScan() {
+  if (_scanActive) return;
+  _scanActive = true;
+  const btn = document.getElementById('scan-btn');
+  btn.disabled=true; btn.innerHTML='<div class="spinner spinner-sm"></div> Scanning…';
+  setStatus('Searching the web for brand mentions…');
+  try {
+    const resp = await fetch('/api/brand-intelligence/scan', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({workspace_id:workspaceId, company_name:workspaceName})
+    });
+    if (!resp.ok) throw new Error('Scan failed: '+resp.status);
+    const reader = resp.body.getReader(); const dec = new TextDecoder(); let buf='';
+    while (true) {
+      const {done, value} = await reader.read(); if (done) break;
+      buf += dec.decode(value,{stream:true});
+      const lines = buf.split('\n'); buf = lines.pop();
+      let evt = null;
+      for (const line of lines) {
+        if (line.startsWith('event: ')) evt=line.slice(7).trim();
+        if (line.startsWith('data: ')) {
+          try {
+            const p = JSON.parse(line.slice(6));
+            if (evt==='status') setStatus(p.message);
+            else if (evt==='complete') { _analysis=p.analysis; await loadCompetitors(); renderDashboard(_analysis,p.scanned_at); }
+            else if (evt==='error') { setStatus('Error: '+p.message); setTimeout(()=>hideStatus(),4000); }
+          } catch(e) {}
+        }
+      }
+    }
+  } catch(e) { setStatus('Scan failed: '+e.message); setTimeout(()=>hideStatus(),4000); }
+  _scanActive=false; btn.disabled=false; btn.innerHTML='<span style="font-size:14px">↻</span> Scan Now';
+  hideStatus();
+}
+
+function setStatus(m) { document.getElementById('status-bar').classList.add('active'); document.getElementById('status-text').textContent=m; }
+function hideStatus() { document.getElementById('status-bar').classList.remove('active'); }
+
+// ── Render ───────────────────────────────────────────────────────────────────
+function renderDashboard(a, scannedAt) {
+  document.getElementById('empty-state')?.remove();
+  if (scannedAt) {
+    const d = new Date(scannedAt);
+    document.getElementById('scan-meta').textContent =
+      'Scanned '+d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+' '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  }
+  const main = document.getElementById('main-content');
+  main.innerHTML = '';
+  const grid = el('div','dash-grid fade-up');
+
+  const r1 = el('div','dash-row r3');
+  r1.appendChild(buildHealth(a)); r1.appendChild(buildSentiment(a)); r1.appendChild(buildSummary(a));
+  grid.appendChild(r1);
+
+  const r2 = el('div','dash-row r2');
+  r2.appendChild(buildThemes(a)); r2.appendChild(buildPeople(a));
+  grid.appendChild(r2);
+
+  grid.appendChild(buildCompetitive(a));
+  grid.appendChild(buildSignals(a));
+
+  main.appendChild(grid);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>animateBars()));
+}
+
+function buildHealth(a) {
+  const c = el('div','card');
+  c.innerHTML = '<div class="card-label">Brand Health</div>';
+  const score = parseInt(a.brand_health_score)||0;
+  const color = score>=70?'#1D9E75':score>=40?'#F59E0B':'#EF4444';
+  const CIRC = 2*Math.PI*55;
+  const wrap = el('div','health-wrap');
+  const rw = el('div','ring-wrap');
+  rw.innerHTML = `<svg viewBox="0 0 140 140">
+    <circle class="ring-track" cx="70" cy="70" r="55"/>
+    <circle id="hring" class="ring-fill" cx="70" cy="70" r="55"
+      stroke="${color}" stroke-dasharray="0 ${CIRC}" stroke-dashoffset="0"/>
+  </svg>
+  <div class="ring-center">
+    <div id="hnum" class="ring-num" style="color:${color}">0</div>
+    <div class="ring-denom">/ 100</div>
+  </div>`;
+  wrap.appendChild(rw);
+  const mom=(a.momentum||'stable').toLowerCase();
+  const d=a.momentum_delta||0;
+  const mc='badge '+(mom==='rising'?'badge-green':mom==='declining'?'badge-red':'badge-amber');
+  const mi=mom==='rising'?'↑ Rising':mom==='declining'?'↓ Declining':'→ Stable';
+  const mb=el('span',mc); mb.textContent=mi+(Math.abs(d)?'  '+(d>0?'+':'')+d:''); mb.style.marginTop='6px';
+  wrap.appendChild(mb); c.appendChild(wrap);
+  setTimeout(()=>{
+    const ring=document.getElementById('hring'); const numEl=document.getElementById('hnum'); if(!ring||!numEl) return;
+    let cur=0; const t=setInterval(()=>{
+      cur=Math.min(cur+Math.max(1,Math.ceil(score/50)),score); numEl.textContent=cur;
+      ring.setAttribute('stroke-dasharray',(cur/100)*CIRC+' '+(CIRC-(cur/100)*CIRC));
+      if(cur>=score) clearInterval(t);
+    },18);
+  },200);
+  return c;
+}
+
+function buildSentiment(a) {
+  const c = el('div','card'); c.innerHTML='<div class="card-label">Sentiment</div>';
+  const s = a.sentiment||{};
+  const wrap = el('div','sent-rows');
+  [{label:'Positive',val:s.positive||0,fill:'#1D9E75',dot:'#1D9E75'},
+   {label:'Neutral', val:s.neutral ||0,fill:'#94A3B8',dot:'#94A3B8'},
+   {label:'Negative',val:s.negative||0,fill:'#EF4444',dot:'#EF4444'}].forEach(r=>{
+    const row=el('div','sent-row');
+    row.innerHTML=`<div class="sent-lbl"><div class="sent-dot" style="background:${r.dot}"></div>${r.label}</div>`+
+      `<div class="sent-track"><div class="sent-fill" data-w="${r.val}" style="width:0%;background:${r.fill}"></div></div>`+
+      `<div class="sent-pct" style="color:${r.dot}">${r.val}%</div>`;
+    wrap.appendChild(row);
+  });
+  c.appendChild(wrap); return c;
+}
+
+function buildSummary(a) {
+  const c = el('div','card'); c.innerHTML='<div class="card-label">Executive Summary</div>';
+  const p = el('div','summary-text'); p.textContent=a.executive_summary||'';
+  c.appendChild(p);
+  if (a.data_sources?.length) {
+    const sl=el('div','src-tags'); sl.style.marginTop='12px';
+    a.data_sources.slice(0,8).forEach(s=>{const t=el('span','src-tag');t.textContent=s;sl.appendChild(t);});
+    c.appendChild(sl);
+  }
+  return c;
+}
+
+function buildThemes(a) {
+  const c = el('div','card'); c.innerHTML='<div class="card-label">Narrative Themes</div>';
+  const list=el('div','theme-list');
+  (a.narrative_themes||[]).forEach(t=>{
+    const sent=(t.sentiment||'neutral').toLowerCase();
+    const dc=sent==='positive'?'#1D9E75':sent==='negative'?'#EF4444':'#F59E0B';
+    const item=el('div','');
+    const hdr=el('div','theme-hdr');
+    const nw=el('div','theme-name');
+    const dot=el('div','theme-dot'); dot.style.background=dc;
+    const name=el('span',''); name.textContent=t.theme||''; name.style.cssText='font-size:13px;font-weight:700';
+    nw.appendChild(dot); nw.appendChild(name);
+    const ch=el('div','theme-ch'); ch.textContent=t.channel||'';
+    hdr.appendChild(nw); hdr.appendChild(ch);
+    const bar=el('div','theme-bar');
+    const fill=el('div','theme-fill'); fill.dataset.w=t.strength||0; fill.style.cssText='width:0%;background:'+dc;
+    bar.appendChild(fill);
+    const ev=el('div','theme-ev'); ev.textContent=t.evidence||'';
+    item.appendChild(hdr); item.appendChild(bar); item.appendChild(ev);
+    list.appendChild(item);
+  });
+  c.appendChild(list); return c;
+}
+
+function buildPeople(a) {
+  const c = el('div','card'); c.innerHTML='<div class="card-label">People Reputation</div>';
+  const list=el('div','people-list');
+  (a.people_reputation||[]).slice(0,6).forEach(p=>{
+    const score=p.online_presence_score||0;
+    const color=score>=70?'#1D9E75':score>=40?'#F59E0B':'#EF4444';
+    const sent=(p.sentiment||'neutral').toLowerCase();
+    const pillCls='badge '+(sent==='positive'?'badge-green':sent==='negative'?'badge-red':'badge-amber');
+    const pillTxt=sent==='positive'?'POS':sent==='negative'?'NEG':'NEU';
+    const init=(p.name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const row=el('div','person-row');
+    row.innerHTML=
+      `<div class="avatar avatar-lg" style="background:linear-gradient(135deg,var(--c-acc-bg),#e0f2fe);color:var(--c-acc-text)">${init}</div>`+
+      `<div class="p-info">`+
+        `<div class="p-name">${esc(p.name||'')} <span class="${pillCls}" style="font-size:9px">${pillTxt}</span></div>`+
+        `<div class="p-sub">${esc(p.key_topic||'')} · ${p.mentions_estimate||'low'} mentions</div>`+
+        `<div class="p-plat">${esc(p.platform||'')}</div>`+
+      `</div>`+
+      `<div class="p-score-wrap"><div class="p-score" style="color:${color}">${score}</div><div class="p-score-lbl">Score</div></div>`;
+    list.appendChild(row);
+  });
+  if (!(a.people_reputation||[]).length)
+    list.innerHTML='<div class="empty-state" style="padding:30px"><div class="empty-state-icon">👤</div><div class="empty-state-sub">Add a company description in ⚙ Context and re-scan</div></div>';
+  c.appendChild(list); return c;
+}
+
+function buildCompetitive(a) {
+  const c = el('div','card');
+  const hdr = el('div','flex-between gap-3'); hdr.style.marginBottom='14px';
+  const lbl = el('div','card-label'); lbl.textContent='Competitive Intelligence'; lbl.style.marginBottom='0';
+  const aw = el('div','add-wrap');
+  aw.innerHTML='<input class="add-input" id="comp-input" placeholder="Add competitor…" onkeydown="if(event.key===\'Enter\')addCompetitor()">'+
+    '<button class="btn btn-secondary btn-sm" onclick="addCompetitor()">+ Add</button>';
+  hdr.appendChild(lbl); hdr.appendChild(aw); c.appendChild(hdr);
+
+  const inner=el('div','comp-inner');
+  const cv=document.createElement('canvas'); cv.width=240; cv.height=210; cv.className='radar';
+  inner.appendChild(cv);
+  const lw=el('div',''); const cl=el('div','comp-list'); cl.id='comp-list';
+  renderCompList(cl,a); lw.appendChild(cl); inner.appendChild(lw); c.appendChild(inner);
+  setTimeout(()=>drawRadar(cv,a),100);
+  return c;
+}
+
+function renderCompList(listEl, a) {
+  listEl.innerHTML='';
+  const sub=el('div','comp-row you');
+  const sm=el('div','comp-main'); sm.style.cursor='default';
+  sm.innerHTML=`<div><div class="comp-name">${esc(workspaceName)} <span class="badge badge-acc" style="font-size:9px">YOU</span></div><div class="comp-narr">${esc((a.executive_summary||'').slice(0,55))}…</div></div>`+
+    `<div class="comp-scores"><div class="c-score-row"><span class="c-lbl">BH</span><div class="c-bar"><div class="c-fill" data-w="${a.brand_health_score||0}" style="width:0%;background:var(--c-acc)"></div></div><span class="c-num" style="color:var(--c-acc)">${a.brand_health_score||0}</span></div></div><div></div>`;
+  sub.appendChild(sm); listEl.appendChild(sub);
+
+  (a.competitors||[]).forEach(comp=>{
+    const row=el('div','comp-row');
+    const vs=comp.vs_subject;
+    const vc='badge '+(vs==='weaker'?'badge-green':vs==='stronger'?'badge-red':'badge-amber');
+    const vt=vs==='weaker'?'↑ Ahead':vs==='stronger'?'↓ Behind':'≈ Equal';
+    const bh=comp.brand_health_score||0, st=comp.online_strength||0;
+    const people=comp.key_people||[];
+    const mr=el('div','comp-main');
+    mr.onclick=function(){if(people.length) toggleCompPeople(comp.name,people);};
+    mr.innerHTML=
+      `<div><div class="comp-name">${esc(comp.name)}</div><div class="comp-narr">${esc(comp.key_narrative||'')}</div></div>`+
+      `<div class="comp-scores">`+
+        `<div class="c-score-row"><span class="c-lbl">BH</span><div class="c-bar"><div class="c-fill" data-w="${bh}" style="width:0%;background:var(--c-blue)"></div></div><span class="c-num" style="color:var(--c-blue)">${bh}</span></div>`+
+        `<div class="c-score-row"><span class="c-lbl">ST</span><div class="c-bar"><div class="c-fill" data-w="${st}" style="width:0%;background:var(--c-purple)"></div></div><span class="c-num" style="color:var(--c-purple)">${st}</span></div>`+
+      `</div>`+
+      `<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">`+
+        `<span class="${vc}">${vt}</span>`+
+        (people.length?`<span style="font-size:9px;color:var(--c-text-3)">${people.length} people ▸</span>`:'')+
+      `</div>`;
+    const db=el('button','btn btn-sm'); db.style.cssText='position:absolute;top:8px;right:8px;padding:2px 8px;font-size:11px;color:var(--c-text-3);border-color:var(--c-border);background:transparent;border:1px solid var(--c-border);border-radius:4px;cursor:pointer';
+    db.textContent='✕'; db.onclick=(e)=>{e.stopPropagation();deleteCompetitor(comp.name,row);};
+    mr.appendChild(db); row.appendChild(mr);
+    if (people.length) {
+      const ps=el('div','comp-people'); ps.id='cp-'+comp.name.replace(/\s+/g,'_');
+      const pg=el('div','cp-grid');
+      people.forEach(p=>{
+        const sc=p.online_score||0; const col=sc>=70?'#1D9E75':sc>=40?'#F59E0B':'#EF4444';
+        const init=(p.name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+        const sent=(p.sentiment||'neutral').toLowerCase();
+        const pc='badge '+(sent==='positive'?'badge-green':sent==='negative'?'badge-red':'badge-amber');
+        const pp=el('div','cp-person');
+        pp.innerHTML=`<div class="avatar" style="width:26px;height:26px;font-size:9px">${init}</div>`+
+          `<div class="cp-info"><div class="cp-name">${esc(p.name||'')} <span class="${pc}" style="font-size:8px">${sent==='positive'?'POS':sent==='negative'?'NEG':'NEU'}</span></div><div class="cp-title">${esc(p.title||'')} · ${esc(p.platform||'')}</div></div>`+
+          `<div class="cp-score" style="color:${col}">${sc}</div>`;
+        pg.appendChild(pp);
+      });
+      ps.appendChild(pg); row.appendChild(ps);
+    }
+    listEl.appendChild(row);
+  });
+
+  _competitors.filter(c=>!(a.competitors||[]).some(ac=>ac.name.toLowerCase()===c.name.toLowerCase())).forEach(c=>{
+    const row=el('div','comp-row'); const mr=el('div','comp-main');
+    mr.innerHTML=`<div><div class="comp-name">${esc(c.name)}</div><div class="comp-narr" style="color:var(--c-text-3)">Not analyzed yet — run new scan to include</div></div><div></div>`;
+    const db=el('button',''); db.style.cssText='position:absolute;top:8px;right:8px;padding:2px 8px;font-size:11px;color:var(--c-text-3);border:1px solid var(--c-border);border-radius:4px;cursor:pointer;background:transparent';
+    db.textContent='✕'; db.onclick=(e)=>{e.stopPropagation();deleteCompetitor(c.name,row);}; mr.style.position='relative'; mr.appendChild(db);
+    row.appendChild(mr); listEl.appendChild(row);
+  });
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    listEl.querySelectorAll('.c-fill').forEach(e=>{e.style.width=(e.dataset.w||'0')+'%';});
+  }));
+}
+
+function toggleCompPeople(name,people) {
+  const id='cp-'+name.replace(/\s+/g,'_'); const sec=document.getElementById(id);
+  if (sec) sec.classList.toggle('open');
+}
+
+function drawRadar(canvas,a) {
+  const ctx=canvas.getContext('2d'); const cx=120,cy=100,r=75,N=5;
+  const axes=['Brand\nHealth','Sentiment','Strength','People','Momentum'];
+  function ang(i){return(i*2*Math.PI/N)-Math.PI/2}
+  function pt(R,i){const a=ang(i);return[cx+R*Math.cos(a),cy+R*Math.sin(a)]}
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  [.2,.4,.6,.8,1].forEach(s=>{
+    ctx.beginPath(); for(let i=0;i<N;i++){const[x,y]=pt(r*s,i);i?ctx.lineTo(x,y):ctx.moveTo(x,y);}
+    ctx.closePath(); ctx.strokeStyle='rgba(15,23,42,.07)'; ctx.lineWidth=1; ctx.stroke();
+  });
+  for(let i=0;i<N;i++){const[x,y]=pt(r,i);ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(x,y);ctx.strokeStyle='rgba(15,23,42,.07)';ctx.lineWidth=1;ctx.stroke();}
+  for(let i=0;i<N;i++){
+    const[lx,ly]=pt(r+16,i);ctx.fillStyle='#94A3B8';ctx.font='8px Inter,sans-serif';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    axes[i].split('\n').forEach((p,j,arr)=>ctx.fillText(p,lx,ly+j*10-(arr.length-1)*5));
+  }
+  const pp=a.people_reputation||[];
+  const sub=[(a.brand_health_score||50)/100,(a.sentiment?.positive||50)/100,(a.brand_health_score||50)/100,
+    pp.length?pp.reduce((s,p)=>s+(p.online_presence_score||0),0)/(pp.length*100):.4,
+    a.momentum==='rising'?.8:a.momentum==='declining'?.3:.5];
+  const dsets=[{s:sub,c:'#1D9E75',a:.18,lw:2},...(a.competitors||[]).slice(0,3).map((c,i)=>({s:[(c.brand_health_score||50)/100,(c.sentiment_score||55)/100,(c.online_strength||50)/100,.6,.55],c:['#3B82F6','#F59E0B','#8B5CF6'][i],a:.09,lw:1.5}))];
+  dsets.forEach(ds=>{
+    ctx.beginPath(); ds.s.forEach((sc,i)=>{const[x,y]=pt(r*sc,i);i?ctx.lineTo(x,y):ctx.moveTo(x,y);}); ctx.closePath();
+    const[r1,g1,b1]=ds.c.match(/[0-9a-f]{2}/gi).map(h=>parseInt(h,16));
+    ctx.fillStyle=`rgba(${r1},${g1},${b1},${ds.a})`; ctx.fill();
+    ctx.strokeStyle=ds.c; ctx.lineWidth=ds.lw; ctx.stroke();
+  });
+  const names=[workspaceName,...(a.competitors||[]).slice(0,3).map(c=>c.name)];
+  const cols=['#1D9E75','#3B82F6','#F59E0B','#8B5CF6'];
+  names.slice(0,4).forEach((n,i)=>{
+    const gy=canvas.height-16-(names.length-1-i)*12;
+    ctx.fillStyle=cols[i];ctx.fillRect(8,gy-2,10,2);
+    ctx.fillStyle='#94A3B8';ctx.font='8px Inter';ctx.textAlign='left';ctx.textBaseline='middle';
+    ctx.fillText(n.slice(0,12),22,gy-1);
+  });
+}
+
+function buildSignals(a) {
+  const c=el('div','card'); c.innerHTML='<div class="card-label">Trend Signals</div>';
+  const grid=el('div','signals-grid');
+  (a.trend_signals||[]).forEach(sig=>{
+    const card=el('div','signal-card');
+    const icon=sig.direction==='positive'?'📈':sig.direction==='negative'?'⚠️':'📊';
+    const uc='badge '+(sig.urgency==='high'?'badge-red':sig.urgency==='medium'?'badge-amber':'badge-gray');
+    card.innerHTML=`<div class="signal-icon">${icon}</div><div><div class="signal-text">${esc(sig.signal||'')}</div><span class="${uc}">${(sig.urgency||'low').toUpperCase()}</span></div>`;
+    grid.appendChild(card);
+  });
+  c.appendChild(grid); return c;
+}
+
+async function addCompetitor() {
+  const inp=document.getElementById('comp-input'); const name=inp?.value?.trim(); if(!name) return; inp.value='';
+  await fetch('/api/brand-intelligence/competitors',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({workspace_id:workspaceId,name})});
+  await loadCompetitors(); if(_analysis){const cl=document.getElementById('comp-list');if(cl)renderCompList(cl,_analysis);}
+}
+async function deleteCompetitor(name,row) {
+  const comp=_competitors.find(c=>c.name.toLowerCase()===name.toLowerCase());
+  if(comp) await fetch('/api/brand-intelligence/competitors/'+comp.id+'?workspace_id='+workspaceId,{method:'DELETE'});
+  await loadCompetitors(); if(row) row.remove();
+}
+function animateBars() {
+  document.querySelectorAll('.sent-fill,.theme-fill,.c-fill').forEach(e=>{e.style.width=(e.dataset.w||'0')+'%';});
+}
+function el(tag,cls){const e=document.createElement(tag);if(cls)e.className=cls;return e;}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+</script>
+</body>
+</html>

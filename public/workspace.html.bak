@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workspace</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f4f5f7; color: #1a1a2e; display: flex; min-height: 100vh; }
+
+/* ── Sidebar ── */
+.sidebar {
+  width: 232px; flex-shrink: 0; min-height: 100vh;
+  background: #0f1923;
+  display: flex; flex-direction: column;
+  position: relative;
+}
+.sidebar::after {
+  content:''; position:absolute; right:0; top:0; bottom:0; width:1px;
+  background: linear-gradient(to bottom, transparent, rgba(29,158,117,.3) 40%, rgba(29,158,117,.3) 60%, transparent);
+}
+
+/* Header */
+.sidebar-header {
+  padding: 20px 16px 16px;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  margin-bottom: 6px;
+}
+.sidebar-logo-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.sidebar-logo {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: linear-gradient(135deg, #1D9E75, #0d7a5a);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 700; color: white;
+  flex-shrink: 0; box-shadow: 0 2px 8px rgba(29,158,117,.35);
+}
+.sidebar-ws {
+  font-size: 14px; font-weight: 700; color: #f0f4f8;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  letter-spacing: -.01em;
+}
+.sidebar-back {
+  font-size: 11px; color: rgba(29,158,117,.8); cursor: pointer;
+  display: inline-flex; align-items: center; gap: 3px;
+  transition: color .15s;
+}
+.sidebar-back:hover { color: #1D9E75; }
+
+/* Nav sections */
+.nav-section {
+  font-size: 9.5px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .1em; color: rgba(255,255,255,.25);
+  padding: 14px 16px 5px;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 9px 14px 9px 16px;
+  font-size: 13px; font-weight: 500; color: rgba(255,255,255,.55);
+  cursor: pointer; transition: all .15s; border-radius: 0; position: relative;
+  margin: 1px 8px;
+  border-radius: 8px;
+}
+.nav-item:hover { background: rgba(255,255,255,.07); color: rgba(255,255,255,.9); }
+.nav-item.active {
+  background: rgba(29,158,117,.18);
+  color: #2dd4a0;
+  font-weight: 600;
+}
+.nav-item.active::before {
+  content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+  width: 3px; height: 18px; background: #1D9E75; border-radius: 0 2px 2px 0;
+  margin-left: -8px;
+}
+.nav-icon { font-size: 14px; opacity: .9; width: 18px; text-align: center; }
+.nav-new-badge {
+  font-size: 9px; font-weight: 700; background: #1D9E75; color: white;
+  border-radius: 4px; padding: 1px 5px; margin-left: auto; letter-spacing: .03em;
+}
+
+/* Footer accounts */
+.sidebar-footer {
+  margin-top: auto; border-top: 1px solid rgba(255,255,255,.07);
+  padding: 12px; display: flex; flex-direction: column; gap: 2px;
+}
+.sidebar-footer-label {
+  font-size: 9.5px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .1em; color: rgba(255,255,255,.2); padding: 0 4px 6px;
+}
+.sidebar-account {
+  display: flex; align-items: center; gap: 9px; padding: 6px 8px;
+  border-radius: 8px; transition: background .15s; cursor: default;
+}
+.sidebar-account:hover { background: rgba(255,255,255,.06); }
+.sidebar-avatar-wrap {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: linear-gradient(135deg, #1D9E75, #0a5a43);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: white;
+  flex-shrink: 0; overflow: hidden; position: relative;
+  border: 1.5px solid rgba(29,158,117,.4);
+}
+.sidebar-avatar-wrap img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
+.sidebar-avatar-initials { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: white; }
+.sidebar-account-info { min-width: 0; }
+.sidebar-account-name { font-size: 12px; font-weight: 500; color: rgba(255,255,255,.75); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 145px; }
+.sidebar-account-badge { font-size: 10px; color: rgba(255,255,255,.3); margin-top: 1px; display: flex; align-items: center; gap: 3px; }
+.li-dot { width: 5px; height: 5px; border-radius: 50%; background: #0A66C2; display: inline-block; }
+
+.content { flex: 1; overflow: auto; min-width: 0; }
+.screen { display: none; }
+.screen.active { display: block; }
+</style>
+</head>
+<body>
+<div class="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-logo-row">
+      <div class="sidebar-logo">E</div>
+      <div class="sidebar-ws" id="ws-name">Workspace</div>
+    </div>
+    <span class="sidebar-back" onclick="window.location.href='/'">← All workspaces</span>
+  </div>
+
+  <div class="nav-section">Outreach</div>
+  <div class="nav-item active" onclick="showScreen('campaigns')" id="nav-campaigns">
+    <span class="nav-icon">&#128203;</span> Campaigns
+  </div>
+  <div class="nav-item" onclick="showScreen('sequences')" id="nav-sequences">
+    <span class="nav-icon">&#128196;</span> Sequences
+  </div>
+  <div class="nav-item" onclick="showScreen('enrollments')" id="nav-enrollments">
+    <span class="nav-icon">&#128100;</span> Enrollments
+  </div>
+  <div class="nav-item" onclick="showScreen('lists')" id="nav-lists">
+    <span class="nav-icon">&#128101;</span> Lists
+  </div>
+  <div class="nav-item" onclick="showScreen('lists2')" id="nav-lists2">
+    <span class="nav-icon">&#128203;</span> List 2
+  </div>
+
+  <div class="nav-item" onclick="showScreen('scheduler')" id="nav-scheduler">
+    <span class="nav-icon">&#128197;</span> Post Scheduler
+  </div>
+
+  <div class="nav-section">Intelligence</div>
+  <div class="nav-item" onclick="showScreen('signals')" id="nav-signals">
+    <span class="nav-icon">📡</span> Signals
+  </div>
+  <div class="nav-item" onclick="showScreen('target-accounts')" id="nav-target-accounts">
+    <span class="nav-icon">🏢</span> Target Accounts
+  </div>
+<div class="nav-item" onclick="showScreen('opportunities')" id="nav-opportunities">
+    <span class="nav-icon">🎯</span> Opportunities
+  </div>
+  <div class="nav-item" onclick="showScreen('feed')" id="nav-feed">
+    <span class="nav-icon">&#128240;</span> Feed
+  </div>
+  <div class="nav-item" onclick="showScreen('analytics')" id="nav-analytics">
+    <span class="nav-icon">&#128202;</span> Analytics
+  </div>
+  <div class="nav-item" onclick="showScreen('inbox')" id="nav-inbox">
+    <span class="nav-icon">&#128140;</span> Inbox
+  </div>
+
+  <div class="nav-section">Account</div>
+  <div class="nav-item" onclick="showScreen('settings')" id="nav-settings">
+    <span class="nav-icon">&#9881;</span> Settings
+  </div>
+
+  <div class="sidebar-footer" id="sidebar-footer" style="display:none;"><div class="sidebar-footer-label">Accounts</div></div>
+</div>
+
+<div class="content">
+  <div class="screen active" id="screen-campaigns"></div>
+  <div class="screen" id="screen-sequences"></div>
+  <div class="screen" id="screen-enrollments"></div>
+  <div class="screen" id="screen-lists"></div>
+  <div class="screen" id="screen-lists2"></div>
+  <div class="screen" id="screen-signals"></div>
+  <div class="screen" id="screen-target-accounts"></div>
+  <div class="screen" id="screen-opportunities"></div>
+  <div class="screen" id="screen-feed"></div>
+  <div class="screen" id="screen-analytics"></div>
+  <div class="screen" id="screen-inbox"></div>
+  <div class="screen" id="screen-settings"></div>
+  <div class="screen" id="screen-scheduler"></div>
+</div>
+
+<script>
+const params = new URLSearchParams(window.location.search);
+const workspaceId = params.get('id');
+let workspaceName = 'Workspace';
+
+function initials(name) {
+  return String(name||'?').split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
+}
+
+async function loadAccounts() {
+  try {
+    const res  = await fetch('/api/workspaces/'+workspaceId+'/accounts');
+    const data = await res.json();
+    const accounts = data.items || [];
+    if (!accounts.length) return;
+    const footer = document.getElementById('sidebar-footer');
+    footer.style.display = 'flex';
+    footer.innerHTML = '<div class="sidebar-footer-label">Accounts</div>' + accounts.map(acc => {
+      const name = acc.full_name || acc.display_name || acc.account_id;
+      const ini  = initials(name);
+      const avatarInner = acc.avatar_url
+        ? '<img src="'+acc.avatar_url+'" alt="" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'"><span class="sidebar-avatar-initials" style="display:none;">'+ini+'</span>'
+        : '<span class="sidebar-avatar-initials">'+ini+'</span>';
+      return '<div class="sidebar-account" title="'+name+'"><div class="sidebar-avatar-wrap">'+avatarInner+'</div><div class="sidebar-account-info"><div class="sidebar-account-name">'+name+'</div><div class="sidebar-account-badge"><span class="li-dot"></span> LinkedIn</div></div></div>';
+    }).join('');
+  } catch(e) { console.warn('[Sidebar] Could not load accounts:', e.message); }
+}
+
+async function init() {
+  if (!workspaceId) { window.location.href='/'; return; }
+  try {
+    const res = await fetch('/api/workspaces');
+    const data = await res.json();
+    const ws = (data.items||[]).find(w=>String(w.id)===String(workspaceId));
+    if (ws) { workspaceName=ws.name; document.getElementById('ws-name').textContent=ws.name; document.title=ws.name; }
+  } catch(e) {}
+  loadAccounts();
+  loadScreen('campaigns');
+}
+
+let loaded = {};
+
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  document.getElementById('nav-'+name).classList.add('active');
+  if (!loaded[name]) loadScreen(name);
+}
+
+function loadScreen(name) {
+  loaded[name] = true;
+  var fileMap = {lists: 'lists-ui', lists2: 'lists2-v2', scheduler: 'post-scheduler',
+                 sequences: 'sequences', enrollments: 'enrollments', signals: 'signals',
+                 'target-accounts': 'target-accounts', opportunities: 'opportunities', analytics: 'admin-analytics'};
+  var fname = fileMap[name] || name;
+  var frame = document.createElement('iframe');
+  frame.style.cssText = 'width:100%;height:100vh;border:none;';
+  frame.src = '/' + fname + '.html?workspace_id=' + workspaceId + '&workspace_name=' + encodeURIComponent(workspaceName);
+  document.getElementById('screen-' + name).appendChild(frame);
+}
+
+init();
+
+// Listen for cross-iframe messages
+window.addEventListener('message', function(ev) {
+  if (!ev.data) return;
+  // Support both old and new action names
+  if (ev.data.type !== 'open-inbox-contact' && ev.data.action !== 'open_inbox_contact') return;
+  var data = ev.data;
+  // Normalise to expected format for inbox
+  data.type = 'open-inbox-contact';
+  // Switch to inbox tab first
+  showScreen('inbox');
+  // Retry sending until inbox iframe is ready (up to 3 seconds)
+  var attempts = 0;
+  var trySend = function() {
+    var inboxFrame = document.querySelector('#screen-inbox iframe');
+    if (inboxFrame && inboxFrame.contentWindow) {
+      inboxFrame.contentWindow.postMessage(data, '*');
+    } else if (attempts++ < 15) {
+      setTimeout(trySend, 200);
+    }
+  };
+  // Small initial delay to let inbox iframe start loading
+  setTimeout(trySend, 400);
+});
+</script>
+</body>
+</html>

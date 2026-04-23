@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Feed</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: #F3F2EF; color: #191919; font-size: 14px; }
+
+/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Topbar ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
+.topbar { background: white; border-bottom: 1px solid #E9E5DF; padding: 0 24px; display: flex; align-items: center; gap: 14px; height: 54px; position: sticky; top: 0; z-index: 20; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+.topbar-logo { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 700; color: #1D9E75; letter-spacing: -0.3px; }
+.topbar-logo-dot { width: 8px; height: 8px; border-radius: 50%; background: linear-gradient(135deg,#1D9E75,#0A66C2); display: inline-block; }
+.topbar-spacer { flex: 1; }
+.topbar-badge { font-size: 11px; font-weight: 600; background: #F0FBF7; color: #0F6E56; border: 1px solid #B7E4D2; border-radius: 20px; padding: 3px 10px; }
+
+/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Layout ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
+.page { display: flex; gap: 20px; max-width: 980px; margin: 0 auto; padding: 20px 16px; }
+.feed-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0; }
+.sidebar-col { width: 240px; flex-shrink: 0; display: flex; flex-direction: column; gap: 14px; }
+
+/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Filter bar ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
+.filter-bar { background: white; border: 1px solid #E9E5DF; border-radius: 12px; padding: 10px 16px; display: flex; align-items: center; gap: 10px; margin-bottom: 14px; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+.filter-label { font-size: 11px; font-weight: 600; color: #999; text-transform: uppercase; letter-spacing: .07em; white-space: nowrap; }
+.filter-select { border: 1px solid #DED9D3; border-radius: 8px; padding: 5px 10px; font-size: 12px; font-family: inherit; color: #333; background: white; cursor: pointer; flex: 1; }
+.filter-select:focus { outline: none; border-color: #1D9E75; box-shadow: 0 0 0 3px rgba(29,158,117,.1); }
+.fetch-btn { background: linear-gradient(135deg,#1D9E75,#15805E); border: none; border-radius: 8px; padding: 7px 16px; font-size: 12px; font-weight: 600; color: white; cursor: pointer; font-family: inherit; white-space: nowrap; display: flex; align-items: center; gap: 6px; transition: opacity .15s; }
+.fetch-btn:hover { opacity: .9; }
+.fetch-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Post card ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
+.post-card { background: white; border: 1px solid #E9E5DF; border-radius: 12px; margin-bottom: 14px; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,.04); transition: box-shadow .15s; }
+.post-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+
+.post-header { display: flex; align-items: flex-start; gap: 12px; padding: 16px 16px 10px; }
+.post-avatar { width: 48px; height: 48px; border-radius: 50%; flex-shrink: 0; position: relative; overflow: hidden; background: linear-gradient(135deg,#E0F5EE,#DBEAFE); display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; color: #0F6E56; border: 2px solid #F0FBF7; }
+.post-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+.post-avatar .ini { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #0F6E56; }
+.campaign-ring { position: absolute; inset: -2px; border-radius: 50%; border: 2px solid #1D9E75; pointer-events: none; }
+
+.post-author { flex: 1; min-width: 0; }
+.post-name { font-size: 14px; font-weight: 600; color: #191919; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.post-name a { color: inherit; text-decoration: none; }
+.post-name a:hover { color: #0A66C2; text-decoration: underline; }
+.in-campaign-chip { font-size: 10px; font-weight: 600; background: #E0F5EE; color: #0F6E56; border: 1px solid #B7E4D2; border-radius: 20px; padding: 1px 7px; white-space: nowrap; }
+.post-headline { font-size: 12px; color: #666; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.post-time { font-size: 11px; color: #999; margin-top: 3px; display: flex; align-items: center; gap: 4px; }
+.post-time .globe-icon { font-size: 10px; }
+
+/* Post body */
+.post-body { padding: 0 16px 10px; font-size: 14px; line-height: 1.65; color: #333; word-break: break-word; }
+.post-body.clamped { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.see-more-btn { color: #1D9E75; font-size: 13px; font-weight: 500; cursor: pointer; padding: 0 16px 12px; display: inline-block; }
+.see-more-btn:hover { text-decoration: underline; }
+
+/* Post stats bar */
+.post-stats { padding: 6px 16px 6px; display: flex; align-items: center; gap: 4px; font-size: 12px; color: #666; border-top: 1px solid #F3F2EF; }
+.stat-reactions { display: flex; align-items: center; gap: 4px; flex: 1; }
+.reaction-icons { display: flex; }
+.reaction-icon { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid white; font-size: 10px; display: flex; align-items: center; justify-content: center; margin-left: -3px; background: #0A66C2; }
+.reaction-icon:first-child { margin-left: 0; }
+.stat-count { color: #555; }
+.stat-divider { color: #ccc; margin: 0 4px; }
+.stat-link { color: #666; cursor: pointer; }
+.stat-link:hover { color: #333; text-decoration: underline; }
+
+/* Action buttons row */
+.post-actions { display: flex; border-top: 1px solid #F3F2EF; }
+.action-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 8px; font-size: 13px; font-weight: 500; color: #666; cursor: pointer; transition: background .12s; border-radius: 0; }
+.action-btn:hover { background: #F3F2EF; color: #333; }
+.action-btn .icon { font-size: 16px; }
+
+/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Comments ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
+.comments-section { padding: 0 16px 14px; display: flex; flex-direction: column; gap: 10px; border-top: 1px solid #F3F2EF; padding-top: 12px; }
+.comment { display: flex; gap: 8px; }
+.comment-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg,#EDE9FE,#DBEAFE); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #5B21B6; flex-shrink: 0; overflow: hidden; position: relative; }
+.comment-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+.comment-avatar .ini { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #5B21B6; }
+.comment-bubble { flex: 1; background: #F3F2EF; border-radius: 0 12px 12px 12px; padding: 8px 12px; }
+.comment-name { font-size: 12px; font-weight: 600; color: #191919; }
+.comment-name a { color: inherit; text-decoration: none; }
+.comment-name a:hover { color: #0A66C2; }
+.comment-title-small { font-size: 11px; color: #888; font-weight: 400; }
+.comment-text { font-size: 13px; color: #333; line-height: 1.5; margin-top: 3px; }
+.comment-meta { font-size: 11px; color: #aaa; margin-top: 4px; display: flex; gap: 10px; align-items: center; }
+.comment-like-count { display: flex; align-items: center; gap: 3px; }
+
+/* Threaded replies */
+.replies { margin-top: 8px; padding-left: 14px; border-left: 2px solid #DED9D3; display: flex; flex-direction: column; gap: 8px; }
+.reply { display: flex; gap: 7px; }
+.reply-avatar { width: 24px; height: 24px; border-radius: 50%; background: linear-gradient(135deg,#FEF3C7,#DBEAFE); display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 700; color: #92400E; flex-shrink: 0; overflow: hidden; position: relative; }
+.reply-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+.reply-avatar .ini { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 700; }
+.reply-bubble { flex: 1; background: #F9F9F7; border-radius: 0 10px 10px 10px; padding: 6px 10px; }
+.reply-name { font-size: 11px; font-weight: 600; color: #333; }
+.reply-text { font-size: 12px; color: #444; line-height: 1.4; margin-top: 2px; }
+.reply-time { font-size: 10px; color: #bbb; margin-top: 3px; }
+
+/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Loading / Empty ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
+.loading-card { background: white; border: 1px solid #E9E5DF; border-radius: 12px; padding: 48px; text-align: center; }
+.spinner { display: inline-block; width: 28px; height: 28px; border: 3px solid #E9E5DF; border-top-color: #1D9E75; border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.empty-card { background: white; border: 2px dashed #E9E5DF; border-radius: 12px; padding: 56px 24px; text-align: center; }
+.empty-icon { font-size: 44px; opacity: .25; margin-bottom: 14px; }
+.empty-title { font-size: 16px; font-weight: 600; color: #333; margin-bottom: 8px; }
+.empty-sub { font-size: 13px; color: #888; line-height: 1.7; }
+
+/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Pagination ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
+.pagination { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 14px 0 4px; }
+.pg-btn { background: white; border: 1px solid #DED9D3; border-radius: 8px; padding: 7px 16px; font-size: 13px; cursor: pointer; font-family: inherit; color: #555; transition: all .12s; }
+.pg-btn:hover:not(:disabled) { background: #F0FBF7; border-color: #1D9E75; color: #1D9E75; }
+.pg-btn:disabled { opacity: .4; cursor: not-allowed; }
+.pg-info { font-size: 12px; color: #888; }
+
+/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Sidebar widgets ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
+.widget { background: white; border: 1px solid #E9E5DF; border-radius: 12px; padding: 16px; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+.widget-title { font-size: 13px; font-weight: 700; color: #191919; margin-bottom: 12px; display: flex; align-items: center; gap: 7px; }
+.widget-title-icon { font-size: 16px; }
+.stat-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #F3F2EF; font-size: 12px; }
+.stat-row:last-child { border-bottom: none; }
+.stat-lbl { color: #666; }
+.stat-val { font-weight: 600; color: #191919; }
+.date-badge { background: #F0FBF7; border: 1px solid #B7E4D2; border-radius: 8px; padding: 8px 12px; font-size: 12px; color: #0F6E56; font-weight: 500; text-align: center; margin-bottom: 6px; }
+
+#list-filter-feed { min-width: 140px; }
+
+.new-posts-bar{display:none;position:sticky;top:0;z-index:100;background:#1D9E75;color:white;text-align:center;padding:10px;font-size:13px;font-weight:600;cursor:pointer;border-radius:8px;margin-bottom:12px;box-shadow:0 2px 8px rgba(29,158,117,.3);}
+.new-posts-bar:hover{background:#178f68;}
+
+.parent-post-stub {
+  background: #f8f6f3;
+  border: 1px solid #E9E5DF;
+  border-radius: 12px 12px 0 0;
+  padding: 14px 16px;
+  margin-bottom: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+}
+.parent-post-stub .stub-icon { font-size: 18px; flex-shrink: 0; margin-top: 2px; }
+.parent-post-stub .stub-body { flex: 1; min-width: 0; }
+.parent-post-stub .stub-label { font-size: 11px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+.parent-post-stub .stub-link { font-size: 13px; color: var(--acc, #52b788); font-weight: 500; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
+.parent-post-stub .stub-link:hover { text-decoration: underline; }
+.comment-as-post {
+  border-radius: 0 0 12px 12px !important;
+  border-top: 2px solid var(--acc, #52b788) !important;
+  margin-top: 0 !important;
+}
+.comment-box{display:none;padding:12px 16px 14px;border-top:1px solid #F0EDE8;background:#FDFCFB;border-radius:0 0 12px 12px;}
+.comment-box textarea{width:100%;min-height:72px;border:1px solid #DED9D3;border-radius:8px;padding:10px 12px;font-size:14px;font-family:inherit;resize:vertical;outline:none;box-sizing:border-box;transition:border-color .15s;}
+.comment-box textarea:focus{border-color:var(--acc,#52b788);}
+.comment-box-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:8px;}
+.comment-cancel-btn{background:none;border:1px solid #DED9D3;color:#666;padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer;}
+.comment-send-btn{background:var(--acc,#52b788);color:#fff;border:none;padding:6px 16px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;}
+.comment-send-btn:disabled{opacity:.5;cursor:not-allowed;}
+.comment-account-select{width:100%;padding:7px 10px;border:1px solid #DED9D3;border-radius:8px;font-size:13px;font-family:inherit;background:#fff;margin-bottom:8px;color:#333;cursor:pointer;outline:none;}
+.comment-account-select:focus{border-color:var(--acc,#52b788);}
+.comment-account-label{font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;display:block;}
+
+    /* Original post card (shown above comment) */
+    .original-post-card {
+      background: #f8fafb;
+      border: 1px solid #e5e7eb;
+      border-left: 3px solid #1a7a4a;
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 0;
+    }
+    .original-post-card .post-body {
+      color: #374151;
+      font-size: 0.9rem;
+      margin-top: 10px;
+      display: -webkit-box;
+      -webkit-line-clamp: 4;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .stub-link-inline {
+      margin-left: auto;
+      font-size: 1.1rem;
+      color: #1a7a4a;
+      text-decoration: none;
+      flex-shrink: 0;
+      padding: 4px;
+    }
+    .stub-link-inline:hover { color: #15633c; }
+    .comment-connector {
+      font-size: 0.78rem;
+      color: #9ca3af;
+      padding: 4px 0 4px 16px;
+      font-style: italic;
+    }
+    .comment-as-post {
+      border-left: 3px solid #d1d5db;
+      background: #fff;
+    }
+    
+    .action-btn.liked { color: #0a66c2; font-weight:600; }
+    </style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-logo">
+    <span class="topbar-logo-dot"></span>
+    El-Via Feed
+  </div>
+  <div class="topbar-spacer"></div>
+  <div class="topbar-badge" id="date-range-badge">Last 14 days</div>
+  <span id="last-sync" style="font-size:11px;color:#aaa;"></span>
+</div>
+
+<div class="page">
+  <div class="feed-col">
+    <!-- Filter bar -->
+    
+
+    <div id="new-posts-bar" class="new-posts-bar" onclick="loadFeed()"></div>
+<div id="feed-wrap"></div>
+
+    <div class="pagination" id="pagination" style="display:none;">
+      <button class="pg-btn" id="pg-prev" onclick="changePage(-1)" disabled>&#8592; Prev</button>
+      <span class="pg-info" id="pg-info"></span>
+      <button class="pg-btn" id="pg-next" onclick="changePage(1)">Next &#8594;</button>
+    </div>
+  </div>
+
+  <div class="sidebar-col">
+    <div class="widget">
+      <div class="widget-title"><span class="widget-title-icon">&#128200;</span> Feed stats</div>
+      <div class="date-badge" id="cutoff-badge">&#128197; Showing posts from the last 14 days</div>
+      <div class="stat-row"><span class="stat-lbl">Posts</span><span class="stat-val" id="st-posts">ÃÂ¢ÃÂÃÂ</span></div>
+      <div class="stat-row"><span class="stat-lbl">Comments</span><span class="stat-val" id="st-comments">ÃÂ¢ÃÂÃÂ</span></div>
+      <div class="stat-row"><span class="stat-lbl">Contacts</span><span class="stat-val" id="st-contacts">ÃÂ¢ÃÂÃÂ</span></div>
+      <div class="stat-row"><span class="stat-lbl">Avg likes/post</span><span class="stat-val" id="st-avg-likes">ÃÂ¢ÃÂÃÂ</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const urlParams      = new URLSearchParams(window.location.search);
+const workspaceId    = urlParams.get('workspace_id');
+let campaigns        = [];
+let selectedCampaign = null;
+let currentPage      = 1;
+const PAGE_SIZE      = 20;
+let totalPosts       = 0;
+let lastSeenAt       = null;
+let workspaceAccounts = [];
+
+// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Helpers ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function ini(name) {
+  return String(name||'?').split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
+}
+
+function formatDate(d) {
+  if (!d) return '';
+  const dt = new Date(d);
+  if (isNaN(dt)) return '';
+  const now = new Date();
+  const diff = Math.floor((now - dt) / 1000);
+  if (diff < 60)    return 'Just now';
+  if (diff < 3600)  return Math.floor(diff/60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
+  if (diff < 172800) return 'Yesterday';
+  // Same year: "Mar 15"
+  const opts = dt.getFullYear() === now.getFullYear()
+    ? { month: 'short', day: 'numeric' }
+    : { month: 'short', day: 'numeric', year: 'numeric' };
+  return dt.toLocaleDateString('en-US', opts);
+}
+
+function formatDateTime(d) {
+  if (!d) return '';
+  const dt = new Date(d);
+  if (isNaN(dt)) return '';
+  const now = new Date();
+  const diff = Math.floor((now - dt) / 1000);
+  if (diff < 60)    return 'Just now';
+  if (diff < 3600)  return Math.floor(diff/60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
+  const opts = dt.getFullYear() === now.getFullYear()
+    ? { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }
+    : { month: 'short', day: 'numeric', year: 'numeric' };
+  return dt.toLocaleDateString('en-US', opts);
+}
+
+function avatarHtml(url, name, size) {
+  const i = esc(ini(name));
+  const inner = url
+    ? '<img src="' + esc(url) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">'
+    : '';
+  return inner + '<span class="ini">' + i + '</span>';
+}
+
+// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Data ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+
+async function loadCampaigns() {
+  if (!document.getElementById('campaign-select')) return; // removed
+
+  try {
+    const res  = await fetch('/api/campaigns?workspace_id=' + workspaceId);
+    const data = await res.json();
+    campaigns  = data.items || [];
+    const sel  = document.getElementById('campaign-select');
+    campaigns.forEach(c => {
+      const o = document.createElement('option');
+      o.value = c.id; o.textContent = c.name; sel.appendChild(o);
+    });
+    if (campaigns.length === 1) {
+      sel.value = campaigns[0].id;
+      selectedCampaign = campaigns[0].id;
+    }
+  } catch(e) { console.error(e); }
+}
+
+function onCampaignChange() {
+  selectedCampaign = document.getElementById('campaign-select').value || null;
+  currentPage = 1;
+  loadFeed();
+}
+
+async function loadFeed() {
+  const wrap = document.getElementById('feed-wrap');
+  var bar=document.getElementById('new-posts-bar'); if(bar) bar.style.display='none';
+  wrap.innerHTML = '<div class="loading-card"><div class="spinner"></div><p style="margin-top:14px;color:#aaa;font-size:13px;">Loading feed&hellip;</p></div>';
+  document.getElementById('pagination').style.display = 'none';
+
+  try {
+    const params = new URLSearchParams({ workspace_id: workspaceId, page: currentPage, limit: PAGE_SIZE });
+    // no campaign filter Ã¢ÂÂ show all
+    const res  = await fetch('/api/feed?' + params);
+    const data = await res.json();
+    const posts = data.items || [];
+    totalPosts  = data.total || 0;
+    // Track newest post for auto-refresh
+    if (currentPage === 1 && posts[0] && posts[0].posted_at) {
+      lastSeenAt = posts[0].posted_at;
+    }
+
+    // Stats
+    document.getElementById('st-posts').textContent = totalPosts.toLocaleString();
+    const contactIds = new Set(posts.map(p => p.contact_id).filter(Boolean));
+    document.getElementById('st-contacts').textContent = contactIds.size;
+    let totalComments = 0, totalLikes = 0;
+    posts.forEach(p => {
+      totalLikes += p.likes_count || 0;
+      (p.comments || []).forEach(c => { totalComments++; totalComments += (c.replies||[]).length; });
+    });
+    document.getElementById('st-comments').textContent = totalComments;
+    document.getElementById('st-avg-likes').textContent = posts.length
+      ? (totalLikes / posts.length).toFixed(1) : 'ÃÂ¢ÃÂÃÂ';
+
+    if (!posts.length) {
+      wrap.innerHTML = '<div class="empty-card"><div class="empty-icon">&#128240;</div><div class="empty-title">No posts in the last 14 days</div><div class="empty-sub">Click "Fetch posts" to import recent LinkedIn activity<br>from your campaign contacts.</div></div>';
+      return;
+    }
+
+    wrap.innerHTML = posts.map(renderPost).join('');
+    document.getElementById('last-sync').textContent = 'Updated ' + new Date().toLocaleTimeString();
+
+    const pages = data.pages || 1;
+    if (pages > 1) {
+      document.getElementById('pagination').style.display = 'flex';
+      document.getElementById('pg-info').textContent = 'Page ' + currentPage + ' of ' + pages;
+      document.getElementById('pg-prev').disabled = currentPage <= 1;
+      document.getElementById('pg-next').disabled = currentPage >= pages;
+    }
+  } catch(err) {
+    wrap.innerHTML = '<div class="loading-card" style="color:#DC2626;">Error: ' + esc(err.message) + '</div>';
+  }
+}
+
+// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Render post ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+
+function renderPost(post) {
+  // If this is a comment (has parent_post_urn), render as "parent post stub + comment"
+  if (post.parent_post_urn) {
+    const liUrl     = 'https://www.linkedin.com/feed/update/' + encodeURIComponent(post.parent_post_urn) + '/';
+    const avComment = avatarHtml(post.author_avatar_url, post.author_name);
+    const avParent  = avatarHtml(post.parent_author_avatar_url, post.parent_author_name);
+    const commenterName = esc(post.author_name || 'Unknown');
+    const isIC          = !!post.contact_id;
+    const chip          = isIC ? '<span class="in-campaign-chip">&#127919; In campaign</span>' : '';
+    const commentBody   = esc(post.content || '').replace(/\n/g, '<br>');
+
+    // Original post block (if we have the data)
+    let originalPostHtml = '';
+    if (post.parent_author_name) {
+      const parentName  = esc(post.parent_author_name);
+      const parentTitle = esc(post.parent_author_title || '');
+      const parentBody  = esc(post.parent_content || '').replace(/\n/g, '<br>');
+      const parentTime  = post.parent_posted_at ? formatDate(post.parent_posted_at) : '';
+      const parentHref  = post.parent_author_profile_url
+        ? `href="${esc(post.parent_author_profile_url)}" target="_blank" rel="noopener"`
+        : '';
+      const parentNameTag = parentHref ? `<a ${parentHref}>${parentName}</a>` : parentName;
+      originalPostHtml = `
+      <div class="post-card original-post-card">
+        <div class="post-header">
+          <div class="post-avatar">${avParent}</div>
+          <div class="post-author">
+            <div class="post-name">${parentNameTag}</div>
+            <div class="post-headline">${parentTitle}</div>
+            <div class="post-time">${parentTime}${parentTime ? ' &middot; <span class="globe-icon">&#127760;</span>' : ''}</div>
+          </div>
+          <a class="stub-link-inline" href="${liUrl}" target="_blank" rel="noopener" title="View on LinkedIn">&#8599;</a>
+        </div>
+        <div class="post-body">${parentBody}</div>
+      </div>`;
+    } else {
+      originalPostHtml = `
+      <div class="parent-post-stub">
+        <div class="stub-icon">📝</div>
+        <div class="stub-body">
+          <div class="stub-label">Commented on a post</div>
+          <a class="stub-link" href="${liUrl}" target="_blank" rel="noopener">View original post on LinkedIn &rarr;</a>
+        </div>
+      </div>`;
+    }
+
+    return `
+    <div style="margin-bottom:16px">
+      ${originalPostHtml}
+      <div class="comment-connector">&#x21B3; commented</div>
+      <div class="post-card comment-as-post">
+        <div class="post-header">
+          <div class="post-avatar">${avComment}</div>
+          <div class="post-author">
+            <div class="post-name">${commenterName} ${chip}</div>
+            <div class="post-headline">${esc(post.author_title || '')}</div>
+            <div class="post-time">${formatDate(post.posted_at)}${post.posted_at ? ' &middot; <span class=\"globe-icon\">&#127760;</span>' : ''}</div>
+          </div>
+        </div>
+        <div class="post-body">${commentBody}</div>
+      <div class="post-actions">
+        <div class="action-btn like-btn" data-pid="${post.id}" data-urn="${encodeURIComponent(post.post_urn)}" onclick="likePostHandler(this)"><span class="icon">&#128077;</span> Like</div>
+        <div class="action-btn" data-pid="${post.id}" data-urn="${encodeURIComponent(post.post_urn)}" onclick="toggleCommentBox(this.dataset.pid,this.dataset.urn)"><span class="icon">&#128172;</span> Reply</div>
+      </div>
+      <div class="comment-box" id="cb-${post.id}" data-pid="${post.id}" data-urn="${encodeURIComponent(post.post_urn)}"><label class="comment-account-label">Reply as</label><select class="comment-account-select" id="ca-${post.id}"><option value="">Loading…</option></select><textarea id="ct-${post.id}" placeholder="Write a reply…"></textarea><div class="comment-box-actions"><button class="comment-cancel-btn" onclick="toggleCommentBox(this.closest('.comment-box').dataset.pid,'')">Cancel</button><button class="comment-send-btn" id="cs-${post.id}" data-pid="${post.id}" data-urn="${encodeURIComponent(post.post_urn)}" onclick="sendComment(this.dataset.pid, this.dataset.urn)">Send</button></div></div>
+      </div>
+    </div>`;
+  }
+
+  const name        = esc(post.author_name || 'Unknown');
+  const isInCampaign = !!post.contact_id;
+  const profileHref = post.author_profile_url
+    ? 'href="' + esc(post.author_profile_url) + '" target="_blank" rel="noopener"'
+    : '';
+  const nameTag = profileHref
+    ? '<a ' + profileHref + '>' + name + '</a>'
+    : name;
+
+  const av = avatarHtml(post.author_avatar_url, post.author_name);
+  const campaignRing = isInCampaign ? '<div class="campaign-ring"></div>' : '';
+  const campaignChip = isInCampaign ? '<span class="in-campaign-chip">&#127919; In campaign</span>' : '';
+
+  const content = esc(post.content || '').replace(/\n/g, '<br>');
+  const isLong  = (post.content || '').length > 350;
+  const bodyHtml = isLong
+    ? '<div class="post-body clamped" id="pb-' + post.id + '">' + content + '</div><span class="see-more-btn" onclick="expandPost(' + post.id + ')">ÃÂ¢ÃÂÃÂ¦see more</span>'
+    : '<div class="post-body">' + content + '</div>';
+
+  const likes    = post.likes_count    || 0;
+  const comments = post.comments_count || 0;
+  const shares   = post.shares_count   || 0;
+
+  const statsBar = (likes > 0 || comments > 0 || shares > 0) ? `
+    <div class="post-stats">
+      <div class="stat-reactions">
+        ${likes > 0 ? '<div class="reaction-icons"><div class="reaction-icon">&#128077;</div></div> <span class="stat-count">' + likes.toLocaleString() + '</span>' : ''}
+      </div>
+      ${comments > 0 ? '<span class="stat-link">' + comments.toLocaleString() + ' comment' + (comments>1?'s':'') + '</span>' : ''}
+      ${comments > 0 && shares > 0 ? '<span class="stat-divider">&middot;</span>' : ''}
+      ${shares > 0 ? '<span class="stat-link">' + shares.toLocaleString() + ' repost' + (shares>1?'s':'') + '</span>' : ''}
+    </div>` : '';
+
+  const commentsHtml = renderComments(post.comments || []);
+
+  return `
+    <div class="post-card">
+      <div class="post-header">
+        <div class="post-avatar">
+          ${av}
+          ${campaignRing}
+        </div>
+        <div class="post-author">
+          <div class="post-name">${nameTag} ${campaignChip}</div>
+          <div class="post-headline">${esc(post.author_title || '')}</div>
+          <div class="post-time">
+            ${formatDate(post.posted_at)}
+            ${post.posted_at ? ' &middot; <span class="globe-icon">&#127760;</span>' : ''}
+          </div>
+        </div>
+      </div>
+      ${post.content ? bodyHtml : ''}
+      ${statsBar}
+      <div class="post-actions">
+        <div class="action-btn like-btn" data-pid="${post.id}" data-urn="${encodeURIComponent(post.post_urn)}" onclick="likePostHandler(this)"><span class="icon">&#128077;</span> Like</div>
+        <div class="action-btn" data-pid="${post.id}" data-urn="${encodeURIComponent(post.parent_post_urn||post.post_urn)}" onclick="toggleCommentBox(this.dataset.pid,this.dataset.urn)"><span class="icon">&#128172;</span> Comment</div>
+        <div class="action-btn"><span class="icon">&#8635;</span> Repost</div>
+      </div>
+      <div class="comment-box" id="cb-${post.id}" data-pid="${post.id}" data-urn="${encodeURIComponent(post.parent_post_urn||post.post_urn)}"><label class="comment-account-label">Comment as</label><select class="comment-account-select" id="ca-${post.id}"><option value="">Loading…</option></select><textarea id="ct-${post.id}" placeholder="Write a comment…"></textarea><div class="comment-box-actions"><button class="comment-cancel-btn" onclick="toggleCommentBox(this.closest('.comment-box').dataset.pid,'')">Cancel</button><button class="comment-send-btn" id="cs-${post.id}" data-pid="${post.id}" data-urn="${encodeURIComponent(post.parent_post_urn||post.post_urn)}" onclick="sendComment(this.dataset.pid, this.dataset.urn)">Send</button></div></div>
+      ${commentsHtml}
+    </div>`;
+}
+
+// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Render comments ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+
+function renderComments(comments) {
+  if (!comments.length) return '';
+  return '<div class="comments-section">' + comments.map(renderComment).join('') + '</div>';
+}
+
+function renderComment(c) {
+  const name = esc(c.author_name || 'Unknown');
+  const av   = avatarHtml(c.author_avatar_url, c.author_name);
+  const profileHref = c.author_profile_url
+    ? 'href="' + esc(c.author_profile_url) + '" target="_blank" rel="noopener"'
+    : '';
+  const nameTag = profileHref ? '<a ' + profileHref + '>' + name + '</a>' : name;
+  const titlePart = c.author_title ? ' <span class="comment-title-small">&middot; ' + esc(c.author_title) + '</span>' : '';
+  const repliesHtml = (c.replies||[]).length > 0
+    ? '<div class="replies">' + c.replies.map(renderReply).join('') + '</div>'
+    : '';
+  return `
+    <div class="comment">
+      <div class="comment-avatar">${av}</div>
+      <div class="comment-body-wrap" style="flex:1;min-width:0;">
+        <div class="comment-bubble">
+          <div class="comment-name">${nameTag}${titlePart}</div>
+          <div class="comment-text">${esc(c.content||'').replace(/\n/g,'<br>')}</div>
+        </div>
+        <div class="comment-meta">
+          <span>${formatDateTime(c.commented_at)}</span>
+          ${c.likes_count > 0 ? '<span class="comment-like-count">&#128077; ' + c.likes_count + '</span>' : ''}
+        </div>
+        ${repliesHtml}
+      </div>
+    </div>`;
+}
+
+function renderReply(r) {
+  const name = esc(r.author_name || 'Unknown');
+  const av   = avatarHtml(r.author_avatar_url, r.author_name);
+  return `
+    <div class="reply">
+      <div class="reply-avatar">${av}</div>
+      <div class="reply-bubble">
+        <div class="reply-name">${name}</div>
+        <div class="reply-text">${esc(r.content||'').replace(/\n/g,'<br>')}</div>
+        <div class="reply-time">${formatDateTime(r.commented_at)}</div>
+      </div>
+    </div>`;
+}
+
+// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Actions ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+
+function expandPost(id) {
+  const el = document.getElementById('pb-' + id);
+  if (!el) return;
+  el.classList.remove('clamped');
+  el.nextElementSibling?.remove();
+}
+
+function changePage(delta) {
+  currentPage = Math.max(1, currentPage + delta);
+  loadFeed();
+  window.scrollTo(0, 0);
+}
+
+async function triggerFetch() {
+  if (!selectedCampaign) { alert('Please select a campaign first.'); return; }
+  const btn = document.getElementById('fetch-btn');
+  btn.disabled = true; btn.innerHTML = '&#8635; Fetching&hellip;';
+  try {
+    await fetch('/api/feed/fetch', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ workspace_id: workspaceId, campaign_id: selectedCampaign }),
+    });
+    btn.innerHTML = '&#10003; Fetch started';
+    setTimeout(() => {
+      btn.disabled = false; btn.innerHTML = '&#8635; Fetch posts';
+      loadFeed();
+    }, 4000);
+  } catch(e) {
+    alert('Error: ' + e.message);
+    btn.disabled = false; btn.innerHTML = '&#8635; Fetch posts';
+  }
+}
+
+// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Init ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+loadCampaigns().then(loadFeed);
+
+var _feedListId = null;
+
+async function loadListsForFeed() {
+  try {
+    const data = await fetch('/api/lists?workspace_id=' + workspaceId).then(r=>r.json());
+    const sel = document.getElementById('list-filter-feed');
+    if (!sel) return;
+    (data.items||[]).filter(function(l){ return l.type === 'contacts'; }).forEach(function(l) {
+      const opt = document.createElement('option');
+      opt.value = l.id;
+      opt.textContent = l.name;
+      sel.appendChild(opt);
+    });
+  } catch(e) { /* silent */ }
+}
+
+function applyFeedListFilter() {
+  if (!document.getElementById('list-filter-feed')) return; // removed
+
+  const sel = document.getElementById('list-filter-feed');
+  _feedListId = sel && sel.value ? parseInt(sel.value) : null;
+  if (typeof loadFeed === 'function') loadFeed();
+  else if (typeof init === 'function') init();
+  // Load workspace accounts for comment selector
+  fetch('/api/workspaces/' + workspaceId + '/accounts').then(function(r){return r.json();}).then(function(d){ workspaceAccounts = d.items || []; });
+}
+
+
+// Auto-refresh: poll every 60s for new posts
+async function checkForNew() {
+  if (!lastSeenAt || currentPage !== 1) return;
+  try {
+    var params = new URLSearchParams({ workspace_id: workspaceId, page: 1, limit: 1 });
+    var data = await fetch('/api/feed?' + params).then(function(r){ return r.json(); });
+    var items = data.items || [];
+    if (items[0] && items[0].posted_at && items[0].posted_at > lastSeenAt) {
+      var bar = document.getElementById('new-posts-bar');
+      if (bar) {
+        bar.textContent = 'ð New posts available â click to refresh';
+        bar.style.display = 'block';
+      }
+    }
+  } catch(e) { /* silent */ }
+}
+
+// Start polling when on page 1
+setInterval(checkForNew, 60000);
+
+
+function populateAccountSelect(sel) {
+  sel.innerHTML = '';
+  workspaceAccounts.forEach(function(acc) {
+    var opt = document.createElement('option');
+    opt.value = acc.account_id;
+    opt.textContent = acc.display_name || acc.account_id;
+    sel.appendChild(opt);
+  });
+}
+
+function toggleCommentBox(postId, encodedUrn) {
+  var box = document.getElementById('cb-' + postId);
+  if (!box) return;
+  var open = box.style.display === 'block';
+  box.style.display = open ? 'none' : 'block';
+  if (!open) {
+    var sel = document.getElementById('ca-' + postId);
+    if (sel) {
+      if (workspaceAccounts.length > 0) {
+        populateAccountSelect(sel);
+      } else {
+        sel.innerHTML = '<option value="">Loading…</option>';
+        fetch('/api/workspaces/' + workspaceId + '/accounts')
+          .then(function(r){ return r.json(); })
+          .then(function(d){
+            workspaceAccounts = d.items || [];
+            populateAccountSelect(sel);
+          });
+      }
+    }
+    setTimeout(function(){ var ta = document.getElementById('ct-' + postId); if(ta) ta.focus(); }, 50);
+  }
+}
+
+async function sendComment(postId, encodedUrn) {
+  var ta  = document.getElementById('ct-' + postId);
+  var btn = document.getElementById('cs-' + postId);
+  var text = ta ? ta.value.trim() : '';
+  if (!text) { if(ta) ta.focus(); return; }
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+  try {
+    var postUrn = decodeURIComponent(encodedUrn);
+    var r = await fetch('/api/feed/comment', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ workspace_id: workspaceId, post_urn: postUrn, text: text, account_id: (document.getElementById('ca-' + postId) || {}).value || null })
+    });
+    var d = await r.json();
+    if (d.success) {
+      ta.value = '';
+      btn.textContent = '✓ Sent!';
+      btn.style.background = '#2d7a5b';
+      setTimeout(function() {
+        var box = document.getElementById('cb-' + postId);
+        if(box) box.style.display = 'none';
+        btn.disabled = false; btn.textContent = 'Send'; btn.style.background = '';
+      }, 1500);
+    } else {
+      alert('Error: ' + (d.error || 'unknown'));
+      btn.disabled = false; btn.textContent = 'Send';
+    }
+  } catch(e) {
+    alert('Error: ' + e.message);
+    btn.disabled = false; btn.textContent = 'Send';
+  }
+}
+
+  // Like / unlike a post
+  function likePostHandler(btn) {
+    var pid  = btn.dataset.pid;
+    var urn  = btn.dataset.urn;
+    var liked = btn.classList.contains('liked');
+    btn.classList.toggle('liked');
+    btn.innerHTML = liked
+      ? '<span class="icon">&#128077;</span> Like'
+      : '<span class="icon">&#128077;</span> Liked!';
+    fetch('/api/feed/like', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ workspace_id: workspaceId, post_urn: decodeURIComponent(urn) })
+    }).then(function(r){ return r.json(); }).then(function(d){
+      if(!d.ok) { btn.classList.toggle('liked'); btn.innerHTML = '<span class="icon">&#128077;</span> Like'; }
+    }).catch(function(){ btn.classList.toggle('liked'); });
+  }
+  </script>
+</body>
+</html>

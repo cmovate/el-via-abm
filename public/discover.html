@@ -1,0 +1,1283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="stylesheet" href="/ds.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Discover</title>
+<link rel="stylesheet" href="/elvia.css">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--f-sans) /* 'Segoe UI', sans-serif; background: var(--c-bg); color: #0f172a; font-size: 13px; }
+
+/* ── Layout ── */
+.page { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+.top-bar { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 16px 24px; flex-shrink: 0; }
+.top-bar h1 { font-size: 18px; font-weight: 700; color: #0f172a; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+.top-bar h1 span { font-size: 20px; }
+
+/* ── Search bar ── */
+.search-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.search-input-wrap { flex: 1; min-width: 280px; position: relative; }
+.search-input-wrap input { width: 100%; padding: 9px 40px 9px 14px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; background: var(--c-bg); transition: all .15s; }
+.search-input-wrap input:focus { border-color: #1D9E75; background: #fff; box-shadow: 0 0 0 3px rgba(29,158,117,.1); }
+.search-input-wrap input::placeholder { color: #94a3b8; }
+.btn-search { padding: 9px 20px; background: #1D9E75; color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background .15s; }
+.btn-search:hover { background: #188a65; }
+.btn-search:disabled { background: #9ca3af; cursor: not-allowed; }
+
+/* ── Keyword chips ── */
+.chips-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; align-items: center; }
+.chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 20px; font-size: 12px; color: #15803d; cursor: pointer; transition: all .12s; }
+.chip:hover { background: #dcfce7; }
+.chip-x { color: #9ca3af; font-size: 14px; line-height: 1; margin-left: 2px; }
+.chip-x:hover { color: #ef4444; }
+.chip-add { background: #fff; border-color: #e2e8f0; color: #64748b; }
+.chips-label { font-size: 11px; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; }
+
+/* ── Results columns ── */
+.results-area { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 0; overflow: hidden; }
+.col { display: flex; flex-direction: column; overflow: hidden; border-right: 1px solid #e2e8f0; }
+.col:last-child { border-right: none; }
+.col-header { padding: 12px 20px; border-bottom: 1px solid #e2e8f0; background: #fff; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+.col-header-left { display: flex; align-items: center; gap: 8px; }
+.col-title { font-size: 14px; font-weight: 700; color: #0f172a; }
+.col-badge { font-size: 11px; color: #94a3b8; }
+.col-sort { padding: 4px 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 12px; background: #fff; cursor: pointer; color: #374151; outline: none; }
+.col-scroll { flex: 1; overflow-y: auto; padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; }
+
+/* ── Post cards ── */
+.post-card { background: #fff; border: 1px solid #e2e8f0; border-radius: var(--r-lg); padding: 14px 16px; transition: box-shadow .15s; cursor: default; }
+.post-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.08); border-color: #cbd5e1; }
+.post-meta { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; font-size: 11px; color: #64748b; flex-wrap: wrap; }
+.post-meta .source { font-weight: 700; color: #374151; }
+.post-meta .dot { color: #d1d5db; }
+.post-meta .time { color: #94a3b8; }
+.post-title { font-size: 13px; font-weight: 700; color: #0f172a; margin-bottom: 6px; line-height: 1.4; }
+.post-body { font-size: 12px; color: #475569; line-height: 1.5; margin-bottom: 10px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.post-stats { display: flex; gap: 12px; font-size: 11px; color: #94a3b8; margin-bottom: 10px; }
+.post-stat { display: flex; align-items: center; gap: 3px; }
+.post-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.btn-action { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all .12s; white-space: nowrap; }
+.btn-view { border-color: #e2e8f0; background: #fff; color: #374151; }
+.btn-view:hover { background: #f1f5f9; }
+.btn-save { border-color: #1D9E75; background: #f0fdf4; color: #15803d; }
+.btn-save:hover { background: #dcfce7; }
+.btn-saved { border-color: #9ca3af; background: #f1f5f9; color: #9ca3af; cursor: default; }
+
+/* ── Subreddit cards ── */
+.sub-card { background: #fff; border: 1px solid #e2e8f0; border-radius: var(--r-lg); padding: 12px 14px; display: flex; gap: 10px; align-items: flex-start; transition: box-shadow .15s; }
+.sub-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.08); border-color: #cbd5e1; }
+.sub-icon { width: 36px; height: 36px; border-radius: 50%; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; overflow: hidden; }
+.sub-icon img { width: 100%; height: 100%; object-fit: cover; }
+.sub-info .sub-name { font-size: 13px; font-weight: 700; color: #1D9E75; }
+.sub-info .sub-title { font-size: 12px; color: #374151; margin: 2px 0; }
+.sub-info .sub-desc { font-size: 11px; color: #64748b; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.sub-members { font-size: 11px; color: #94a3b8; margin-top: 4px; }
+
+/* ── Section divider ── */
+.section-divider { padding: 6px 4px; font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: .6px; }
+
+/* ── Empty / loading states ── */
+.state-box { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px 20px; color: #94a3b8; text-align: center; gap: 10px; }
+.state-box .state-icon { font-size: 40px; opacity: .3; }
+.state-box .state-title { font-size: 14px; font-weight: 600; color: #64748b; }
+.state-box .state-sub { font-size: 12px; }
+
+/* ── LinkedIn label ── */
+.li-badge { background: #0a66c2; color: #fff; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px; }
+.reddit-badge { background: #ff4500; color: #fff; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px; }
+
+/* ── Spinner ── */
+.spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid #e2e8f0; border-top-color: #1D9E75; border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Saved toast ── */
+.toast { position: fixed; bottom: 20px; right: 24px; background: #0f172a; color: #fff; padding: 10px 18px; border-radius: 8px; font-size: 13px; font-weight: 500; opacity: 0; transition: opacity .2s; z-index: 9999; pointer-events: none; }
+.toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Top Bar -->
+  <div class="top-bar">
+    <h1><span>🔍</span> Discover</h1>
+    <div class="search-row">
+      <div class="search-input-wrap">
+        <input id="main-search" type="text" placeholder="Search keywords, topics, or company names…" onkeydown="if(event.key==='Enter')doSearch()">
+      </div>
+      <button class="btn-search" id="search-btn" onclick="doSearch()">Search</button>
+      <button class="btn-monitor" id="monitor-btn" onclick="openMonitorModal()" style="display:none;padding:9px 16px;background:#fff;color:#1D9E75;border:1.5px solid #1D9E75;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .15s;" title="Get email alerts for this search">🔔 Monitor</button>
+    </div>
+    <!-- Active monitors summary (loads after search) -->
+    <div id="monitors-summary" style="display:none;margin-top:10px;padding:8px 12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:12px;color:#166534;display:none;align-items:center;gap:8px;">
+      <span>🔔</span>
+      <span id="monitors-summary-text"></span>
+      <a href="#" onclick="openMonitorsList(event)" style="margin-left:auto;color:#1D9E75;font-weight:600;text-decoration:none;">Manage →</a>
+    </div>
+
+    <!-- Quick topic chips -->
+    <div class="chips-row">
+      <span class="chips-label">Quick:</span>
+      <span class="chip" onclick="setSearch('B2B SaaS outreach')">B2B SaaS outreach</span>
+      <span class="chip" onclick="setSearch('LinkedIn automation')">LinkedIn automation</span>
+      <span class="chip" onclick="setSearch('sales prospecting tools')">Sales prospecting</span>
+      <span class="chip" onclick="setSearch('cold outreach strategies')">Cold outreach</span>
+      <span class="chip" onclick="setSearch('ABM marketing')">ABM marketing</span>
+      <span class="chip" onclick="setSearch('lead generation 2025')">Lead gen 2025</span>
+    </div>
+  </div>
+
+  <!-- Tab nav -->
+  <div id="discover-tab-nav" style="background:#fff;border-bottom:1px solid #e2e8f0;display:flex;padding:0 24px;flex-shrink:0;">
+    <button id="tab-btn-search" onclick="switchDiscoverTab('search')" style="padding:10px 18px;border:none;background:none;font-size:13px;font-weight:600;color:#1D9E75;border-bottom:2px solid #1D9E75;cursor:pointer;margin-bottom:-1px;">🔍 Search</button>
+    <button id="tab-btn-saved" onclick="switchDiscoverTab('saved')" style="padding:10px 18px;border:none;background:none;font-size:13px;font-weight:600;color:#64748b;border-bottom:2px solid transparent;cursor:pointer;margin-bottom:-1px;">📌 Saved <span id="saved-count-badge" style="display:none;background:#1D9E75;color:#fff;font-size:10px;padding:1px 6px;border-radius:10px;margin-left:4px;"></span></button>
+  </div>
+
+  <!-- Results columns -->
+  <div class="results-area" id="tab-content-search">
+
+    <!-- LinkedIn Column -->
+    <div class="col">
+      <div class="col-header">
+        <div class="col-header-left">
+          <span class="li-badge">in</span>
+          <span class="col-title">LinkedIn Posts</span>
+          <span class="col-badge" id="li-count"></span>
+        </div>
+        <select class="col-sort" id="li-sort" onchange="doSearch(true)">
+          <option value="relevance">Relevance</option>
+          <option value="date">Latest</option>
+        </select>
+        <select class="col-sort" id="li-date" style="margin-left:6px;" onchange="doSearch(true)">
+          <option value="">Any time</option>
+          <option value="past_24h">Past 24h</option>
+          <option value="past_week">Past week</option>
+          <option value="past_month">Past month</option>
+        </select>
+      </div>
+      <div class="col-scroll" id="li-results">
+        <div class="state-box">
+          <div class="state-icon">💼</div>
+          <div class="state-title">Search LinkedIn Posts</div>
+          <div class="state-sub">Enter keywords above to find relevant LinkedIn discussions</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reddit Column -->
+    <div class="col">
+      <div class="col-header">
+        <div class="col-header-left">
+          <span class="reddit-badge">r/</span>
+          <span class="col-title">Reddit Discussions</span>
+          <span class="col-badge" id="reddit-count"></span>
+        </div>
+        <select class="col-sort" id="reddit-sort" onchange="doSearch(true)">
+          <option value="relevance">Relevance</option>
+          <option value="new">Latest</option>
+          <option value="top">Top</option>
+          <option value="hot">Hot</option>
+        </select>
+      </div>
+      <div class="col-scroll" id="reddit-results">
+        <div class="state-box">
+          <div class="state-icon">👾</div>
+          <div class="state-title">Search Reddit</div>
+          <div class="state-sub">Find discussions and posts about your topics</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Saved tab content -->
+  <div id="tab-content-saved" style="display:none;flex:1;overflow:hidden;display:none;flex-direction:column;">
+
+    <!-- Saved filters bar -->
+    <div style="background:#fff;border-bottom:1px solid #e2e8f0;padding:10px 24px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;flex-shrink:0;">
+      <button class="saved-filter-btn active" data-src="all"    onclick="filterSaved('all',this)"     style="padding:5px 14px;border:1.5px solid #1D9E75;background:#f0fdf4;color:#1D9E75;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;">All</button>
+      <button class="saved-filter-btn"         data-src="linkedin" onclick="filterSaved('linkedin',this)" style="padding:5px 14px;border:1.5px solid #e2e8f0;background:#fff;color:#374151;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;">in LinkedIn</button>
+      <button class="saved-filter-btn"         data-src="reddit"   onclick="filterSaved('reddit',this)"  style="padding:5px 14px;border:1.5px solid #e2e8f0;background:#fff;color:#374151;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;">r/ Reddit</button>
+      <select id="saved-monitor-filter" onchange="loadSavedItems(true)" style="padding:5px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;background:#fff;outline:none;cursor:pointer;margin-left:8px;">
+        <option value="">All monitors</option>
+      </select>
+      <span id="saved-total-label" style="font-size:12px;color:#94a3b8;margin-left:auto;"></span>
+    </div>
+
+    <div id="saved-items-list" style="flex:1;overflow-y:auto;padding:16px 24px;display:flex;flex-direction:column;gap:10px;">
+      <div style="text-align:center;padding:40px;color:#94a3b8;">Loading saved items…</div>
+    </div>
+
+    <div id="saved-load-more" style="display:none;padding:12px 24px;text-align:center;background:#fff;border-top:1px solid #f1f5f9;">
+      <button onclick="loadSavedItems(false)" style="padding:8px 24px;background:#fff;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-weight:600;color:#374151;cursor:pointer;">Load more →</button>
+    </div>
+
+  </div>
+
+</div>
+
+<div class="toast id="toast"></div>
+
+<script>
+const params = new URLSearchParams(window.location.search);
+const workspaceId = params.get('workspace_id') || '';
+
+function setSearch(q) {
+  document.getElementById('main-search').value = q;
+  doSearch();
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function timeSince(ts) {
+  if (!ts) return '';
+  const d = new Date(typeof ts === 'number' ? ts * 1000 : ts);
+  const diff = (Date.now() - d.getTime()) / 1000;
+  if (diff < 3600)  return Math.round(diff/60) + 'm ago';
+  if (diff < 86400) return Math.round(diff/3600) + 'h ago';
+  return Math.round(diff/86400) + 'd ago';
+}
+
+function numFmt(n) {
+  n = parseInt(n) || 0;
+  if (n >= 1000000) return (n/1000000).toFixed(1) + 'M';
+  if (n >= 1000)    return (n/1000).toFixed(1) + 'k';
+  return String(n);
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Search ───────────────────────────────────────────────────────────────────
+let _lastQuery = '';
+let _searching = false;
+
+async function doSearch(forceRefresh) {
+  const q = document.getElementById('main-search').value.trim();
+  if (!q || _searching) return;
+  // Force a fresh search when called from filter change (bypass any client-side caching)
+  _lastQuery = q;
+  _searching = true;
+
+  const btn = document.getElementById('search-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>';
+
+  // Show loading states
+  document.getElementById('li-results').innerHTML = '<div class="state-box"><div class="spinner"></div><div class="state-sub">Searching LinkedIn…</div></div>';
+  document.getElementById('reddit-results').innerHTML = '<div class="state-box"><div class="spinner"></div><div class="state-sub">Searching Reddit…</div></div>';
+  document.getElementById('li-count').textContent = '';
+  document.getElementById('reddit-count').textContent = '';
+
+  const liSort     = document.getElementById('li-sort').value;
+  const liDate     = document.getElementById('li-date')?.value || '';
+  const redditSort = document.getElementById('reddit-sort').value;
+
+  // Run both in parallel
+  const [liData, rdData] = await Promise.allSettled([
+    searchLinkedIn(q, liSort, liDate, forceRefresh),
+    searchReddit(q, redditSort, forceRefresh),
+  ]);
+
+  const _liResult = liData.status === 'fulfilled' ? liData.value : null;
+  const _rdResult = rdData.status === 'fulfilled' ? rdData.value : null;
+
+  renderLinkedIn(_liResult, liData.reason);
+  renderReddit(_rdResult, rdData.reason);
+
+  // Auto-save all results to a matching feed (if one exists for these keywords)
+  autoSaveResults(q, _liResult, _rdResult);
+
+  btn.disabled = false;
+  btn.textContent = 'Search';
+  _searching = false;
+  showMonitorButton();
+
+}
+
+async function searchLinkedIn(q, sort, dateFilter, noCache) {
+  const params = { q, workspace_id: workspaceId, sort: sort || 'relevance', limit: 25 };
+  if (dateFilter) params.date_filter = dateFilter;
+  if (noCache) params._t = Date.now(); // bust server cache when filter changes
+  const r = await fetch('/api/discover/linkedin?' + new URLSearchParams(params));
+  return r.json();
+}
+
+async function searchReddit(q, sort, noCache) {
+  const params = { q, sort, t: 'year', limit: 25 };
+  if (noCache) params._t = Date.now();
+  const r = await fetch('/api/discover/reddit?' + new URLSearchParams(params));
+  return r.json();
+}
+
+// ── Render LinkedIn ──────────────────────────────────────────────────────────
+function renderLinkedIn(data, err) {
+  const el = document.getElementById('li-results');
+  if (err || !data) {
+    el.innerHTML = '<div class="state-box"><div class="state-icon">warning</div><div class="state-title">Could not load LinkedIn posts</div><div class="state-sub">' + esc(String(err?.message || '')) + '</div></div>';
+    return;
+  }
+  if (data.message && !data.posts?.length) {
+    var isRateLimit = data.rate_limited || (data.message || '').includes('rate limit') || (data.message || '').includes('429');
+    if (isRateLimit) {
+      showLinkedInRateLimitUI(el);
+    } else {
+      el.innerHTML =
+        '<div class="state-box">' +
+          '<div class="state-icon">&#x1F4BC;</div>' +
+          '<div class="state-title">' + esc(data.message) + '</div>' +
+          '<div class="state-sub">LinkedIn post search requires a connected LinkedIn account in this workspace</div>' +
+        '</div>';
+    }
+    return;
+  }
+  const posts = data.posts || [];
+  const total = data.total || posts.length;
+  document.getElementById('li-count').textContent = posts.length
+    ? posts.length + (total > posts.length ? ' of ' + total : '') + ' posts'
+    : '';
+  if (!posts.length) {
+    el.innerHTML = '<div class="state-box"><div class="state-icon">&#x1F50D;</div><div class="state-title">No LinkedIn posts found</div><div class="state-sub">Try different keywords or a longer time range</div></div>';
+    return;
+  }
+  el.innerHTML = '';
+  posts.forEach(function(p) {
+    var card = document.createElement('div');
+    card.className = 'post-card';
+
+    // Meta: author name (+ headline as subtitle) + time
+    var meta = document.createElement('div');
+    meta.className = 'post-meta';
+    var authorEl = document.createElement('span');
+    authorEl.className = 'source';
+    authorEl.textContent = p.author || 'Unknown';
+    if (p.author_url) {
+      authorEl.style.cursor = 'pointer';
+      authorEl.style.textDecoration = 'underline';
+      authorEl.style.textUnderlineOffset = '2px';
+      authorEl.onclick = function() { window.open(p.author_url, '_blank'); };
+    }
+    meta.appendChild(authorEl);
+    if (p.date_label) {
+      var dot = document.createElement('span'); dot.className = 'dot'; dot.textContent = String.fromCharCode(183);
+      var time = document.createElement('span'); time.className = 'time'; time.textContent = p.date_label;
+      meta.appendChild(dot); meta.appendChild(time);
+    }
+    card.appendChild(meta);
+
+    // Author headline as subtitle
+    if (p.author_headline) {
+      var hl = document.createElement('div');
+      hl.style.cssText = 'font-size:11px;color:#94a3b8;margin-bottom:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+      hl.textContent = p.author_headline;
+      card.appendChild(hl);
+    }
+
+    // Post title (first line)
+    if (p.title) {
+      var title = document.createElement('div');
+      title.className = 'post-title';
+      if (p.post_url) { title.style.cursor = 'pointer'; title.onclick = function() { window.open(p.post_url, '_blank'); }; }
+      title.textContent = p.title;
+      card.appendChild(title);
+    }
+
+    // Post beginning (text after first line)
+    if (p.snippet) {
+      var rest = p.snippet.slice((p.title || '').length).replace(/^[\n\s]+/, '').trim();
+      if (rest) {
+        var body = document.createElement('div');
+        body.className = 'post-body';
+        body.textContent = rest;
+        card.appendChild(body);
+      }
+    }
+
+    // Stats
+    var stats = document.createElement('div');
+    stats.className = 'post-stats';
+    if (p.reactions) { var s = document.createElement('span'); s.className='post-stat'; s.textContent = String.fromCharCode(128077)+' '+ numFmt(p.reactions); stats.appendChild(s); }
+    if (p.comments)  { var s = document.createElement('span'); s.className='post-stat'; s.textContent = String.fromCharCode(128172)+' '+ numFmt(p.comments)+' comments'; stats.appendChild(s); }
+    if (p.reposts)   { var s = document.createElement('span'); s.className='post-stat'; s.textContent = String.fromCharCode(8599)+' '+ numFmt(p.reposts); stats.appendChild(s); }
+    card.appendChild(stats);
+
+    // Actions
+    var actions = document.createElement('div');
+    actions.className = 'post-actions';
+    if (p.post_url) {
+      var vBtn = document.createElement('button'); vBtn.className='btn-action btn-view'; vBtn.textContent='View Post'; vBtn.onclick=function(){window.open(p.post_url,'_blank');}; actions.appendChild(vBtn);
+    }
+    if (p.author_url) {
+      var pBtn = document.createElement('button'); pBtn.className='btn-action btn-view'; pBtn.textContent='View Profile'; pBtn.onclick=function(){window.open(p.author_url,'_blank');}; actions.appendChild(pBtn);
+    }
+    card.appendChild(actions);
+    el.appendChild(card);
+  });
+}
+
+// ── Render Reddit ────────────────────────────────────────────────────────────
+function renderReddit(data, err) {
+  const el = document.getElementById('reddit-results');
+  if (err || !data) {
+    el.innerHTML = '<div class="state-box"><div class="state-icon">⚠️</div><div class="state-title">Could not load Reddit results</div><div class="state-sub">' + esc(String(err?.message || '')) + '</div></div>';
+    return;
+  }
+
+  const posts = data.posts || [];
+  document.getElementById('reddit-count').textContent = posts.length ? posts.length + ' discussions' : '';
+
+  if (data.message) {
+    const isRateLimit = data.message.includes('rate limit') || data.message.includes('429');
+    el.innerHTML = '<div class="state-box"><div class="state-icon">' + (isRateLimit ? '⏳' : '🔍') + '</div><div class="state-title">' + esc(data.message) + '</div><div class="state-sub">' + (isRateLimit ? 'Reddit is temporarily rate limiting requests. Try again in a minute.' : 'Try different keywords') + '</div></div>';
+    return;
+  }
+  if (!posts.length) {
+    el.innerHTML = '<div class="state-box"><div class="state-icon">🔍</div><div class="state-title">No discussions found</div><div class="state-sub">Try different keywords, a different sort order, or a longer time range</div></div>';
+    return;
+  }
+
+  el.innerHTML = '';
+  posts.forEach(function(p) {
+    const card = document.createElement('div');
+    card.className = 'post-card';
+    const cleanUrl = p.permalink;
+
+    // Meta row: subreddit · author · time
+    const meta = document.createElement('div');
+    meta.className = 'post-meta';
+    const subSlug = (p.subreddit || '').replace(/^r\//, '');
+    // Build meta with DOM to avoid escaping issues
+    const subSpan = document.createElement('span');
+    subSpan.className = 'source';
+    subSpan.style.cssText = 'cursor:pointer;text-decoration:underline;text-underline-offset:2px;';
+    subSpan.textContent = p.subreddit;
+    subSpan.onclick = function() { window.open('https://reddit.com/r/' + subSlug, '_blank'); };
+    meta.appendChild(subSpan);
+    ['·', 'u/' + (p.author||''), '·', timeSince(p.created_utc)].forEach(function(txt, i) {
+      const s = document.createElement('span');
+      s.className = i % 2 === 0 ? 'dot' : (i === 1 ? '' : 'time');
+      s.textContent = txt;
+      meta.appendChild(s);
+    });
+        card.appendChild(meta);
+
+    // Title — clickable
+    const title = document.createElement('div');
+    title.className = 'post-title';
+    title.style.cursor = 'pointer';
+    title.textContent = p.title;
+    title.onclick = function() { window.open(cleanUrl, '_blank'); };
+    card.appendChild(title);
+
+    // Body (discussion text)
+    if (p.selftext && p.selftext.trim()) {
+      const body = document.createElement('div');
+      body.className = 'post-body';
+      body.textContent = p.selftext;
+      card.appendChild(body);
+    }
+
+    // Stats
+    const stats = document.createElement('div');
+    stats.className = 'post-stats';
+    stats.innerHTML =
+      '<span class="post-stat">⬆ ' + numFmt(p.score) + '</span>' +
+      '<span class="post-stat">💬 ' + numFmt(p.num_comments) + ' comments</span>';
+    card.appendChild(stats);
+
+    // Actions
+    const actions = document.createElement('div');
+    actions.className = 'post-actions';
+
+    const viewBtn = document.createElement('button');
+    viewBtn.className = 'btn-action btn-view';
+    viewBtn.textContent = 'Read Discussion →';
+    viewBtn.onclick = function() { window.open(cleanUrl, '_blank'); };
+    actions.appendChild(viewBtn);
+
+    // Save happens automatically via autoSaveResults
+
+    card.appendChild(actions);
+    el.appendChild(card);
+  });
+}
+
+// ── LinkedIn rate limit UI ───────────────────────────────────────────────────
+var _liRetryTimer = null;
+
+function showLinkedInRateLimitUI(el) {
+  if (_liRetryTimer) { clearInterval(_liRetryTimer); _liRetryTimer = null; }
+  var seconds = 60;
+
+  function render() {
+    el.innerHTML =
+      '<div class="state-box" style="gap:14px;">' +
+        '<div class="state-icon">&#x23F3;</div>' +
+        '<div class="state-title">LinkedIn rate limit — auto-retrying in <span id="li-countdown">' + seconds + '</span>s</div>' +
+        '<div class="state-sub">LinkedIn limits how many post searches can run per account per minute.<br>Retrying automatically — or click below to retry now.</div>' +
+        '<button class="btn-search" id="li-retry-btn" style="margin-top:4px;padding:8px 20px;font-size:13px;" onclick="retryLinkedIn()">Retry Now</button>' +
+      '</div>';
+  }
+
+  render();
+  _liRetryTimer = setInterval(function() {
+    seconds--;
+    var cd = document.getElementById('li-countdown');
+    if (cd) cd.textContent = seconds;
+    if (seconds <= 0) {
+      clearInterval(_liRetryTimer);
+      _liRetryTimer = null;
+      retryLinkedIn();
+    }
+  }, 1000);
+}
+
+function retryLinkedIn() {
+  if (_liRetryTimer) { clearInterval(_liRetryTimer); _liRetryTimer = null; }
+  var q = document.getElementById('main-search').value.trim();
+  if (!q) return;
+  var el = document.getElementById('li-results');
+  el.innerHTML = '<div class="state-box"><div class="spinner"></div><div class="state-sub">Retrying LinkedIn…</div></div>';
+  document.getElementById('li-count').textContent = '';
+  var sort = document.getElementById('li-sort').value;
+  var dateFilter = document.getElementById('li-date')?.value || '';
+  searchLinkedIn(q, sort, dateFilter)
+    .then(function(data) { renderLinkedIn(data, null); })
+    .catch(function(err) { renderLinkedIn(null, err); });
+}
+
+// ── Monitor / Alerts ─────────────────────────────────────────────────────────
+function openMonitorModal() {
+  var q = document.getElementById('main-search').value.trim();
+  if (!q) return;
+  document.getElementById('monitor-modal-kw').textContent = '"' + q + '"';
+  document.getElementById('monitor-modal').style.display = 'flex';
+  document.getElementById('monitor-email').focus();
+}
+
+function closeMonitorModal() {
+  document.getElementById('monitor-modal').style.display = 'none';
+}
+
+// Load active monitors count and show summary
+async function loadMonitorsSummary() {
+  try {
+    var r = await fetch('/api/monitors?workspace_id=' + workspaceId);
+    var d = await r.json();
+    var active = (d.monitors||[]).filter(function(m){return m.active;});
+    var bar = document.getElementById('monitors-summary');
+    if (active.length) {
+      document.getElementById('monitors-summary-text').textContent =
+        active.length + ' active monitor' + (active.length>1?'s':'') +
+        ' — you will receive email alerts when new results appear';
+      bar.style.display = 'flex';
+    } else {
+      bar.style.display = 'none';
+    }
+  } catch(e) {}
+}
+
+function openMonitorsList(e) {
+  e.preventDefault();
+  // Open monitors management overlay
+  showMonitorsOverlay();
+}
+
+async function showMonitorsOverlay() {
+  var overlay = document.createElement('div');
+  overlay.id = 'monitors-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;';
+  var box = document.createElement('div');
+  box.style.cssText = 'background:#fff;border-radius:16px;padding:28px;width:520px;max-width:96vw;max-height:80vh;overflow-y:auto;position:relative;';
+  var closeBtn = document.createElement('button');
+  closeBtn.textContent = 'x';
+  closeBtn.style.cssText = 'position:absolute;top:16px;right:16px;background:none;border:none;font-size:20px;color:#94a3b8;cursor:pointer;';
+  closeBtn.onclick = function(){ overlay.remove(); };
+  box.appendChild(closeBtn);
+  var h = document.createElement('div');
+  h.style.cssText = 'font-size:17px;font-weight:700;color:#0f172a;margin-bottom:4px;';
+  h.textContent = 'Active Monitors';
+  box.appendChild(h);
+  var sub = document.createElement('div');
+  sub.style.cssText = 'font-size:12px;color:#64748b;margin-bottom:20px;';
+  sub.textContent = 'Email alerts for saved keyword searches';
+  box.appendChild(sub);
+  var listDiv = document.createElement('div');
+  listDiv.id = 'monitors-list-inner';
+  listDiv.textContent = 'Loading...';
+  box.appendChild(listDiv);
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+  try {
+    var resp = await fetch('/api/monitors?workspace_id=' + workspaceId);
+    var data = await resp.json();
+    var monitors = data.monitors || [];
+    listDiv.innerHTML = '';
+    if (!monitors.length) {
+      listDiv.style.cssText = 'text-align:center;padding:30px;color:#94a3b8;';
+      listDiv.textContent = 'No monitors yet. Search for a keyword and click Monitor.';
+      return;
+    }
+    monitors.forEach(function(m) {
+      var row = document.createElement('div');
+      row.style.cssText = 'padding:14px;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:10px;';
+      var srcs = Array.isArray(m.sources) ? m.sources : JSON.parse(m.sources||'[]');
+      var kw = document.createElement('div');
+      kw.style.cssText = 'font-size:14px;font-weight:700;color:#0f172a;margin-bottom:6px;';
+      kw.textContent = '"' + m.keywords + '"';
+      row.appendChild(kw);
+      var metaRow = document.createElement('div');
+      metaRow.style.cssText = 'display:flex;align-items:center;gap:6px;font-size:11px;color:#64748b;margin-bottom:8px;flex-wrap:wrap;';
+      srcs.forEach(function(s){
+        var b = document.createElement('span');
+        b.style.cssText = 'font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;'+
+          (s==='linkedin' ? 'background:#dbeafe;color:#1d4ed8' : 'background:#fee2e2;color:#991b1b');
+        b.textContent = s==='linkedin' ? 'in' : 'r/';
+        metaRow.appendChild(b);
+      });
+      var emailEl = document.createElement('span');
+      emailEl.textContent = '-> ' + m.email;
+      metaRow.appendChild(emailEl);
+      var freqEl = document.createElement('span');
+      freqEl.style.cssText = 'background:#f1f5f9;padding:1px 6px;border-radius:8px;font-weight:600;';
+      freqEl.textContent = m.frequency;
+      metaRow.appendChild(freqEl);
+      row.appendChild(metaRow);
+      var btnsRow = document.createElement('div');
+      btnsRow.style.cssText = 'display:flex;align-items:center;gap:8px;flex-wrap:wrap;';
+      var badge = document.createElement('span');
+      badge.style.cssText = 'font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;'+
+        (m.active ? 'background:#f0fdf4;color:#15803d;' : 'background:#f1f5f9;color:#9ca3af;');
+      badge.textContent = m.active ? 'Active' : 'Paused';
+      btnsRow.appendChild(badge);
+      var toggleBtn = document.createElement('button');
+      toggleBtn.style.cssText = 'padding:3px 10px;border:1px solid #e2e8f0;background:#fff;border-radius:6px;font-size:11px;cursor:pointer;';
+      toggleBtn.textContent = m.active ? 'Pause' : 'Resume';
+      (function(mid, newActive){ toggleBtn.onclick = function(){ toggleMonitor(mid, newActive, toggleBtn); overlay.remove(); }; })(m.id, !m.active);
+      btnsRow.appendChild(toggleBtn);
+      var delBtn = document.createElement('button');
+      delBtn.style.cssText = 'padding:3px 10px;border:1px solid #fecaca;background:#fff;border-radius:6px;font-size:11px;cursor:pointer;color:#ef4444;';
+      delBtn.textContent = 'Delete';
+      (function(mid){ delBtn.onclick = function(){ if (!confirm('Delete this monitor?')) return; deleteMonitor(mid, row); overlay.remove(); }; })(m.id);
+      btnsRow.appendChild(delBtn);
+      var lastSentEl = document.createElement('span');
+      lastSentEl.style.cssText = 'font-size:11px;color:#94a3b8;margin-left:auto;';
+      lastSentEl.textContent = m.last_sent_at
+        ? 'Last sent ' + new Date(m.last_sent_at).toLocaleDateString('en-GB',{day:'2-digit',month:'short'})
+        : 'Not sent yet';
+      if (parseInt(m.unsent_count) > 0) {
+        lastSentEl.textContent += ' - ' + m.unsent_count + ' pending';
+        lastSentEl.style.color = '#1D9E75';
+      }
+      btnsRow.appendChild(lastSentEl);
+      row.appendChild(btnsRow);
+      listDiv.appendChild(row);
+    });
+  } catch(e) { listDiv.textContent = 'Error: ' + e.message; }
+}
+
+async function toggleMonitor(id, active, btn) {
+  btn.disabled = true;
+  await fetch('/api/monitors/' + id, {
+    method: 'PATCH', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ workspace_id: workspaceId, active })
+  });
+  document.getElementById('monitors-overlay').remove();
+  showMonitorsOverlay();
+  loadMonitorsSummary();
+}
+
+async function deleteMonitor(id, row) {
+  if (!confirm('Delete this monitor?')) return;
+  await fetch('/api/monitors/' + id + '?workspace_id=' + workspaceId, { method: 'DELETE' });
+  if (row) row.remove();
+  loadMonitorsSummary();
+}
+
+async function saveMonitor() {
+  var q     = document.getElementById('main-search').value.trim();
+  var email = document.getElementById('monitor-email').value.trim();
+  var freq  = document.querySelector('input[name="monitor-freq"]:checked')?.value || 'daily';
+  var srcs  = [];
+  if (document.getElementById('src-reddit').checked)   srcs.push('reddit');
+  if (document.getElementById('src-linkedin').checked) srcs.push('linkedin');
+
+  if (!email || !email.includes('@')) {
+    document.getElementById('monitor-email').style.borderColor = '#ef4444';
+    document.getElementById('monitor-email').focus();
+    return;
+  }
+  if (!srcs.length) { showToast('Select at least one source'); return; }
+
+  var btn = document.getElementById('monitor-save-btn');
+  btn.textContent = 'Saving…'; btn.disabled = true;
+
+  try {
+    var r = await fetch('/api/monitors', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ workspace_id: workspaceId, keywords: q, email, frequency: freq, sources: srcs })
+    });
+    var d = await r.json();
+    if (d.monitor) {
+      closeMonitorModal();
+      // Show confirmed state on Monitor button
+      var mBtn = document.getElementById('monitor-btn');
+      mBtn.textContent = '🔔 Monitoring';
+      mBtn.style.background = '#f0fdf4';
+      mBtn.style.color = '#15803d';
+      mBtn.disabled = true;
+      showToast('✓ Monitoring "' + q + '" — alerts go to ' + email);
+    } else {
+      showToast('Error: ' + (d.error || 'unknown'));
+      btn.textContent = 'Start Monitoring →'; btn.disabled = false;
+    }
+  } catch(e) {
+    showToast('Error saving monitor');
+    btn.textContent = 'Start Monitoring →'; btn.disabled = false;
+  }
+}
+
+// Show Monitor button after search completes
+function showMonitorButton() {
+  var mBtn = document.getElementById('monitor-btn');
+  if (mBtn && !mBtn.disabled) mBtn.style.display = '';
+}
+
+// ── Auto-save Results ─────────────────────────────────────────────────────────
+async function autoSaveResults(keywords, liResult, rdResult) {
+  if (!keywords) return;
+  var items = [];
+
+  // LinkedIn posts
+  var liPosts = (liResult && liResult.posts) ? liResult.posts : [];
+  liPosts.forEach(function(p) {
+    if (!p.post_url) return;
+    items.push({
+      source:     'linkedin',
+      title:      p.title      || p.headline || '',
+      snippet:    p.snippet    || '',
+      author:     p.author     || '',
+      author_url: p.author_url || '',
+      url:        p.post_url,
+      score:      p.reactions  || 0,
+      comments:   p.comments   || 0,
+    });
+  });
+
+  // Reddit posts
+  var rdPosts = (rdResult && rdResult.posts) ? rdResult.posts : [];
+  rdPosts.forEach(function(p) {
+    // API already returns permalink as full URL (https://reddit.com/...)
+    var url = p.permalink || p.url || '';
+    if (!url) return;
+    items.push({
+      source:    'reddit',
+      title:     p.title    || '',
+      snippet:   (p.selftext || '').slice(0, 400),
+      author:    p.author   || '',
+      subreddit: p.subreddit || '',
+      url:       url,
+      score:     p.score        || 0,
+      comments:  p.num_comments || 0,
+    });
+  });
+
+  if (!items.length) return;
+
+  try {
+    var r = await fetch('/api/discover-feeds/auto-save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ workspace_id: workspaceId, keywords: keywords, items: items })
+    });
+    var d = await r.json();
+    if (d.saved > 0) {
+      // Silently update Saved badge
+      loadSavedBadge();
+    }
+  } catch(e) { /* silent fail */ }
+}
+
+// ── Save to Feed ─────────────────────────────────────────────────────────────
+var _pendingItem = null;   // item waiting to be saved
+var _feeds = [];           // cached feed list
+
+function openSaveModal(btn, item) {
+  _pendingItem = { btn, item };
+  // Pre-fill keywords from current search
+  document.getElementById('new-feed-keywords').value = document.getElementById('main-search').value;
+  document.getElementById('new-feed-name').value = '';
+  loadFeedsIntoModal();
+  document.getElementById('save-modal').style.display = 'flex';
+}
+
+function closeSaveModal() {
+  document.getElementById('save-modal').style.display = 'none';
+  _pendingItem = null;
+}
+
+async function loadFeedsIntoModal() {
+  const el = document.getElementById('save-feed-list');
+  el.innerHTML = '<div style="font-size:12px;color:#94a3b8;padding:4px 0;">Loading feeds…</div>';
+  try {
+    const r = await fetch('/api/discover-feeds?workspace_id=' + workspaceId);
+    const d = await r.json();
+    _feeds = d.feeds || [];
+    if (!_feeds.length) {
+      el.innerHTML = '<div style="font-size:12px;color:#94a3b8;padding:4px 0;">No feeds yet — create one below</div>';
+      return;
+    }
+    el.innerHTML = '';
+    _feeds.forEach(function(feed) {
+      var row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;cursor:pointer;transition:background .12s;';
+      row.onmouseenter = function(){ row.style.background='#f8fafc'; };
+      row.onmouseleave = function(){ row.style.background=''; };
+      row.innerHTML =
+        '<div><div style="font-size:13px;font-weight:600;color:#0f172a;">' + esc(feed.name) + '</div>' +
+        '<div style="font-size:11px;color:#64748b;">' + esc(feed.keywords) + ' · ' + (feed.item_count||0) + ' items</div></div>' +
+        '<button style="padding:4px 12px;background:#1D9E75;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">Save</button>';
+      row.querySelector('button').onclick = function(e) {
+        e.stopPropagation();
+        saveItemToFeed(feed.id);
+      };
+      el.appendChild(row);
+    });
+  } catch(e) {
+    el.innerHTML = '<div style="font-size:12px;color:#ef4444;">Error loading feeds</div>';
+  }
+}
+
+async function saveItemToFeed(feedId) {
+  if (!_pendingItem) return;
+  const { btn, item } = _pendingItem;
+  try {
+    await fetch('/api/discover-feeds/save-item', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ feed_id: feedId, workspace_id: workspaceId, ...item })
+    });
+    if (btn) { btn.className = 'btn-action btn-saved'; btn.textContent = '✓ Saved'; }
+    showToast('Saved to feed');
+    closeSaveModal();
+  } catch(e) { showToast('Error saving'); }
+}
+
+async function createFeedAndSave() {
+  const name     = document.getElementById('new-feed-name').value.trim();
+  const keywords = document.getElementById('new-feed-keywords').value.trim();
+  if (!name || !keywords) { showToast('Enter a name and keywords'); return; }
+  try {
+    const r = await fetch('/api/discover-feeds', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ workspace_id: workspaceId, name, keywords, sources: ['reddit','linkedin'], auto_run: true })
+    });
+    const d = await r.json();
+    if (d.feed) {
+      await saveItemToFeed(d.feed.id);
+      showToast('Feed created & item saved!');
+    }
+  } catch(e) { showToast('Error creating feed'); }
+}
+
+// Auto-focus + load monitors summary
+document.getElementById('main-search').focus();
+loadMonitorsSummary();
+loadSavedBadge(); // load count for badge
+
+// ── Discover tabs ─────────────────────────────────────────────────────────────
+var _currentDiscoverTab = 'search';
+
+function switchDiscoverTab(tab) {
+  _currentDiscoverTab = tab;
+  var searchContent = document.getElementById('tab-content-search');
+  var savedContent  = document.getElementById('tab-content-saved');
+  var btnSearch     = document.getElementById('tab-btn-search');
+  var btnSaved      = document.getElementById('tab-btn-saved');
+
+  if (tab === 'search') {
+    searchContent.style.display = '';
+    savedContent.style.display = 'none';
+    btnSearch.style.color = '#1D9E75';
+    btnSearch.style.borderBottomColor = '#1D9E75';
+    btnSaved.style.color = '#64748b';
+    btnSaved.style.borderBottomColor = 'transparent';
+  } else {
+    searchContent.style.display = 'none';
+    savedContent.style.display = 'flex';
+    btnSearch.style.color = '#64748b';
+    btnSearch.style.borderBottomColor = 'transparent';
+    btnSaved.style.color = '#1D9E75';
+    btnSaved.style.borderBottomColor = '#1D9E75';
+    loadSavedItems(true);
+  }
+}
+
+// ── Saved items ───────────────────────────────────────────────────────────────
+var _savedFilter  = 'all';
+var _savedOffset  = 0;
+var _savedTotal   = 0;
+var _savedPerPage = 50;
+
+function filterSaved(src, btn) {
+  _savedFilter = src;
+  document.querySelectorAll('.saved-filter-btn').forEach(function(b) {
+    var isActive = b.dataset.src === src;
+    b.style.borderColor  = isActive ? '#1D9E75' : '#e2e8f0';
+    b.style.background   = isActive ? '#f0fdf4' : '#fff';
+    b.style.color        = isActive ? '#1D9E75' : '#374151';
+  });
+  loadSavedItems(true);
+}
+
+async function loadSavedBadge() {
+  try {
+    // Get monitor items count
+    var r = await fetch('/api/monitors/items?workspace_id='+workspaceId+'&limit=1&offset=0');
+    var d = await r.json();
+    var monTotal = d.total || 0;
+
+    // Get feed items count
+    var rf = await fetch('/api/discover-feeds?workspace_id='+workspaceId);
+    var df = await rf.json();
+    var feedTotal = (df.feeds||[]).reduce(function(s,f){ return s + (parseInt(f.item_count)||0); }, 0);
+
+    var total = monTotal + feedTotal;
+    var badge = document.getElementById('saved-count-badge');
+    if (badge) {
+      badge.textContent = total > 999 ? '999+' : String(total);
+      badge.style.display = total > 0 ? '' : 'none';
+    }
+  } catch(e) {}
+}
+
+async function loadSavedItems(reset) {
+  if (reset) {
+    _savedOffset = 0;
+    document.getElementById('saved-items-list').innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8;"><div class="spinner" style="margin:0 auto 10px;"></div>Loading…</div>';
+    document.getElementById('saved-load-more').style.display = 'none';
+  }
+
+  var params = new URLSearchParams({
+    workspace_id: workspaceId,
+    limit: _savedPerPage,
+    offset: _savedOffset,
+  });
+  if (_savedFilter !== 'all') params.set('source', _savedFilter);
+
+  try {
+    // Load feeds + monitors for grouping
+    var feedsResp = await fetch('/api/discover-feeds?workspace_id='+workspaceId).then(function(r){return r.json();});
+    var feeds = feedsResp.feeds || [];
+
+    var r = await fetch('/api/monitors/items?' + params);
+    var d = await r.json();
+
+    // Merge monitor_items + feed_items
+    var all = (d.items||[]).concat((d.feed_items||[]).map(function(fi){
+      return Object.assign({}, fi, { from_feed: true });
+    }));
+    all.sort(function(a,b){ return new Date(b.found_at) - new Date(a.found_at); });
+
+    _savedTotal = (d.total||0) + (d.feed_items?.length||0);
+    document.getElementById('saved-total-label').textContent = _savedTotal + ' saved items';
+
+    var listEl = document.getElementById('saved-items-list');
+    if (reset) listEl.innerHTML = '';
+
+    if (!all.length && reset) {
+      listEl.innerHTML = '<div style="text-align:center;padding:60px 20px;color:#94a3b8;"><div style="font-size:40px;opacity:.3;margin-bottom:12px;">📌</div><div style="font-size:15px;font-weight:600;color:#64748b;">No saved items yet</div><div style="font-size:13px;margin-top:6px;">Search for a keyword — results are saved automatically<br>when you have a matching feed or monitor.</div></div>';
+      return;
+    }
+
+    // Group by feed/monitor
+    var groups = {};
+    all.forEach(function(item) {
+      var key = item.from_feed
+        ? 'feed:' + item.monitor_name
+        : 'monitor:' + item.monitor_name;
+      if (!groups[key]) groups[key] = {
+        label: item.monitor_name || item.monitor_keywords || 'Saved',
+        feedId: item.from_feed ? item.feed_id : null,
+        monitorId: !item.from_feed ? item.monitor_id : null,
+        isFeed: !!item.from_feed,
+        items: []
+      };
+      groups[key].items.push(item);
+    });
+
+    Object.values(groups).forEach(function(group) {
+      if (!reset && listEl.querySelector('[data-group="'+esc(group.label)+'"]')) {
+        return; // already rendered this group
+      }
+
+      // Group header with bulk delete
+      var header = document.createElement('div');
+      header.setAttribute('data-group', group.label);
+      header.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 0 6px;border-bottom:2px solid #f1f5f9;margin-bottom:6px;margin-top:12px;';
+      var srcs = group.items.reduce(function(acc, i) { if (!acc.includes(i.source)) acc.push(i.source); return acc; }, []);
+      var srcBadges = srcs.map(function(s) {
+        return '<span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:10px;' +
+          (s==='linkedin' ? 'background:#dbeafe;color:#1d4ed8' : 'background:#fee2e2;color:#991b1b') + '">' +
+          (s==='linkedin' ? 'in' : 'r/') + '</span>';
+      }).join(' ');
+      // Build header with DOM to avoid quote issues
+      var labelSpan = document.createElement('span');
+      labelSpan.style.cssText = 'font-size:13px;font-weight:700;color:#0f172a;';
+      labelSpan.textContent = group.label;
+      header.appendChild(labelSpan);
+      var badgeWrap = document.createElement('span');
+      badgeWrap.innerHTML = srcBadges;
+      header.appendChild(badgeWrap);
+      var cntSpan = document.createElement('span');
+      cntSpan.style.cssText = 'font-size:11px;color:#94a3b8;';
+      cntSpan.textContent = group.items.length + ' items';
+      header.appendChild(cntSpan);
+      var clrBtn = document.createElement('button');
+      clrBtn.style.cssText = 'margin-left:auto;padding:3px 10px;border:1px solid #fecaca;background:#fff;border-radius:6px;font-size:11px;font-weight:600;color:#ef4444;cursor:pointer;';
+      clrBtn.textContent = 'Clear all';
+      (function(lbl,fid,mid){ clrBtn.onclick = function(){ clearFeedItems(clrBtn,lbl,fid,mid); }; })(group.label, group.feedId, group.monitorId);
+      header.appendChild(clrBtn);
+      listEl.appendChild(header);
+
+      group.items.forEach(function(item) { listEl.appendChild(buildSavedCard(item)); });
+    });
+
+    _savedOffset += _savedPerPage;
+    var hasMore = _savedOffset < _savedTotal;
+    document.getElementById('saved-load-more').style.display = hasMore ? '' : 'none';
+
+  } catch(e) {
+    document.getElementById('saved-items-list').innerHTML = '<div style="text-align:center;padding:40px;color:#ef4444;">Error: ' + esc(e.message) + '</div>';
+  }
+}
+
+// Wire up clear buttons via event delegation
+(function() {
+  var list = document.getElementById('saved-items-list');
+  if (!list) return;
+  list.removeEventListener('click', _clearBtnHandler);
+  list.addEventListener('click', _clearBtnHandler);
+})();
+var _clearBtnHandler = function(e) {
+  var btn = e.target.closest('.clear-feed-btn');
+  if (!btn) return;
+  var label = btn.dataset.label;
+  var feedId = btn.dataset.feed || null;
+  var monitorId = btn.dataset.monitor || null;
+  clearFeedItems(btn, label, feedId, monitorId);
+};
+
+async function clearFeedItems(btn, label, feedId, monitorId) {
+  if (!confirm('Delete all saved items in "' + label + '"?')) return;
+  btn.textContent = 'Deleting…'; btn.disabled = true;
+  try {
+    if (feedId) {
+      await fetch('/api/discover-feeds/' + feedId + '/items?workspace_id=' + workspaceId, { method: 'DELETE' });
+    }
+    if (monitorId) {
+      // Delete all monitor_items for this monitor
+      await fetch('/api/monitors/' + monitorId + '/items?workspace_id=' + workspaceId, { method: 'DELETE' });
+    }
+    loadSavedItems(true);
+    loadSavedBadge();
+    showToast('Cleared all items from "' + label + '"');
+  } catch(e) {
+    btn.textContent = '🗑 Clear all'; btn.disabled = false;
+    showToast('Error clearing items');
+  }
+}
+
+function buildSavedCard(item) {
+  var card = document.createElement('div');
+  card.className = 'post-card';
+  var isReddit = item.source === 'reddit';
+  var isLinkedIn = item.source === 'linkedin';
+
+  // Top meta row
+  var meta = document.createElement('div');
+  meta.className = 'post-meta';
+
+  var srcBadge = document.createElement('span');
+  srcBadge.style.cssText = 'font-size:10px;font-weight:700;padding:1px 7px;border-radius:4px;' +
+    (isLinkedIn ? 'background:#dbeafe;color:#1d4ed8;' : 'background:#fee2e2;color:#991b1b;');
+  srcBadge.textContent = isLinkedIn ? 'in' : 'r/';
+  meta.appendChild(srcBadge);
+
+  if (item.monitor_name || item.monitor_keywords) {
+    var monBadge = document.createElement('span');
+    monBadge.style.cssText = 'font-size:10px;padding:1px 7px;border-radius:10px;background:#f0fdf4;color:#15803d;font-weight:600;';
+    monBadge.textContent = item.from_feed ? 'feed: ' : 'monitor: ';
+    monBadge.textContent += (item.monitor_keywords || item.monitor_name || '');
+    meta.appendChild(monBadge);
+  }
+
+  if (isReddit && item.subreddit) {
+    var sub = document.createElement('span');
+    sub.style.cssText = 'font-weight:600;color:#374151;cursor:pointer;';
+    sub.textContent = item.subreddit;
+    sub.onclick = function(){ window.open('https://reddit.com/' + item.subreddit, '_blank'); };
+    meta.appendChild(sub);
+    meta.insertAdjacentHTML('beforeend','<span class="dot">·</span>');
+  }
+  if (isLinkedIn && item.author) {
+    var auth = document.createElement('span');
+    auth.style.cssText = 'font-weight:600;color:#374151;' + (item.author_url ? 'cursor:pointer;' : '');
+    auth.textContent = item.author;
+    if (item.author_url) auth.onclick = function(){ window.open(item.author_url,'_blank'); };
+    meta.appendChild(auth);
+    meta.insertAdjacentHTML('beforeend','<span class="dot">·</span>');
+  }
+
+  var timeEl = document.createElement('span');
+  timeEl.className = 'time';
+  timeEl.textContent = timeSince(item.found_at);
+  meta.appendChild(timeEl);
+
+  card.appendChild(meta);
+
+  // Title
+  if (item.title) {
+    var title = document.createElement('div');
+    title.className = 'post-title';
+    title.style.cursor = item.url ? 'pointer' : 'default';
+    title.textContent = item.title;
+    if (item.url) title.onclick = function(){ window.open(item.url,'_blank'); };
+    card.appendChild(title);
+  }
+
+  // Snippet
+  if (item.snippet && item.snippet.trim() && item.snippet !== item.title) {
+    var rest = item.snippet.slice((item.title||'').length).replace(/^\s+/,'');
+    if (rest) {
+      var snip = document.createElement('div');
+      snip.className = 'post-body';
+      snip.textContent = rest;
+      card.appendChild(snip);
+    }
+  }
+
+  // Stats + actions
+  var stats = document.createElement('div');
+  stats.className = 'post-stats';
+  if (item.score)    stats.innerHTML += '<span class="post-stat">'+(isReddit?'⬆':'👍')+' '+numFmt(item.score)+'</span>';
+  if (item.comments) stats.innerHTML += '<span class="post-stat">💬 '+numFmt(item.comments)+' comments</span>';
+  if (stats.innerHTML) card.appendChild(stats);
+
+  var actions = document.createElement('div');
+  actions.className = 'post-actions';
+  if (item.url) {
+    var openBtn = document.createElement('button');
+    openBtn.className = 'btn-action btn-view';
+    openBtn.textContent = isReddit ? 'Read Discussion →' : 'View Post →';
+    openBtn.onclick = function(){ window.open(item.url,'_blank'); };
+    actions.appendChild(openBtn);
+  }
+  if (isLinkedIn && item.author_url) {
+    var profBtn = document.createElement('button');
+    profBtn.className = 'btn-action btn-view';
+    profBtn.textContent = 'View Profile';
+    profBtn.onclick = function(){ window.open(item.author_url,'_blank'); };
+    actions.appendChild(profBtn);
+  }
+  card.appendChild(actions);
+  return card;
+}
+
+// ── Load more for Search results ──────────────────────────────────────────────
+var _liCursor   = null;
+var _rdAfter    = null;
+
+function renderLoadMoreButtons(liCursor, rdAfter) {
+  _liCursor = liCursor || null;
+  _rdAfter  = rdAfter  || null;
+}
+</script>
+
+<!-- Save to Feed Modal -->
+<div id="save-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:999;display:none;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:14px;padding:28px 28px 24px;width:420px;max-width:94vw;box-shadow:0 20px 60px rgba(0,0,0,.2);">
+    <div style="font-size:16px;font-weight:700;color:#0f172a;margin-bottom:6px;">Save to Discover Feed</div>
+    <div style="font-size:12px;color:#64748b;margin-bottom:18px;">Choose an existing feed or create a new one</div>
+    <div id="save-feed-list" style="display:flex;flex-direction:column;gap:8px;max-height:220px;overflow-y:auto;margin-bottom:16px;"></div>
+    <div style="border-top:1px solid #f1f5f9;padding-top:14px;">
+      <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:8px;">+ Create new feed</div>
+      <input id="new-feed-name" type="text" placeholder="Feed name (e.g. Cold Outreach Signals)" style="width:100%;padding:8px 12px;border:1px solid #e2e8f0;border-radius:7px;font-size:13px;outline:none;margin-bottom:8px;">
+      <input id="new-feed-keywords" type="text" placeholder="Keywords (pre-filled from search)" style="width:100%;padding:8px 12px;border:1px solid #e2e8f0;border-radius:7px;font-size:13px;outline:none;margin-bottom:10px;">
+      <button onclick="createFeedAndSave()" style="width:100%;padding:9px;background:#1D9E75;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;">Create Feed &amp; Save</button>
+    </div>
+    <button onclick="closeSaveModal()" style="position:absolute;top:14px;right:16px;background:none;border:none;font-size:18px;color:#94a3b8;cursor:pointer;">✕</button>
+  </div>
+</div>
+
+<!-- Monitor Modal -->
+<div id="monitor-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:16px;padding:28px;width:440px;max-width:94vw;box-shadow:0 24px 64px rgba(0,0,0,.18);position:relative;">
+
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+      <span style="font-size:22px;">🔔</span>
+      <div style="font-size:17px;font-weight:700;color:#0f172a;">Monitor this search</div>
+    </div>
+    <div id="monitor-modal-kw" style="font-size:14px;color:#1D9E75;font-weight:600;margin-bottom:20px;padding:6px 12px;background:#f0fdf4;border-radius:6px;display:inline-block;"></div>
+
+    <!-- Email -->
+    <div style="margin-bottom:16px;">
+      <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:6px;">Send alerts to</label>
+      <input id="monitor-email" type="email" placeholder="your@email.com" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:14px;outline:none;transition:border .15s;">
+    </div>
+
+    <!-- Frequency -->
+    <div style="margin-bottom:20px;">
+      <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:10px;">How often?</label>
+      <div style="display:flex;gap:8px;">
+        <label id="freq-daily" style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:8px;cursor:pointer;transition:all .12s;">
+          <input type="radio" name="monitor-freq" value="daily" checked style="accent-color:#1D9E75;">
+          <div><div style="font-size:13px;font-weight:600;color:#0f172a;">Daily digest</div><div style="font-size:11px;color:#64748b;">Morning summary</div></div>
+        </label>
+        <label id="freq-weekly" style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:8px;cursor:pointer;transition:all .12s;">
+          <input type="radio" name="monitor-freq" value="weekly" style="accent-color:#1D9E75;">
+          <div><div style="font-size:13px;font-weight:600;color:#0f172a;">Weekly digest</div><div style="font-size:11px;color:#64748b;">Every Monday</div></div>
+        </label>
+        <label id="freq-instant" style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:8px;cursor:pointer;transition:all .12s;">
+          <input type="radio" name="monitor-freq" value="instant" style="accent-color:#1D9E75;">
+          <div><div style="font-size:13px;font-weight:600;color:#0f172a;">Instant</div><div style="font-size:11px;color:#64748b;">As it happens</div></div>
+        </label>
+      </div>
+    </div>
+
+    <!-- Sources -->
+    <div style="margin-bottom:20px;">
+      <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:8px;">Sources</label>
+      <div style="display:flex;gap:8px;">
+        <label style="display:flex;align-items:center;gap:6px;padding:7px 14px;border:1.5px solid #e2e8f0;border-radius:7px;cursor:pointer;">
+          <input type="checkbox" id="src-reddit" checked style="accent-color:#1D9E75;">
+          <span style="font-size:13px;font-weight:600;color:#374151;">r/ Reddit</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;padding:7px 14px;border:1.5px solid #e2e8f0;border-radius:7px;cursor:pointer;">
+          <input type="checkbox" id="src-linkedin" checked style="accent-color:#1D9E75;">
+          <span style="font-size:13px;font-weight:600;color:#374151;">in LinkedIn</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Action buttons -->
+    <div style="display:flex;gap:8px;">
+      <button onclick="closeMonitorModal()" style="flex:1;padding:10px;border:1.5px solid #e2e8f0;background:#fff;border-radius:8px;font-size:13px;font-weight:600;color:#64748b;cursor:pointer;">Cancel</button>
+      <button onclick="saveMonitor()" id="monitor-save-btn" style="flex:2;padding:10px;background:#1D9E75;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">Start Monitoring →</button>
+    </div>
+
+    <button onclick="closeMonitorModal()" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:20px;color:#94a3b8;cursor:pointer;line-height:1;">✕</button>
+  </div>
+</div>
+</body>
+</html>

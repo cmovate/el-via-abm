@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="stylesheet" href="/ds.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inbox</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+body { font-family: 'Inter', -apple-system, sans-serif; background: #f4f5f7; color: #1a1a2e; font-size: 14px; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+.topbar { background: white; border-bottom: 1px solid #e8ecef; padding: 0 20px; display: flex; align-items: center; gap: 12px; height: 54px; flex-shrink: 0; box-shadow: 0 1px 3px rgba(0,0,0,.04); }
+.topbar-title { font-size: 15px; font-weight: 700; color: #0f1923; letter-spacing: -.01em; display: flex; align-items: center; gap: 7px; }
+.topbar-spacer { flex: 1; }
+.filter-tabs { display: flex; gap: 4px; }
+.filter-tab { padding: 5px 13px; border-radius: 20px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid #e5e7eb; background: white; color: #6b7280; transition: all .12s; }
+.filter-tab.active { background: #0f1923; color: white; border-color: #0f1923; }
+.sync-btn { background: #1D9E75; border: none; border-radius: 8px; padding: 6px 15px; font-size: 12px; font-weight: 600; color: white; cursor: pointer; font-family: inherit; box-shadow: 0 1px 4px rgba(29,158,117,.25); transition: all .12s; }
+.sync-btn:hover { background: #178f68; transform: translateY(-1px); }
+.sync-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.campaign-select { border: 1px solid #e0e0e0; border-radius: 6px; padding: 5px 10px; font-size: 12px; font-family: inherit; background: white; }
+.inbox-layout { display: flex; flex: 1; overflow: hidden; }
+.thread-list { width: 310px; flex-shrink: 0; border-right: 1px solid #e8ecef; background: white; display: flex; flex-direction: column; overflow: hidden; }
+.thread-list-inner { overflow-y: auto; flex: 1; }
+.thread-item { padding: 12px 16px; border-bottom: 1px solid #f5f7f9; cursor: pointer; display: flex; gap: 10px; align-items: flex-start; transition: background .1s; }
+.thread-item:hover { background: #f9fafb; }
+.thread-item.active { background: #f0fdf8; border-right: 2px solid #1D9E75; }
+.thread-item.unread .thread-name { font-weight: 700; }
+.thread-avatar { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg,#dcfce7,#bbf7d0); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #166534; flex-shrink: 0; overflow: hidden; border: 1.5px solid rgba(29,158,117,.15); }
+.thread-info { flex: 1; min-width: 0; }
+.thread-name { font-size: 13px; font-weight: 500; color: #111827; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.thread-company { font-size: 11px; color: #888; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.thread-preview { font-size: 12px; color: #999; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.thread-time { font-size: 10px; color: #bbb; flex-shrink: 0; margin-top: 2px; }
+.unread-dot { width: 8px; height: 8px; border-radius: 50%; background: #0A66C2; flex-shrink: 0; margin-top: 4px; }
+.thread-empty { padding: 40px 20px; text-align: center; color: #aaa; font-size: 13px; line-height: 1.6; }
+.conversation { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #f9f9f9; }
+.conv-header { background: white; border-bottom: 1px solid #e5e5e5; padding: 12px 20px; display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.conv-avatar { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg,#DBEAFE,#C7F2D8); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #1E5F3E; flex-shrink: 0; }
+.conv-header-info { flex: 1; min-width: 0; }
+.conv-name { font-size: 14px; font-weight: 600; color: #111; }
+.conv-meta { font-size: 11px; color: #888; margin-top: 2px; }
+.conv-campaign-badge { font-size: 10px; font-weight: 600; background: #E1F5EE; color: #0F6E56; border-radius: 4px; padding: 1px 6px; margin-left: 6px; vertical-align: middle; }
+.li-link { font-size: 11px; color: #0A66C2; text-decoration: none; margin-left: 8px; }
+.li-link:hover { text-decoration: underline; }
+.messages { flex: 1; overflow-y: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 12px; background: #f8fafb; }
+.msg { display: flex; flex-direction: column; max-width: 72%; }
+.msg.sent { align-self: flex-end; align-items: flex-end; }
+.msg.received { align-self: flex-start; align-items: flex-start; }
+.msg-bubble { padding: 10px 14px; border-radius: 16px; font-size: 13px; line-height: 1.55; word-break: break-word; }
+.msg.sent .msg-bubble { background: #0f1923; color: white; border-radius: 16px 16px 4px 16px; }
+.msg.received .msg-bubble { background: white; color: #111827; border: 1px solid #e8ecef; border-radius: 16px 16px 16px 4px; box-shadow: 0 1px 3px rgba(0,0,0,.05); }
+.msg-time { font-size: 10px; color: #bbb; margin-top: 3px; }
+.msg-sender { font-size: 10px; font-weight: 600; color: #888; margin-bottom: 3px; }
+.msg.sent .msg-sender { color: #5b9bd5; text-align: right; }
+.msg.received .msg-sender { color: #52b788; }
+.reply-area { background: white; border-top: 1px solid #e8ecef; padding: 14px 18px; flex-shrink: 0; box-shadow: 0 -1px 4px rgba(0,0,0,.04); }
+.reply-input { width: 100%; border: 1.5px solid #e5e7eb; border-radius: 10px; padding: 10px 14px; font-size: 13px; font-family: inherit; resize: none; min-height: 72px; outline: none; line-height: 1.5; transition: border-color .12s; }
+.reply-input:focus { border-color: #1D9E75; }
+.reply-actions { display: flex; gap: 8px; margin-top: 8px; align-items: center; }
+.reply-actions-spacer { flex: 1; }
+.ai-btn { background: white; border: 1px solid #e0e0e0; border-radius: 6px; padding: 6px 12px; font-size: 12px; color: #555; cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: 5px; transition: background 0.1s; }
+.ai-btn:hover { background: #f5f5f5; }
+.ai-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.send-btn { background: #1D9E75; border: none; border-radius: 8px; padding: 8px 20px; font-size: 13px; font-weight: 600; color: white; cursor: pointer; font-family: inherit; transition: all .12s; box-shadow: 0 2px 6px rgba(29,158,117,.25); }
+.send-btn:hover { background: #178f68; transform: translateY(-1px); }
+.send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.conv-empty { flex: 1; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 12px; color: #bbb; }
+.conv-empty-icon { font-size: 48px; opacity: 0.25; }
+.spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid #e5e5e5; border-top-color: #0A66C2; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.msg-loading { text-align: center; padding: 20px; color: #aaa; font-size: 13px; }
+
+    /* Account switcher */
+    .account-switcher { display:flex; gap:4px; border-bottom:1px solid #e5e5e5; padding:8px 14px 0; flex-shrink:0; background:white; overflow-x:auto; }
+    .account-tab { padding:6px 12px; border-radius:8px 8px 0 0; font-size:12px; font-weight:500; cursor:pointer; color:#666; border:1px solid transparent; border-bottom:none; white-space:nowrap; display:flex; align-items:center; gap:6px; transition:all .15s; }
+    .account-tab:hover { background:#f5f5f5; color:#333; }
+    .account-tab.active { background:white; color:#0A66C2; border-color:#e5e5e5; font-weight:600; position:relative; bottom:-1px; }
+    .account-tab .acc-avatar { width:20px; height:20px; border-radius:50%; background:linear-gradient(135deg,#DBEAFE,#C7F2D8); display:flex; align-items:center; justify-content:center; font-size:8px; font-weight:700; color:#1E5F3E; flex-shrink:0; }
+    .account-tab .acc-badge { background:#e5e7eb; color:#374151; border-radius:10px; padding:1px 5px; font-size:10px; }
+  </style>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-title">&#128140; Inbox</div>
+  <select class="campaign-select" id="campaign-select" onchange="onCampaignChange()">
+    <option value="">All campaigns</option>
+  </select>
+  <div class="filter-tabs">
+    <div class="filter-tab active" onclick="setFilter('all',this)">All</div>
+    <div class="filter-tab" onclick="setFilter('unread',this)">Unread</div>
+    <div class="filter-tab" onclick="setFilter('replied',this)">Replied</div>
+  </div>
+  <div class="topbar-spacer"></div>
+  <button class="sync-btn" id="sync-btn" onclick="triggerSync()">&#8635; Sync</button>
+</div>
+
+<div id="account-switcher" class="account-switcher"></div>
+<div class="inbox-layout">
+  <div class="thread-list">
+    <div class="thread-list-inner" id="thread-list">
+      <div class="thread-empty"><span class="spinner"></span></div>
+    </div>
+  </div>
+  <div class="conversation" id="conversation">
+    <div class="conv-empty">
+      <div class="conv-empty-icon">&#128140;</div>
+      <div style="font-size:15px;font-weight:500;color:#999;">Select a conversation</div>
+      <div style="font-size:12px;color:#bbb;">Your LinkedIn messages will appear here</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const urlParams   = new URLSearchParams(window.location.search);
+const workspaceId = urlParams.get('workspace_id');
+let campaigns = [], selectedCampaign = null, currentFilter = 'all';
+let accounts = [], selectedAccount = null, syncing = false;
+let currentThread = null, threads = [], sendingAI = false;
+
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function ini(n) { return String(n||'?').split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase(); }
+function ago(d) {
+  if (!d) return '';
+  const s = Math.floor((Date.now()-new Date(d))/1000);
+  if (s < 60)    return 'just now';
+  if (s < 3600)  return Math.floor(s/60)+'m ago';
+  if (s < 86400) return Math.floor(s/3600)+'h ago';
+  if (s < 604800)return Math.floor(s/86400)+'d ago';
+  return new Date(d).toLocaleDateString();
+}
+
+
+async function loadAccounts() {
+  try {
+    const r = await fetch('/api/workspaces/'+workspaceId+'/accounts');
+    const d = await r.json();
+    accounts = d.items || [];
+    renderAccountSwitcher();
+    if (accounts.length > 0 && !selectedAccount) {
+      selectedAccount = accounts[0].account_id;
+      renderAccountSwitcher();
+    }
+    loadThreads();
+  } catch(e) { console.error('loadAccounts error:', e); }
+}
+
+function renderAccountSwitcher() {
+  const sw = document.getElementById('account-switcher');
+  if (!sw) return;
+  sw.innerHTML = accounts.map(function(a) {
+    const ini2 = (a.display_name||'?').split(' ').map(function(w){return w[0]||'';}).join('').slice(0,2).toUpperCase();
+    const active = selectedAccount === a.account_id;
+    return '<div class="account-tab'+(active?' active':'')+'" onclick="setAccount(\'' + a.account_id + '\')">' +
+      '<div class="acc-avatar">'+esc(ini2)+'</div>' +
+      esc(a.display_name||a.account_id) +
+    '</div>';
+  }).join('');
+}
+
+function setAccount(accountId) {
+  selectedAccount = accountId;
+  renderAccountSwitcher();
+  loadThreads();
+}
+
+async function loadCampaigns() {
+  try {
+    const r = await fetch('/api/campaigns?workspace_id='+workspaceId);
+    const d = await r.json();
+    campaigns = d.items || [];
+    const sel = document.getElementById('campaign-select');
+    campaigns.forEach(c => { const o=document.createElement('option'); o.value=c.id; o.textContent=c.name; sel.appendChild(o); });
+  } catch(e) {}
+}
+
+function onCampaignChange() { selectedCampaign=document.getElementById('campaign-select').value||null; loadThreads(); }
+function setFilter(f,el) { currentFilter=f; document.querySelectorAll('.filter-tab').forEach(t=>t.classList.remove('active')); el.classList.add('active'); loadThreads(); }
+
+async function loadThreads() {
+  const list = document.getElementById('thread-list');
+  list.innerHTML = '<div class="thread-empty"><span class="spinner"></span></div>';
+  const p = new URLSearchParams({workspace_id:workspaceId, filter:currentFilter, limit:100});
+  if (selectedCampaign) p.set('campaign_id', selectedCampaign);
+  if (selectedAccount) p.set('account_id', selectedAccount);
+  try {
+    const r = await fetch('/api/inbox?'+p);
+    const d = await r.json();
+    threads = d.items || [];
+    if (!threads.length) { list.innerHTML='<div class="thread-empty">No conversations yet.<br>Click Sync to import from LinkedIn.</div>'; return; }
+    list.innerHTML = threads.map(renderThread).join('');
+  } catch(e) { list.innerHTML='<div class="thread-empty" style="color:#DC2626;">Failed to load</div>'; }
+}
+
+function renderThread(t) {
+  const name = ((t.first_name||'')+' '+(t.last_name||'')).trim() || 'LinkedIn';
+  const isActive = currentThread && currentThread.id===t.id;
+  return `<div class="thread-item${isActive?' active':''}${t.unread_count>0?' unread':''}" onclick="openThread(${t.id})" id="ti-${t.id}">
+    <div class="thread-avatar">${esc(ini(name))}</div>
+    <div class="thread-info">
+      <div class="thread-name">${esc(name)}</div>
+      <div class="thread-company">${esc(t.contact_title||'')}${t.contact_company?' &middot; '+esc(t.contact_company):''}</div>
+      <div class="thread-preview">${esc((t.last_message_preview||'No messages yet').slice(0,60))}</div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+      <div class="thread-time">${ago(t.last_message_at)}</div>
+      ${t.unread_count>0?'<div class="unread-dot"></div>':''}
+    </div>
+  </div>`;
+}
+
+async function openThread(threadId) {
+  currentThread = threads.find(t=>t.id===threadId);
+  if (!currentThread) return;
+  document.querySelectorAll('.thread-item').forEach(el=>el.classList.remove('active'));
+  const ti = document.getElementById('ti-'+threadId);
+  if (ti) { ti.classList.add('active'); ti.classList.remove('unread'); ti.querySelector('.thread-name').style.fontWeight=''; ti.querySelector('.unread-dot')?.remove(); }
+  const name = ((currentThread.first_name||'')+' '+(currentThread.last_name||'')).trim()||'Unknown';
+  document.getElementById('conversation').innerHTML = `
+    <div class="conv-header">
+      <div class="conv-avatar">${esc(ini(name))}</div>
+      <div class="conv-header-info">
+        <div class="conv-name">${esc(name)}<span class="conv-campaign-badge">${esc(currentThread.campaign_name||'')}</span>
+          ${currentThread.li_profile_url?'<a class="li-link" href="'+esc(currentThread.li_profile_url)+'" target="_blank" rel="noopener">LinkedIn &#8599;</a>':''}
+        </div>
+        <div class="conv-meta">${esc(currentThread.contact_title||'')}${currentThread.contact_company?' &middot; '+esc(currentThread.contact_company):''}</div>
+      </div>
+    </div>
+    <div class="messages" id="messages"><div class="msg-loading"><span class="spinner"></span> Loading...</div></div>
+    <div class="reply-area">
+      <textarea class="reply-input" id="reply-input" placeholder="Write a message… (Ctrl+Enter to send)" onkeydown="onKey(event)"></textarea>
+      <div class="reply-actions">
+        <button class="ai-btn" id="ai-btn" onclick="aiSuggest()">&#129302; AI Suggest</button>
+        <div class="reply-actions-spacer"></div>
+        <button class="send-btn" id="send-btn" onclick="sendReply()">Send &#10148;</button>
+      </div>
+    </div>`;
+  loadMessages(threadId);
+}
+
+async function loadMessages(threadId) {
+  const el = document.getElementById('messages');
+  if (!el) return;
+  try {
+    const r = await fetch('/api/inbox/'+threadId+'/messages?workspace_id='+workspaceId);
+    const d = await r.json();
+    const msgs = d.messages || [];
+    if (!msgs.length) { el.innerHTML='<div class="msg-loading">No messages yet.</div>'; return; }
+    const contactName = currentThread ? ((currentThread.first_name||'')+' '+(currentThread.last_name||'')).trim() || 'LinkedIn' : 'LinkedIn';
+    const senderAccName = accounts.find(function(a){ return a.account_id === selectedAccount; });
+    const accLabel = senderAccName ? senderAccName.display_name.split(' ').slice(0,1).join('') : 'Me';
+    el.innerHTML = msgs.map(m=>`
+      <div class="msg ${m.direction==='sent'?'sent':'received'}">
+        <div class="msg-sender">${m.direction==='sent' ? esc(accLabel) : esc(contactName)}</div>
+        <div class="msg-bubble">${esc(m.content||'').replace(/\n/g,'<br>')}</div>
+        <div class="msg-time">${ago(m.sent_at)}</div>
+      </div>`).join('');
+    el.scrollTop = el.scrollHeight;
+  } catch(e) { el.innerHTML='<div class="msg-loading" style="color:#DC2626;">Error loading messages</div>'; }
+}
+
+function onKey(e) { if (e.key==='Enter'&&(e.ctrlKey||e.metaKey)) { e.preventDefault(); sendReply(); } }
+
+async function sendReply() {
+  if (!currentThread) return;
+  const input = document.getElementById('reply-input');
+  const btn   = document.getElementById('send-btn');
+  const text  = (input?.value||'').trim();
+  if (!text) return;
+  btn.disabled=true; btn.textContent='Sending…';
+  try {
+    const r = await fetch('/api/inbox/'+currentThread.id+'/reply', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({workspace_id:workspaceId, content:text})
+    });
+    if (!r.ok) throw new Error(await r.text());
+    input.value = '';
+    await loadMessages(currentThread.id);
+    const ti = document.getElementById('ti-'+currentThread.id);
+    if (ti) ti.querySelector('.thread-preview').textContent = text.slice(0,60);
+  } catch(e) { alert('Send failed: '+e.message); }
+  finally { btn.disabled=false; btn.textContent='Send ➤'; }
+}
+
+async function aiSuggest() {
+  if (!currentThread||sendingAI) return;
+  const btn   = document.getElementById('ai-btn');
+  const input = document.getElementById('reply-input');
+  sendingAI=true; btn.disabled=true; btn.textContent='⏳ Thinking…';
+  try {
+    const r = await fetch('/api/inbox/'+currentThread.id+'/ai-suggest', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ workspace_id: workspaceId })
+    });
+    const d = await r.json();
+    if (!r.ok || d.error) throw new Error(d.error || 'AI suggest failed');
+    if (d.suggestion && input) input.value = d.suggestion;
+  } catch(e) { alert('AI Suggest failed: '+e.message); }
+  finally { sendingAI=false; btn.disabled=false; btn.textContent='🤖 AI Suggest'; }
+}
+
+async function triggerSync() {
+  const btn = document.getElementById('sync-btn');
+  btn.disabled=true; btn.textContent='⏳ Syncing…';
+  try {
+    await fetch('/api/inbox/sync', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({workspace_id:workspaceId})
+    });
+    btn.textContent='✓ Sync started';
+    setTimeout(()=>{ btn.disabled=false; btn.textContent='↻ Sync'; loadThreads(); }, 6000);
+  } catch(e) { btn.disabled=false; btn.textContent='↻ Sync'; }
+}
+
+loadCampaigns(); loadAccounts();
+
+// Listen for "open-inbox-contact" from workspace parent (triggered from Opportunities)
+window.addEventListener('message', function(ev) {
+  if (!ev.data || ev.data.type !== 'open-inbox-contact') return;
+  var providerId = ev.data.provider_id;
+  var liUrl      = ev.data.li_profile_url;
+  var wsId       = ev.data.workspace_id || workspaceId;
+  var accountId  = ev.data.account_id || null;
+  if (!providerId && !liUrl) return;
+
+  // Switch to the right account first, then open
+  function doOpen() {
+    // Step 1: search loaded threads in memory
+    var found = threads.find(function(t){
+      if (!t.li_profile_url && !t.provider_id) return false;
+      return (providerId && t.li_profile_url && t.li_profile_url.includes(providerId)) ||
+             (providerId && t.provider_id === providerId) ||
+             (liUrl && t.li_profile_url === liUrl);
+    });
+    if (found) {
+      openThread(found.id);
+      var el = document.getElementById('ti-' + found.id);
+      if (el) el.scrollIntoView({behavior:'smooth', block:'center'});
+      return;
+    }
+
+    // Step 2: DB + Unipile lookup
+    var accParam = (accountId||selectedAccount) ? '&account_id=' + encodeURIComponent(accountId||selectedAccount) : '';
+    fetch('/api/inbox/by-provider?provider_id=' + encodeURIComponent(providerId||'') + '&workspace_id=' + encodeURIComponent(wsId) + accParam)
+    .then(function(r){ return r.json(); })
+    .then(function(res){
+      if (res.thread && res.thread.id) {
+        loadThreads().then(function(){
+          openThread(res.thread.id);
+          setTimeout(function(){
+            var el = document.getElementById('ti-' + res.thread.id);
+            if (el) el.scrollIntoView({behavior:'smooth', block:'center'});
+          }, 300);
+        });
+        return;
+      }
+      if (res.unipile_chat_id) {
+        var msgs = document.getElementById('messages');
+        if (msgs) msgs.innerHTML = '<div style="color:#aaa;text-align:center;padding:40px">Loading conversation...</div>';
+        fetch('/api/inbox/sync?workspace_id=' + wsId, {method:'POST'})
+          .then(function(){ return new Promise(function(r){ setTimeout(r, 2500); }); })
+          .then(function(){ return loadThreads(); })
+          .then(function(){
+            var s = threads.find(function(t){ return t.li_profile_url && t.li_profile_url.includes(providerId); });
+            if (s) openThread(s.id);
+            else showEmptyChat(ev.data, providerId, liUrl, wsId, accountId);
+          });
+        return;
+      }
+      // No existing chat — show empty compose window
+      showEmptyChat(ev.data, providerId, liUrl, wsId, accountId);
+    })
+    .catch(function(){ showEmptyChat(ev.data, providerId, liUrl, wsId, accountId); });
+  }
+
+  // Wait for threads to be loaded, then open
+  function waitAndOpen(retries) {
+    if (threads && threads.length > 0) {
+      // Switch account if needed first
+      if (accountId && accountId !== selectedAccount) {
+        setAccount(accountId);
+        setTimeout(doOpen, 600);
+      } else {
+        doOpen();
+      }
+    } else if (retries > 0) {
+      setTimeout(function() { waitAndOpen(retries - 1); }, 300);
+    } else {
+      // Threads still empty — just show empty compose
+      if (accountId && accountId !== selectedAccount) {
+        setAccount(accountId);
+        setTimeout(function() { showEmptyChat(ev.data, providerId, liUrl, wsId, accountId); }, 600);
+      } else {
+        showEmptyChat(ev.data, providerId, liUrl, wsId, accountId);
+      }
+    }
+  }
+
+  // Start checking after a small initial delay
+  setTimeout(function() { waitAndOpen(15); }, 200);
+});
+
+// Send new DM to contact not yet in inbox
+function sendNewDM(providerId, wsId) {
+  var content = (document.getElementById('reply-input')?.value || '').trim();
+  if (!content) return;
+  var accId = selectedAccount;
+  // Fallback 1: use currentThread account_id (set by showEmptyChat via Opportunities)
+  if (!accId && currentThread && currentThread._accountId) accId = currentThread._accountId;
+  // Fallback 2: use first loaded account
+  if (!accId && accounts && accounts.length > 0) {
+    accId = accounts[0].account_id;
+    setAccount(accId);
+  }
+  if (!accId) {
+    // Fallback 3: fetch from API directly
+    fetch('/api/workspaces/' + wsId + '/accounts')
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        var first = (d.items || d)[0];
+        if (first) { accId = first.account_id; sendNewDM(providerId, wsId); }
+        else alert('אין חשבון מחובר.');
+      });
+    return;
+  }
+  var btn = document.querySelector('.send-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
+  fetch('/api/opportunities/send-dm', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ workspace_id: parseInt(wsId), account_id: accId, provider_id: providerId, message: content })
+  }).then(r=>r.json()).then(function(d){
+    if (d.error) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Send ▶'; }
+      // If subscription_required, LinkedIn Premium needed — open LinkedIn profile instead
+      if (d.error.includes('subscription_required') || d.error.includes('403')) {
+        var url = document.querySelector('.li-link')?.href;
+        if (url) {
+          if (confirm('שליחה ישירה דורשת LinkedIn Premium. לפתוח את הפרופיל ב-LinkedIn ולשלוח ידנית?')) {
+            window.open(url, '_blank');
+          }
+        } else {
+          alert('לא ניתן לשלוח הודעה חדשה ישירות. אנא פתח את הפרופיל ב-LinkedIn ושלח ידנית.');
+        }
+      } else {
+        alert('שגיאה בשליחה: ' + d.error);
+      }
+      return;
+    }
+    // Clear input and show success
+    var input = document.getElementById('reply-input');
+    if (input) input.value = '';
+    // Show sent message in the chat
+    var msgs = document.getElementById('messages');
+    if (msgs) {
+      msgs.innerHTML += '<div class="msg msg-out" style="text-align:right;margin:8px 0"><div style="display:inline-block;background:#0A66C2;color:#fff;border-radius:14px 14px 2px 14px;padding:8px 14px;max-width:75%;font-size:13px;text-align:left">' + esc(content) + '</div><div style="font-size:11px;color:#aaa;margin-top:2px">just now</div></div>';
+      msgs.scrollTop = msgs.scrollHeight;
+    }
+    if (btn) { btn.disabled = false; btn.textContent = 'Send ▶'; }
+    // Reload threads after send — server triggers inbox sync in background
+    // Wait 3s to give sync time to complete, then reload and open thread
+    if (d.chat_id) {
+      setTimeout(function() {
+        loadThreads().then(function() {
+          var t = threads.find(function(th) {
+            return th.provider_id === providerId ||
+                   th.chat_id === d.chat_id ||
+                   (th.li_profile_url && th.li_profile_url.includes(providerId));
+          });
+          if (t) {
+            openThread(t.id);
+            var el = document.getElementById('ti-' + t.id);
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        });
+      }, 3000);
+    } else {
+      // No chat_id yet — still reload after delay
+      setTimeout(loadThreads, 3000);
+    }
+  }).catch(function(err) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Send ▶'; }
+    alert('Error: ' + err.message);
+  });
+}
+
+function showEmptyChat(data, pid, url, wid, accountId) {
+  var nm = ((data.first_name||'')+' '+(data.last_name||'')).trim() || 'Contact';
+  // Pre-select the account that is connected to this contact
+  if (accountId && accountId !== selectedAccount) {
+    setAccount(accountId);
+    // Give setAccount time to switch, then show the panel
+    setTimeout(function(){ renderEmpty(); }, 300);
+  } else {
+    renderEmpty();
+  }
+  function renderEmpty() {
+    var conv = document.getElementById('conversation');
+    if (!conv) return;
+    conv.innerHTML =
+      '<div class="conv-header">' +
+        '<div class="conv-avatar">' + esc(nm.split(' ').map(function(w){return w[0]||'';}).join('').slice(0,2).toUpperCase()) + '</div>' +
+        '<div class="conv-header-info">' +
+          '<div class="conv-name">' + esc(nm) + '</div>' +
+          '<div class="conv-meta">' + esc(data.headline || data.title || data.company || '') + '</div>' +
+        '</div>' +
+        (url ? '<a href="' + esc(url) + '" target="_blank" class="li-link">LinkedIn ↗</a>' : '') +
+      '</div>' +
+      '<div class="messages" id="messages">' +
+        '<div style="color:#aaa;text-align:center;padding:40px;">No messages yet. Start the conversation!</div>' +
+      '</div>' +
+      '<div class="reply-area">' +
+        '<textarea class="reply-input" id="reply-input" placeholder="Write a message... (Ctrl+Enter to send)" onkeydown="if(event.ctrlKey&&event.key===\'Enter\'){event.preventDefault();sendNewDM(' + JSON.stringify(pid) + ',' + JSON.stringify(wid) + ');}"></textarea>' +
+        '<div class="reply-actions">' +
+          '<button class="ai-btn" disabled>🤖 AI Suggest</button>' +
+          '<div class="reply-actions-spacer"></div>' +
+          '<button class="send-btn" onclick="sendNewDM(' + JSON.stringify(pid) + ',' + JSON.stringify(wid) + ')">Send ▶</button>' +
+        '</div>' +
+      '</div>';
+    currentThread = { id: null, provider_id: pid, li_profile_url: url, first_name: data.first_name, last_name: data.last_name, _newContact: true, _accountId: accountId };
+  }
+}
+
+
+</script>
+</body>
+</html>

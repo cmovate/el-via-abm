@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Invite to Follow</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f8fafc;--card:#fff;--border:#e2e8f0;--border2:#cbd5e1;
+  --text:#0f172a;--sub:#64748b;--dim:#94a3b8;
+  --acc:#1D9E75;--acc2:#15803d;--acc-bg:#f0fdf4;
+  --red:#ef4444;--amber:#f59e0b;--blue:#3b82f6;
+  --mono:'Space Mono',monospace;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;font-size:13px}
+.page{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+
+/* Header */
+.hdr{flex-shrink:0;padding:16px 24px;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px}
+.hdr-title{font-size:16px;font-weight:800;letter-spacing:-.3px}
+.hdr-sub{font-size:12px;color:var(--sub)}
+.stat-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;font-family:var(--mono);background:var(--acc-bg);color:var(--acc);border:1px solid #bbf7d0;margin-left:auto}
+
+/* Body split */
+.body{flex:1;display:grid;grid-template-columns:380px 1fr;min-height:0}
+
+/* Left panel */
+.panel{background:var(--card);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;padding:20px}
+.panel-section{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
+.label{font-size:10px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--sub);font-family:var(--mono);margin-bottom:2px;display:flex;align-items:center;gap:6px}
+.label::before{content:'';width:12px;height:1px;background:var(--border2)}
+textarea.desc-input{background:#f8fafc;border:1.5px solid var(--border);border-radius:8px;padding:12px;font-size:13px;font-family:'Syne',sans-serif;resize:none;outline:none;transition:border-color .2s;line-height:1.6;height:130px;width:100%}
+textarea.desc-input:focus{border-color:var(--acc)}
+textarea.desc-input::placeholder{color:var(--dim)}
+
+/* Filters display */
+.filters-box{background:var(--acc-bg);border:1px solid #bbf7d0;border-radius:8px;padding:12px;display:none}
+.filters-box.visible{display:block}
+.filter-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;align-items:center}
+.filter-row:last-child{margin-bottom:0}
+.filter-key{font-size:10px;font-weight:700;font-family:var(--mono);color:var(--acc2);width:80px;flex-shrink:0}
+.filter-chip{font-size:11px;background:#fff;border:1px solid #bbf7d0;color:var(--acc2);padding:2px 8px;border-radius:4px;font-weight:600}
+.filter-summary{font-size:12px;color:var(--acc2);font-style:italic;margin-top:6px;padding-top:6px;border-top:1px solid #bbf7d0}
+
+.parse-btn{padding:11px;background:var(--acc);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:800;font-family:'Syne',sans-serif;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+.parse-btn:hover{background:var(--acc2);transform:translateY(-1px)}
+.parse-btn:disabled{background:var(--dim);cursor:not-allowed;transform:none}
+.search-btn{padding:11px;background:#fff;color:var(--acc);border:1.5px solid var(--acc);border-radius:8px;font-size:13px;font-weight:800;font-family:'Syne',sans-serif;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+.search-btn:hover{background:var(--acc-bg)}
+.search-btn:disabled{border-color:var(--dim);color:var(--dim);cursor:not-allowed}
+
+/* Include invited toggle */
+.toggle-row{display:flex;align-items:center;gap:10px;padding:8px 0}
+.toggle-lbl{font-size:12px;color:var(--sub)}
+.toggle{width:36px;height:20px;background:var(--border2);border-radius:10px;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;border:none}
+.toggle.on{background:var(--acc)}
+.toggle::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle.on::after{left:18px}
+
+/* Spinner */
+.spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
+.spinner-acc{border-color:rgba(29,158,117,.2);border-top-color:var(--acc)}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Right panel — results */
+.results-area{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:0}
+
+/* Empty / loading state */
+.state-box{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:12px;text-align:center;color:var(--dim);min-height:400px}
+.state-icon{font-size:40px;opacity:.3}
+.state-title{font-size:15px;font-weight:700;color:var(--sub)}
+.state-sub{font-size:12px;max-width:300px;line-height:1.6}
+
+/* Results header bar */
+.results-hdr{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--card);border:1px solid var(--border);border-radius:8px 8px 0 0;margin-bottom:0;flex-shrink:0}
+.results-count{font-size:13px;font-weight:700}
+.results-count span{color:var(--acc)}
+.select-all-btn{padding:5px 12px;background:#f1f5f9;border:1px solid var(--border);border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;transition:all .2s;font-family:'Syne',sans-serif;color:var(--sub)}
+.select-all-btn:hover{border-color:var(--acc);color:var(--acc)}
+.send-btn{margin-left:auto;padding:8px 20px;background:var(--acc);color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:800;font-family:'Syne',sans-serif;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:7px}
+.send-btn:hover{background:var(--acc2)}
+.send-btn:disabled{background:var(--dim);cursor:not-allowed}
+
+/* Account group */
+.account-group{border:1px solid var(--border);border-top:none;overflow:hidden}
+.account-group:last-child{border-radius:0 0 8px 8px}
+.account-hdr{display:flex;align-items:center;gap:10px;padding:10px 16px;background:#f8fafc;border-bottom:1px solid var(--border);cursor:pointer;user-select:none}
+.account-hdr:hover{background:#f1f5f9}
+.account-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#dbeafe,#c7f2d8);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#1e5f3e;flex-shrink:0}
+.account-name{font-size:13px;font-weight:700}
+.account-count{font-size:11px;font-family:var(--mono);background:var(--acc-bg);color:var(--acc);padding:2px 8px;border-radius:10px;font-weight:700;border:1px solid #bbf7d0}
+.account-toggle{margin-left:auto;color:var(--dim);font-size:12px;transition:transform .2s}
+.account-toggle.open{transform:rotate(180deg)}
+.no-urn-warn{font-size:10px;font-family:var(--mono);color:var(--amber);background:#fffbeb;border:1px solid #fde68a;padding:2px 8px;border-radius:4px}
+
+/* Contact rows */
+.contact-list{display:flex;flex-direction:column}
+.contact-row{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--border);transition:background .15s}
+.contact-row:last-child{border-bottom:none}
+.contact-row:hover{background:#fafafa}
+.contact-row.invited{background:#f0fdf4}
+.contact-row.invited .contact-title,.contact-row.invited .contact-company{opacity:.6}
+.cb{width:16px;height:16px;cursor:pointer;accent-color:var(--acc);flex-shrink:0}
+.contact-info{flex:1;min-width:0}
+.contact-name{font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.contact-title{font-size:11px;color:var(--sub);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
+.contact-company{font-size:11px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.contact-status{flex-shrink:0;font-size:10px;font-family:var(--mono)}
+.status-invited{color:var(--acc);font-weight:700}
+.status-sending{color:var(--amber);font-weight:700}
+.status-sent{color:var(--acc);font-weight:700}
+.status-err{color:var(--red);font-weight:700}
+.status-skip{color:var(--dim)}
+
+/* Progress bar */
+.progress-bar-wrap{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--border);padding:12px 24px;display:none;align-items:center;gap:14px;z-index:50}
+.progress-bar-wrap.active{display:flex}
+.progress-track{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;background:var(--acc);border-radius:3px;transition:width .3s}
+.progress-text{font-size:12px;font-family:var(--mono);color:var(--sub);white-space:nowrap}
+.stop-btn{padding:6px 14px;background:#fee2e2;color:var(--red);border:1px solid #fecaca;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Syne',sans-serif}
+
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="hdr">
+    <div>
+      <div class="hdr-title">🏢 Invite to Follow Company Page</div>
+      <div class="hdr-sub">Describe your target audience → find connected contacts → send page follow invites</div>
+    </div>
+    <div class="stat-pill" id="stat-pill">
+      <span id="stat-today">—</span> sent today · <span id="stat-total">—</span> total
+    </div>
+  </div>
+
+  <div class="body">
+
+    <!-- Left: Describe + filters -->
+    <div class="panel">
+
+      <div class="panel-section">
+        <div class="label">Who do you want to invite?</div>
+        <textarea class="desc-input" id="desc-input"
+          placeholder="Describe your target audience in plain language. For example:&#10;&#10;'VPs and Directors of R&amp;D at Israeli SaaS companies'&#10;'CTOs and engineering managers at startups'&#10;'HR leaders and People Ops at mid-size tech companies'"></textarea>
+
+        <button class="parse-btn" id="parse-btn" onclick="parseDescription()">
+          <span id="parse-icon">✦</span> Analyze &amp; Build Filters
+        </button>
+      </div>
+
+      <!-- Filters result -->
+      <div class="panel-section">
+        <div class="label">Parsed Filters</div>
+        <div class="filters-box" id="filters-box">
+          <div id="filters-content"></div>
+        </div>
+      </div>
+
+      <!-- Search options -->
+      <div class="panel-section" id="search-section" style="display:none">
+        <div class="toggle-row">
+          <button class="toggle" id="inc-invited-toggle" onclick="toggleInvited()"></button>
+          <span class="toggle-lbl">Include already-invited contacts</span>
+        </div>
+        <button class="search-btn" id="search-btn" onclick="searchContacts()">
+          <span id="search-icon">🔍</span> Search Connected Contacts
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Right: Results -->
+    <div class="results-area" id="results-area">
+      <div class="state-box" id="state-box">
+        <div class="state-icon">👥</div>
+        <div class="state-title">No search yet</div>
+        <div class="state-sub">Describe your target audience on the left, parse the filters, then search your connected contacts.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Progress bar (fixed bottom) -->
+  <div class="progress-bar-wrap" id="progress-bar">
+    <div id="progress-text" class="progress-text">Sending…</div>
+    <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+    <button class="stop-btn" onclick="stopSending()">⏹ Stop</button>
+  </div>
+
+</div>
+
+<script>
+const params        = new URLSearchParams(location.search);
+const workspaceId   = params.get('workspace_id') || '1';
+const workspaceName = decodeURIComponent(params.get('workspace_name') || 'Workspace');
+
+let _filters        = null;
+let _results        = [];
+let _selectedIds    = new Set();
+let _includeInvited = false;
+let _sending        = false;
+let _stopRequested  = false;
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+loadStats();
+
+async function loadStats() {
+  try {
+    const r = await fetch('/api/follower-invites/stats?workspace_id=' + workspaceId);
+    const d = await r.json();
+    document.getElementById('stat-today').textContent = d.sent_today || 0;
+    document.getElementById('stat-total').textContent = d.total_invited || 0;
+  } catch(e) {}
+}
+
+// ── Parse ─────────────────────────────────────────────────────────────────────
+async function parseDescription() {
+  const text = document.getElementById('desc-input').value.trim();
+  if (!text) return;
+
+  const btn  = document.getElementById('parse-btn');
+  const icon = document.getElementById('parse-icon');
+  btn.disabled = true;
+  icon.innerHTML = '<div class="spinner"></div>';
+
+  try {
+    const r = await fetch('/api/follower-invites/parse', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ workspace_id: workspaceId, text }),
+    });
+    const d = await r.json();
+    if (d.error) throw new Error(d.error);
+    _filters = d.filters;
+    showFilters(_filters);
+    document.getElementById('search-section').style.display = 'flex';
+    document.getElementById('search-section').style.flexDirection = 'column';
+    document.getElementById('search-section').style.gap = '8px';
+  } catch(e) {
+    alert('Parse error: ' + e.message);
+  }
+
+  btn.disabled = false;
+  icon.textContent = '✦';
+}
+
+function showFilters(f) {
+  const box = document.getElementById('filters-box');
+  const content = document.getElementById('filters-content');
+  box.classList.add('visible');
+
+  const rows = [];
+  if (f.title_keywords?.length)
+    rows.push({ key: 'Titles', vals: f.title_keywords });
+  if (f.seniority?.length)
+    rows.push({ key: 'Seniority', vals: f.seniority });
+  if (f.industries?.length)
+    rows.push({ key: 'Industries', vals: f.industries });
+  if (f.company_size)
+    rows.push({ key: 'Company', vals: [f.company_size] });
+  if (f.exclude_titles?.length)
+    rows.push({ key: 'Exclude', vals: f.exclude_titles });
+
+  content.innerHTML = rows.map(r =>
+    `<div class="filter-row">
+      <span class="filter-key">${r.key}</span>
+      ${r.vals.map(v => `<span class="filter-chip">${esc(v)}</span>`).join('')}
+    </div>`
+  ).join('') + (f.summary ? `<div class="filter-summary">"${esc(f.summary)}"</div>` : '');
+}
+
+// ── Toggle ────────────────────────────────────────────────────────────────────
+function toggleInvited() {
+  _includeInvited = !_includeInvited;
+  document.getElementById('inc-invited-toggle').classList.toggle('on', _includeInvited);
+}
+
+// ── Search ────────────────────────────────────────────────────────────────────
+async function searchContacts() {
+  if (!_filters) return;
+
+  const btn  = document.getElementById('search-btn');
+  const icon = document.getElementById('search-icon');
+  btn.disabled = true;
+  icon.innerHTML = '<div class="spinner spinner-acc"></div>';
+
+  showState('loading', 'Searching connected contacts…');
+
+  try {
+    const r = await fetch('/api/follower-invites/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ workspace_id: workspaceId, filters: _filters, include_already_invited: _includeInvited }),
+    });
+    const d = await r.json();
+    if (d.error) throw new Error(d.error);
+    _results = d.results || [];
+    _selectedIds.clear();
+    renderResults(_results, d.total);
+  } catch(e) {
+    showState('error', 'Search failed: ' + e.message);
+  }
+
+  btn.disabled = false;
+  icon.textContent = '🔍';
+}
+
+// ── Render Results ─────────────────────────────────────────────────────────────
+function renderResults(results, total) {
+  const area = document.getElementById('results-area');
+  area.innerHTML = '';
+
+  if (!total) {
+    area.innerHTML = `<div class="state-box">
+      <div class="state-icon">🔍</div>
+      <div class="state-title">No matches found</div>
+      <div class="state-sub">Try broader title keywords, fewer seniority filters, or enable "Include already-invited contacts".</div>
+    </div>`;
+    return;
+  }
+
+  // Header
+  const hdr = el('div', 'results-hdr');
+  hdr.innerHTML =
+    `<div class="results-count">Found <span>${total}</span> matching contacts across ${results.length} account${results.length !== 1 ? 's' : ''}</div>`;
+
+  const selAllBtn = el('button', 'select-all-btn');
+  selAllBtn.id = 'sel-all-btn';
+  selAllBtn.textContent = 'Select All';
+  selAllBtn.onclick = toggleSelectAll;
+  hdr.appendChild(selAllBtn);
+
+  const sendBtn = el('button', 'send-btn');
+  sendBtn.id = 'main-send-btn';
+  sendBtn.innerHTML = '📨 Send Invites (<span id="sel-count">0</span>)';
+  sendBtn.onclick = startSending;
+  sendBtn.disabled = true;
+  hdr.appendChild(sendBtn);
+  area.appendChild(hdr);
+
+  // Account groups
+  results.forEach((group, gi) => {
+    const groupEl = el('div', 'account-group');
+    const init = (group.display_name || '?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const hasUrn = !!group.company_page_urn;
+
+    const groupHdr = el('div', 'account-hdr');
+    groupHdr.innerHTML =
+      `<div class="account-avatar">${init}</div>
+       <div class="account-name">${esc(group.display_name)}</div>
+       <div class="account-count">${group.contacts.length}</div>
+       ${!hasUrn ? '<span class="no-urn-warn">⚠ No company page set</span>' : ''}
+       <span class="account-toggle open" id="toggle-${gi}">▾</span>`;
+    groupHdr.onclick = () => {
+      const list = document.getElementById('clist-'+gi);
+      const tog  = document.getElementById('toggle-'+gi);
+      const open = list.style.display !== 'none';
+      list.style.display = open ? 'none' : '';
+      tog.classList.toggle('open', !open);
+    };
+    groupEl.appendChild(groupHdr);
+
+    const cList = el('div', 'contact-list');
+    cList.id = 'clist-' + gi;
+
+    group.contacts.forEach(c => {
+      const row = el('div', 'contact-row' + (c.company_follow_invited ? ' invited' : ''));
+      row.id = 'row-' + c.id;
+      const cb = el('input', '');
+      cb.type = 'checkbox';
+      cb.className = 'cb';
+      cb.id = 'cb-' + c.id;
+      cb.disabled = c.company_follow_invited || !hasUrn;
+      cb.dataset.contactId = c.id;
+      cb.onchange = () => updateSelection(c.id, cb.checked);
+
+      const name = `${c.first_name||''} ${c.last_name||''}`.trim() || '(unknown)';
+      const info = el('div', 'contact-info');
+      info.innerHTML =
+        `<div class="contact-name">${esc(name)}</div>
+         <div class="contact-title">${esc(c.title || '—')}</div>
+         <div class="contact-company">${esc(c.company || '')}</div>`;
+
+      const status = el('span', 'contact-status');
+      status.id = 'status-' + c.id;
+      if (c.company_follow_invited) {
+        status.className = 'contact-status status-invited';
+        status.textContent = '✓ Invited';
+      }
+
+      row.appendChild(cb);
+      row.appendChild(info);
+      row.appendChild(status);
+      cList.appendChild(row);
+    });
+
+    groupEl.appendChild(cList);
+    area.appendChild(groupEl);
+  });
+}
+
+// ── Selection ─────────────────────────────────────────────────────────────────
+function updateSelection(id, checked) {
+  if (checked) _selectedIds.add(id);
+  else _selectedIds.delete(id);
+  updateSendBtn();
+}
+
+function updateSendBtn() {
+  const btn = document.getElementById('main-send-btn');
+  const cnt = document.getElementById('sel-count');
+  if (!btn) return;
+  const n = _selectedIds.size;
+  if (cnt) cnt.textContent = n;
+  btn.disabled = n === 0;
+}
+
+function toggleSelectAll() {
+  const all = [...document.querySelectorAll('.cb:not(:disabled)')];
+  const allChecked = all.every(cb => cb.checked);
+  all.forEach(cb => {
+    const checked = !allChecked;
+    cb.checked = checked;
+    const id = parseInt(cb.dataset.contactId);
+    if (checked) _selectedIds.add(id);
+    else _selectedIds.delete(id);
+  });
+  document.getElementById('sel-all-btn').textContent = allChecked ? 'Select All' : 'Deselect All';
+  updateSendBtn();
+}
+
+// ── Send ──────────────────────────────────────────────────────────────────────
+async function startSending() {
+  if (_sending || _selectedIds.size === 0) return;
+  if (!confirm(`Send follow invites to ${_selectedIds.size} selected contact${_selectedIds.size>1?'s':''}?\n\nInvites are sent one by one with 2-4 second delays.`)) return;
+
+  _sending = true;
+  _stopRequested = false;
+
+  const ids = [..._selectedIds];
+  let sent = 0, failed = 0, total = ids.length;
+
+  // Disable UI
+  document.getElementById('main-send-btn').disabled = true;
+  document.querySelectorAll('.cb').forEach(cb => cb.disabled = true);
+  document.getElementById('parse-btn').disabled = true;
+  document.getElementById('search-btn').disabled = true;
+
+  // Show progress bar
+  const pb = document.getElementById('progress-bar');
+  pb.classList.add('active');
+  setProgress(0, total, 0, 0);
+
+  try {
+    const resp = await fetch('/api/follower-invites/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ workspace_id: workspaceId, contact_ids: ids }),
+    });
+
+    const reader  = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (_stopRequested) { reader.cancel(); break; }
+      buf += decoder.decode(value, { stream: true });
+      const lines = buf.split('\n'); buf = lines.pop();
+      let evt = null;
+      for (const line of lines) {
+        if (line.startsWith('event: ')) evt = line.slice(7).trim();
+        if (line.startsWith('data: ')) {
+          try {
+            const p = JSON.parse(line.slice(6));
+            if (evt === 'sent') {
+              sent++;
+              markRowSent(p.contact_id, 'sent');
+              setProgress(p.progress, p.total, sent, failed);
+            } else if (evt === 'error_contact') {
+              failed++;
+              markRowSent(p.contact_id, 'error');
+            } else if (evt === 'skip') {
+              failed++;
+              markRowSent(p.contact_id, 'skip');
+            } else if (evt === 'quota') {
+              showToast('⚠ LinkedIn quota reached after ' + sent + ' invites', 'amber');
+            } else if (evt === 'complete') {
+              sent = p.sent; failed = p.failed;
+            }
+          } catch(e) {}
+        }
+      }
+    }
+  } catch(e) {
+    console.error('Send error:', e);
+  }
+
+  _sending = false;
+  pb.classList.remove('active');
+  document.getElementById('parse-btn').disabled = false;
+  document.getElementById('search-btn').disabled = false;
+
+  showToast(`✓ Done — ${sent} sent, ${failed} skipped/failed`, sent > 0 ? 'green' : 'amber');
+  loadStats();
+  _selectedIds.clear();
+  updateSendBtn();
+}
+
+function stopSending() {
+  _stopRequested = true;
+}
+
+function markRowSent(id, state) {
+  const row = document.getElementById('row-' + id);
+  const st  = document.getElementById('status-' + id);
+  const cb  = document.getElementById('cb-' + id);
+  if (!row || !st) return;
+  if (state === 'sent') {
+    row.classList.add('invited');
+    st.className = 'contact-status status-sent'; st.textContent = '✓ Sent';
+    if (cb) cb.disabled = true;
+  } else if (state === 'error') {
+    st.className = 'contact-status status-err'; st.textContent = '✗ Error';
+  } else {
+    st.className = 'contact-status status-skip'; st.textContent = '— Skipped';
+  }
+}
+
+function setProgress(current, total, sent, failed) {
+  const pct = total ? Math.round((current/total)*100) : 0;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-text').textContent =
+    `Sending… ${current} / ${total}  ·  ✓ ${sent} sent  ·  ✗ ${failed} failed`;
+}
+
+// ── Utils ──────────────────────────────────────────────────────────────────────
+function showState(type, msg) {
+  const area = document.getElementById('results-area');
+  const icon = type === 'loading' ? '⏳' : type === 'error' ? '⚠️' : '🔍';
+  area.innerHTML = `<div class="state-box"><div class="state-icon">${icon}</div><div class="state-title">${esc(msg)}</div></div>`;
+}
+
+function showToast(msg, color='green') {
+  const t = document.createElement('div');
+  t.style.cssText = `position:fixed;bottom:70px;left:50%;transform:translateX(-50%);padding:10px 20px;border-radius:8px;font-size:13px;font-weight:700;font-family:'Syne',sans-serif;z-index:100;box-shadow:0 4px 20px rgba(0,0,0,.15);background:${color==='green'?'#dcfce7':color==='amber'?'#fef9c3':'#fee2e2'};color:${color==='green'?'#15803d':color==='amber'?'#92400e':'#991b1b'}`;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 4000);
+}
+
+function el(tag, cls) { const e = document.createElement(tag); if(cls) e.className=cls; return e; }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+</script>
+</body>
+</html>

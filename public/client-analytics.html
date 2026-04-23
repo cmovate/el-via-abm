@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Campaign Analytics</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #F5F3F0; color: #1a1a1a; font-size: 13px; }
+:root { --green: #52b788; --dark: #1a3a2a; --light-green: #f0f7f4; }
+
+/* Header bar — minimal, client-facing */
+.header { background: var(--dark); color: white; padding: 14px 24px; display: flex; align-items: center; gap: 16px; }
+.header-logo { font-size: 18px; font-weight: 800; letter-spacing: -0.5px; }
+.header-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); display: inline-block; margin-right: 4px; }
+.header-campaign { font-size: 13px; opacity: 0.7; margin-left: auto; }
+.header-powered { font-size: 11px; opacity: 0.4; }
+
+/* Date bar */
+.date-bar { background: white; border-bottom: 1px solid #E9E5DF; padding: 8px 24px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.date-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: #888; }
+.range-btn { padding: 5px 14px; border: 1px solid #DED9D3; border-radius: 20px; background: white; font-size: 12px; font-weight: 500; cursor: pointer; color: #555; transition: all .15s; }
+.range-btn:hover { border-color: var(--green); color: var(--dark); }
+.range-btn.active { background: var(--dark); color: white; border-color: var(--dark); }
+.custom-dates { display: none; align-items: center; gap: 6px; }
+.custom-dates.show { display: flex; }
+.date-input { border: 1px solid #DED9D3; border-radius: 6px; padding: 4px 8px; font-size: 12px; outline: none; }
+
+/* Content */
+.content { padding: 20px 24px 60px; max-width: 1000px; margin: 0 auto; }
+
+/* Followers hero */
+.followers-hero { background: var(--dark); color: white; border-radius: 12px; padding: 20px 28px; margin-bottom: 18px; display: flex; align-items: center; gap: 16px; }
+.followers-icon { font-size: 32px; opacity: .8; }
+.followers-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; opacity: .6; margin-bottom: 4px; }
+.followers-value { font-size: 40px; font-weight: 800; }
+.followers-sub { font-size: 12px; opacity: .5; margin-top: 4px; }
+
+/* Section */
+.section { background: white; border: 1px solid #E9E5DF; border-radius: 12px; margin-bottom: 16px; overflow: hidden; }
+.section-header { background: #f8f6f3; padding: 12px 18px; border-bottom: 1px solid #E9E5DF; display: flex; align-items: center; gap: 8px; }
+.section-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--dark); }
+.section-body { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); padding: 16px; gap: 12px; }
+
+/* Metric card */
+.metric { background: #f8f6f3; border: 1px solid #ede9e3; border-radius: 10px; padding: 14px 16px; }
+.metric-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: #888; margin-bottom: 6px; }
+.metric-value { font-size: 30px; font-weight: 800; color: var(--dark); line-height: 1; }
+.metric-pct { font-size: 11px; color: var(--green); font-weight: 600; margin-top: 4px; }
+.metric-total { font-size: 10px; color: #aaa; margin-top: 2px; }
+
+/* Error / loading */
+.center-msg { text-align: center; padding: 80px 20px; }
+.center-msg h2 { font-size: 20px; color: var(--dark); margin-bottom: 8px; }
+.center-msg p { color: #888; font-size: 14px; }
+.spinner { display: inline-block; width: 32px; height: 32px; border: 3px solid #e5e5e5; border-top-color: var(--green); border-radius: 50%; animation: spin .7s linear infinite; margin-bottom: 16px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Footer */
+.footer { text-align: center; padding: 24px; color: #bbb; font-size: 11px; border-top: 1px solid #E9E5DF; margin-top: 20px; }
+.footer strong { color: var(--dark); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo"><span class="header-dot"></span>El-Via</div>
+  <span class="header-powered">Campaign Analytics</span>
+  <span class="header-campaign" id="header-campaign"></span>
+</div>
+
+<div class="date-bar">
+  <span class="date-label">PERIOD</span>
+  <button class="range-btn active" data-range="total" onclick="setRange('total',this)">Total</button>
+  <button class="range-btn" data-range="day"   onclick="setRange('day',this)">Today</button>
+  <button class="range-btn" data-range="week"  onclick="setRange('week',this)">Last 7 days</button>
+  <button class="range-btn" data-range="month" onclick="setRange('month',this)">Last 30 days</button>
+  <button class="range-btn" data-range="mtd"   onclick="setRange('mtd',this)">MTD</button>
+  <button class="range-btn" data-range="qtd"   onclick="setRange('qtd',this)">QTD</button>
+  <button class="range-btn" data-range="custom" onclick="setRange('custom',this)">Custom</button>
+  <div class="custom-dates" id="custom-dates">
+    <input type="date" class="date-input" id="date-from" onchange="applyCustom()">
+    <span style="color:#aaa">—</span>
+    <input type="date" class="date-input" id="date-to" onchange="applyCustom()">
+  </div>
+</div>
+
+<div class="content" id="content">
+  <div class="center-msg">
+    <div class="spinner"></div>
+    <h2>Loading analytics…</h2>
+    <p>Please wait while we fetch the data.</p>
+  </div>
+</div>
+
+<div class="footer">Powered by <strong>El-Via ABM</strong></div>
+
+<script>
+const token = new URLSearchParams(window.location.search).get('token');
+let allContacts = [], rangeMode = 'total', rangeFrom = null, rangeTo = null;
+let campaignName = '', wsId = null;
+
+if (!token) {
+  document.getElementById('content').innerHTML = '<div class="center-msg"><h2>&#128683; Invalid Link</h2><p>This analytics link is invalid or has expired.</p></div>';
+}
+
+// Date range helpers (identical to analytics.html)
+function getRange(mode) {
+  const now = new Date(), today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate()+1);
+  if (mode==='total') return {from:null,to:null};
+  if (mode==='day')   return {from:today,to:tomorrow};
+  if (mode==='week')  { const w=new Date(today); w.setDate(w.getDate()-7); return {from:w,to:tomorrow}; }
+  if (mode==='month') { const m=new Date(today); m.setDate(m.getDate()-30); return {from:m,to:tomorrow}; }
+  if (mode==='mtd')   return {from:new Date(now.getFullYear(),now.getMonth(),1),to:tomorrow};
+  if (mode==='qtd')   { const q=Math.floor(now.getMonth()/3); return {from:new Date(now.getFullYear(),q*3,1),to:tomorrow}; }
+  if (mode==='custom') return {from:rangeFrom?new Date(rangeFrom):null,to:rangeTo?new Date(rangeTo+'T23:59:59'):null};
+  return {from:null,to:null};
+}
+function inRange(dateStr, range) {
+  if (!range.from && !range.to) return true;
+  if (!dateStr) return false;
+  const d = new Date(dateStr);
+  if (range.from && d < range.from) return false;
+  if (range.to   && d >= range.to)  return false;
+  return true;
+}
+function setRange(mode, btn) {
+  rangeMode = mode;
+  document.querySelectorAll('.range-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const cd = document.getElementById('custom-dates');
+  if (mode==='custom') { cd.classList.add('show'); return; }
+  cd.classList.remove('show');
+  if (allContacts.length) render();
+}
+function applyCustom() {
+  rangeFrom = document.getElementById('date-from').value;
+  rangeTo   = document.getElementById('date-to').value;
+  if (allContacts.length) render();
+}
+
+// Load via token
+async function init() {
+  if (!token) return;
+  try {
+    // Resolve token → workspace_id + campaign_id
+    const meta = await fetch('/api/analytics/token/' + token).then(r=>r.json());
+    if (meta.error) {
+      document.getElementById('content').innerHTML = '<div class="center-msg"><h2>&#128683; Link Expired</h2><p>' + meta.error + '</p></div>';
+      return;
+    }
+    wsId = meta.workspace_id;
+    campaignName = meta.campaign_name || ('Campaign ' + meta.campaign_id);
+    document.getElementById('header-campaign').textContent = campaignName;
+    document.title = campaignName + ' — Analytics';
+
+    // Load contacts
+    const data = await fetch('/api/contacts?workspace_id=' + wsId + '&campaign_id=' + meta.campaign_id + '&limit=5000').then(r=>r.json());
+    allContacts = data.items || [];
+    render();
+  } catch(e) {
+    document.getElementById('content').innerHTML = '<div class="center-msg"><h2>Error</h2><p>' + e.message + '</p></div>';
+  }
+}
+
+function render() {
+  const range = getRange(rangeMode);
+  const c = allContacts;
+  const total = c.length;
+
+  function cnt(field) { return range.from||range.to ? c.filter(x=>inRange(x[field],range)).length : c.filter(x=>x[field]).length; }
+  function cntBool(field) { return c.filter(x=>x[field]).length; }
+  function sum(field,tsField) {
+    if (range.from||range.to) return c.filter(x=>inRange(x[tsField],range)).reduce((a,x)=>a+(x[field]||0),0);
+    return c.reduce((a,x)=>a+(x[field]||0),0);
+  }
+
+  const invSent   = cnt('invite_sent_at');
+  const invApproved = cnt('invite_approved_at');
+  const msgSent   = cnt('msg_sent_at');
+  const replied   = cnt('msg_replied_at');
+  const positive  = cnt('positive_reply_at');
+  const profileViews  = cnt('last_profile_view_at');
+  const postLikes     = sum('post_likes_sent','likes_sent_at');
+  const commentLikes  = sum('comment_likes_sent','likes_sent_at');
+  const followInvite  = cnt('company_follow_invited_at');
+  const followConfirm = cnt('company_follow_confirmed_at');
+  const coLikes = sum('company_post_likes_sent','company_likes_sent_at') + sum('company_comment_likes_sent','company_likes_sent_at');
+  const followers = cntBool('company_follow_confirmed');
+
+  function metricCard(label, value, denom, hint) {
+    const p = denom>0 ? '<div class="metric-pct">'+(value/denom*100).toFixed(0)+'% of '+(hint||'total')+'</div>' : '';
+    return '<div class="metric"><div class="metric-label">'+label+'</div><div class="metric-value">'+value.toLocaleString()+'</div>'+p+'</div>';
+  }
+
+  document.getElementById('content').innerHTML =
+    '<div class="followers-hero"><div class="followers-icon">&#127968;</div><div><div class="followers-label">Company Page Followers</div><div class="followers-value">'+followers.toLocaleString()+'</div><div class="followers-sub">Contacts following the company page</div></div></div>' +
+
+    '<div class="section"><div class="section-header"><span>&#128228;</span><span class="section-title">Outbound</span></div><div class="section-body">' +
+      metricCard('Invitations Sent',invSent,total,'contacts') +
+      metricCard('Invitations Approved',invApproved,invSent,'sent') +
+      metricCard('Messages Sent',msgSent,invApproved,'connected') +
+      metricCard('Replies',replied,msgSent,'sent') +
+      metricCard('Positive Replies',positive,replied,'replies') +
+    '</div></div>' +
+
+    '<div class="section"><div class="section-header"><span>&#128293;</span><span class="section-title">Engagement Activities</span></div><div class="section-body">' +
+      metricCard('Profile Views',profileViews,total,'contacts') +
+      metricCard('Post Likes',postLikes,0,'') +
+      metricCard('Comment Likes',commentLikes,0,'') +
+      metricCard('Company Follow Invited',followInvite,invApproved||total,'connected') +
+      metricCard('Company Follow Confirmed',followConfirm,followInvite,'invited') +
+    '</div></div>' +
+
+    '<div class="section"><div class="section-header"><span>&#127968;</span><span class="section-title">Company Engagement Activities</span></div><div class="section-body">' +
+      '<div class="metric"><div class="metric-label">Co. Post + Comment Likes</div><div class="metric-value">'+coLikes.toLocaleString()+'</div><div class="metric-total">Likes sent from company page</div></div>' +
+      metricCard('Co. Post Likes',sum('company_post_likes_sent','company_likes_sent_at'),0,'') +
+      metricCard('Co. Comment Likes',sum('company_comment_likes_sent','company_likes_sent_at'),0,'') +
+    '</div></div>';
+}
+
+init();
+</script>
+</body>
+</html>

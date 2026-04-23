@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Discover Feed</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f8fafc;color:#0f172a;font-size:13px;}
+
+/* Header */
+.top-bar{background:#fff;border-bottom:1px solid #e2e8f0;padding:14px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.back-btn{font-size:13px;color:#1D9E75;cursor:pointer;font-weight:600;padding:5px 0;white-space:nowrap;}
+.back-btn:hover{text-decoration:underline;}
+.feed-title{font-size:17px;font-weight:700;color:#0f172a;}
+.feed-meta{font-size:12px;color:#64748b;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;}
+.badge-li{background:#dbeafe;color:#1d4ed8;}
+.badge-rd{background:#fee2e2;color:#991b1b;}
+.badge-auto{background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;}
+.scan-btn{padding:6px 14px;background:#1D9E75;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;}
+.scan-btn:hover{background:#188a65;}
+.scan-btn:disabled{background:#9ca3af;cursor:not-allowed;}
+
+/* Filters */
+.filters-bar{padding:10px 24px;background:#fff;border-bottom:1px solid #f1f5f9;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.filter-chip{padding:4px 12px;border:1px solid #e2e8f0;border-radius:20px;font-size:12px;cursor:pointer;background:#fff;color:#374151;transition:all .12s;}
+.filter-chip.active{background:#1D9E75;color:#fff;border-color:#1D9E75;}
+.sort-sel{padding:5px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;background:#fff;outline:none;cursor:pointer;}
+.count-label{font-size:12px;color:#94a3b8;margin-left:auto;}
+
+/* Items */
+.items-list{padding:16px 24px;display:flex;flex-direction:column;gap:10px;}
+.item-card{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;transition:box-shadow .15s;}
+.item-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);border-color:#cbd5e1;}
+.item-meta{display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:11px;color:#64748b;flex-wrap:wrap;}
+.item-source{font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;}
+.item-src-reddit{background:#fee2e2;color:#991b1b;}
+.item-src-linkedin{background:#dbeafe;color:#1d4ed8;}
+.item-subreddit{font-weight:600;color:#374151;cursor:pointer;}
+.item-subreddit:hover{text-decoration:underline;}
+.item-title{font-size:13px;font-weight:700;color:#0f172a;margin-bottom:5px;line-height:1.4;cursor:pointer;}
+.item-title:hover{color:#1D9E75;}
+.item-snippet{font-size:12px;color:#475569;line-height:1.5;margin-bottom:8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.item-author{font-size:11px;color:#64748b;}
+.item-stats{display:flex;gap:12px;font-size:11px;color:#94a3b8;margin-bottom:8px;}
+.item-actions{display:flex;gap:6px;}
+.btn{padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid #e2e8f0;background:#fff;color:#374151;transition:all .12s;}
+.btn:hover{background:#f1f5f9;}
+.btn-primary{background:#f0fdf4;border-color:#1D9E75;color:#1D9E75;}
+.btn-primary:hover{background:#dcfce7;}
+.item-found{font-size:10px;color:#d1d5db;margin-left:auto;}
+
+/* Empty / loading */
+.state-box{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:#94a3b8;text-align:center;gap:12px;}
+.state-icon{font-size:40px;opacity:.3;}
+.state-title{font-size:15px;font-weight:600;color:#64748b;}
+.spinner{width:22px;height:22px;border:2px solid #e2e8f0;border-top-color:#1D9E75;border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div id="top-bar" class="top-bar">
+  <span class="back-btn" onclick="goBack()">← All Lists</span>
+  <div style="width:1px;height:20px;background:#e2e8f0;"></div>
+  <div>
+    <div class="feed-title" id="feed-name">Loading…</div>
+    <div class="feed-meta" id="feed-meta"></div>
+  </div>
+  <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
+    <button class="scan-btn" id="scan-btn" onclick="triggerScan()">↻ Scan now</button>
+  </div>
+</div>
+
+<div class="filters-bar">
+  <span class="filter-chip active" data-src="all" onclick="filterBy('all',this)">All</span>
+  <span class="filter-chip" data-src="reddit" onclick="filterBy('reddit',this)">r/ Reddit</span>
+  <span class="filter-chip" data-src="linkedin" onclick="filterBy('linkedin',this)">in LinkedIn</span>
+  <select class="sort-sel" id="sort-sel" onchange="sortItems()">
+    <option value="newest">Newest first</option>
+    <option value="oldest">Oldest first</option>
+    <option value="score">Most upvotes</option>
+    <option value="comments">Most comments</option>
+  </select>
+  <span class="count-label" id="count-label"></span>
+</div>
+
+<div id="items-list" class="items-list">
+  <div class="state-box"><div class="spinner"></div><div class="state-title">Loading…</div></div>
+</div>
+
+<script>
+const params    = new URLSearchParams(location.search);
+const feedId    = params.get('feed_id');
+const wsId      = params.get('workspace_id');
+let _feed       = null;
+let _allItems   = [];
+let _filter     = 'all';
+
+function goBack() {
+  window.parent?.showScreen?.('lists');
+}
+
+function timeSince(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  const diff = (Date.now() - d.getTime()) / 1000;
+  if (diff < 3600)  return Math.round(diff/60) + 'm ago';
+  if (diff < 86400) return Math.round(diff/3600) + 'h ago';
+  if (diff < 86400*7) return Math.round(diff/86400) + 'd ago';
+  return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
+}
+function numFmt(n) {
+  n = parseInt(n)||0;
+  if (n >= 1000) return (n/1000).toFixed(1)+'k';
+  return String(n);
+}
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+async function loadFeed() {
+  const r  = await fetch('/api/discover-feeds?workspace_id='+wsId);
+  const d  = await r.json();
+  _feed = (d.feeds||[]).find(f=>String(f.id)===String(feedId));
+  if (!_feed) { document.getElementById('feed-name').textContent = 'Feed not found'; return; }
+
+  document.title = _feed.name;
+  document.getElementById('feed-name').textContent = _feed.name;
+
+  const sources = Array.isArray(_feed.sources) ? _feed.sources : JSON.parse(_feed.sources||'[]');
+  const badges  = sources.map(s =>
+    s==='linkedin'
+      ? '<span class="badge badge-li">in</span>'
+      : '<span class="badge badge-rd">r/</span>'
+  ).join(' ');
+  const lastScan = _feed.last_run_at
+    ? 'Last scan ' + timeSince(_feed.last_run_at)
+    : 'Never scanned';
+  document.getElementById('feed-meta').innerHTML =
+    badges +
+    '<span style="color:#cbd5e1">·</span>' +
+    '<span>' + esc(_feed.keywords) + '</span>' +
+    '<span style="color:#cbd5e1">·</span>' +
+    '<span>' + lastScan + '</span>' +
+    (_feed.auto_run ? '<span class="badge badge-auto">⟳ auto-updating</span>' : '');
+}
+
+async function loadItems() {
+  const r = await fetch('/api/discover-feeds/'+feedId+'/items?workspace_id='+wsId+'&limit=200');
+  const d = await r.json();
+  _allItems = d.items || [];
+  renderItems();
+}
+
+function filterBy(src, el) {
+  _filter = src;
+  document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  renderItems();
+}
+
+function sortItems() { renderItems(); }
+
+function renderItems() {
+  const sort = document.getElementById('sort-sel').value;
+  let items = _filter === 'all' ? _allItems : _allItems.filter(i=>i.source===_filter);
+
+  items = [...items].sort((a,b) => {
+    if (sort==='newest')   return new Date(b.found_at)-new Date(a.found_at);
+    if (sort==='oldest')   return new Date(a.found_at)-new Date(b.found_at);
+    if (sort==='score')    return (b.score||0)-(a.score||0);
+    if (sort==='comments') return (b.comments||0)-(a.comments||0);
+    return 0;
+  });
+
+  document.getElementById('count-label').textContent = items.length + ' items';
+
+  const el = document.getElementById('items-list');
+  if (!items.length) {
+    el.innerHTML = '<div class="state-box"><div class="state-icon">🔍</div><div class="state-title">No items yet</div><div style="font-size:12px;color:#94a3b8;">Click "Scan now" to fetch the latest posts and discussions</div></div>';
+    return;
+  }
+
+  el.innerHTML = '';
+  items.forEach(function(item) {
+    var card = document.createElement('div');
+    card.className = 'item-card';
+
+    var isReddit   = item.source === 'reddit';
+    var isLinkedIn = item.source === 'linkedin';
+    var sourceLabel = isReddit ? '<span class="item-source item-src-reddit">r/</span>' : '<span class="item-source item-src-linkedin">in</span>';
+
+    // Meta row
+    var meta = document.createElement('div');
+    meta.className = 'item-meta';
+    meta.innerHTML = sourceLabel;
+    if (isReddit && item.subreddit) {
+      var sub = document.createElement('span');
+      sub.className = 'item-subreddit';
+      sub.textContent = item.subreddit;
+      if (item.url) sub.onclick = function(){ window.open('https://reddit.com/' + item.subreddit.replace('r/','r/'), '_blank'); };
+      meta.appendChild(sub);
+      meta.insertAdjacentHTML('beforeend', '<span style="color:#d1d5db">·</span>');
+    }
+    if (isLinkedIn && item.author) {
+      var auth = document.createElement('span');
+      auth.style.fontWeight = '600';
+      auth.style.color = '#374151';
+      auth.textContent = item.author;
+      if (item.author_url) { auth.style.cursor='pointer'; auth.onclick=function(){window.open(item.author_url,'_blank');}; }
+      meta.appendChild(auth);
+      meta.insertAdjacentHTML('beforeend', '<span style="color:#d1d5db">·</span>');
+    }
+    var timeEl = document.createElement('span');
+    timeEl.className = 'item-found';
+    timeEl.style.cssText = 'font-size:11px;color:#94a3b8;margin-left:0;';
+    timeEl.textContent = timeSince(item.found_at);
+    meta.appendChild(timeEl);
+    card.appendChild(meta);
+
+    // Title
+    if (item.title) {
+      var title = document.createElement('div');
+      title.className = 'item-title';
+      title.textContent = item.title;
+      if (item.url) title.onclick = function(){ window.open(item.url,'_blank'); };
+      card.appendChild(title);
+    }
+
+    // Snippet
+    if (item.snippet && item.snippet !== item.title) {
+      var snip = document.createElement('div');
+      snip.className = 'item-snippet';
+      var rest = item.snippet.slice((item.title||'').length).replace(/^[\s\n]+/,'');
+      if (rest) { snip.textContent = rest; card.appendChild(snip); }
+    }
+
+    // Stats
+    var stats = document.createElement('div');
+    stats.className = 'item-stats';
+    if (item.score)    stats.innerHTML += '<span>' + (isReddit?'⬆':'👍') + ' '+numFmt(item.score)+'</span>';
+    if (item.comments) stats.innerHTML += '<span>💬 '+numFmt(item.comments)+' comments</span>';
+    if (stats.innerHTML) card.appendChild(stats);
+
+    // Actions
+    var actions = document.createElement('div');
+    actions.className = 'item-actions';
+    if (item.url) {
+      var openBtn = document.createElement('button');
+      openBtn.className = 'btn btn-primary';
+      openBtn.textContent = isReddit ? 'Read Discussion →' : 'View Post →';
+      openBtn.onclick = function(){ window.open(item.url,'_blank'); };
+      actions.appendChild(openBtn);
+    }
+    if (isLinkedIn && item.author_url) {
+      var profBtn = document.createElement('button');
+      profBtn.className = 'btn';
+      profBtn.textContent = 'View Profile';
+      profBtn.onclick = function(){ window.open(item.author_url,'_blank'); };
+      actions.appendChild(profBtn);
+    }
+    card.appendChild(actions);
+    el.appendChild(card);
+  });
+}
+
+async function triggerScan() {
+  const btn = document.getElementById('scan-btn');
+  btn.textContent = 'Scanning…'; btn.disabled = true;
+  try {
+    const r = await fetch('/api/discover-feeds/'+feedId+'/run', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({workspace_id: wsId})
+    });
+    const d = await r.json();
+    btn.textContent = '+'+d.added+' new';
+    setTimeout(function(){ btn.textContent='↻ Scan now'; btn.disabled=false; }, 3000);
+    await loadFeed();
+    await loadItems();
+  } catch(e) {
+    btn.textContent='Error'; btn.disabled=false;
+  }
+}
+
+// Init
+(async function(){
+  await loadFeed();
+  await loadItems();
+})();
+</script>
+</body>
+</html>

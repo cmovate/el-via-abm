@@ -1,0 +1,2081 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Analytics</title>
+<link rel="stylesheet" href="/elvia.css">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--f-sans) /* 'Segoe UI', sans-serif; background: var(--c-bg); color: #1a1a1a; font-size: 13px; }
+:root { --green: #52b788; --dark: #1a3a2a; --light-green: #f0f7f4; }
+
+/* Top bar */
+.top-bar { background: white; border-bottom: 1px solid #E9E5DF; padding: 12px 20px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; position: sticky; top: 0; z-index: 100; }
+.top-bar h1 { font-size: 15px; font-weight: 700; color: var(--dark); margin-right: 4px; }
+.filter-select { border: 1px solid #DED9D3; border-radius: 7px; padding: 6px 10px; font-size: 12px; background: #fff; color: #333; cursor: pointer; outline: none; min-width: 140px; }
+.filter-select:focus { border-color: var(--green); }
+.spacer { flex: 1; }
+
+/* Date range bar */
+.date-bar { background: white; border-bottom: 1px solid #E9E5DF; padding: 8px 20px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.range-btn { padding: 5px 14px; border: 1px solid #DED9D3; border-radius: 20px; background: white; font-size: 12px; font-weight: 500; cursor: pointer; color: #555; transition: all .15s; white-space: nowrap; }
+.range-btn:hover { border-color: var(--green); color: var(--dark); }
+.range-btn.active { background: var(--dark); color: white; border-color: var(--dark); }
+.custom-dates { display: none; align-items: center; gap: 6px; }
+.custom-dates.show { display: flex; }
+.date-input { border: 1px solid #DED9D3; border-radius: 6px; padding: 4px 8px; font-size: 12px; outline: none; }
+.date-input:focus { border-color: var(--green); }
+.date-label { font-size: 11px; color: #888; font-weight: 600; letter-spacing: .04em; }
+
+/* Content */
+.content { padding: 16px 20px 40px; max-width: 1100px; }
+
+/* Follower hero */
+.followers-hero { background: var(--dark); color: white; border-radius: var(--r-lg); padding: 18px 24px; margin-bottom: 16px; display: flex; align-items: center; gap: 16px; }
+.followers-icon { font-size: 28px; opacity: .8; }
+.followers-body { flex: 1; }
+.followers-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; opacity: .6; margin-bottom: 4px; }
+.followers-value { font-size: 36px; font-weight: 800; }
+.followers-sub { font-size: 11px; opacity: .5; margin-top: 2px; }
+
+/* Section */
+.section { background: white; border: 1px solid #E9E5DF; border-radius: var(--r-lg); margin-bottom: 14px; overflow: hidden; }
+.section-header { background: #f8f6f3; padding: 12px 18px; border-bottom: 1px solid #E9E5DF; display: flex; align-items: center; gap: 8px; }
+.section-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--dark); }
+.section-icon { font-size: 15px; }
+.section-body { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); padding: 14px 16px; gap: 10px; }
+
+/* Metric card */
+.metric { background: #f8f6f3; border: 1px solid #ede9e3; border-radius: var(--r-lg); padding: 12px 14px; }
+.metric-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: #888; margin-bottom: 6px; }
+.metric-value { font-size: 28px; font-weight: 800; color: var(--dark); line-height: 1; }
+.metric-pct { font-size: 11px; color: var(--green); font-weight: 600; margin-top: 3px; }
+.metric-total { font-size: 10px; color: #aaa; margin-top: 2px; }
+
+/* Loading */
+.loading-wrap { text-align: center; padding: 60px; color: #999; }
+.spinner { display: inline-block; width: 28px; height: 28px; border: 3px solid #e5e5e5; border-top-color: var(--green); border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.empty-state { text-align: center; padding: 60px 20px; color: #aaa; font-size: 14px; }
+
+/* Total badge */
+.total-badge { background: var(--light-green); border: 1px solid var(--green); color: var(--dark); font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: var(--r-lg); margin-left: auto; }
+
+/* Share button + modal */
+.share-btn { background: white; color: var(--dark); border: 1.5px solid var(--dark); padding: 6px 14px; border-radius: 8px; font-size: 13px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.share-btn:hover { background: var(--light-green); }
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 999; align-items: center; justify-content: center; }
+.modal-overlay.open { display: flex; }
+.modal-box { background: white; border-radius: var(--r-lg); padding: 28px 32px; width: 440px; box-shadow: 0 8px 40px rgba(0,0,0,.18); }
+.modal-box h2 { font-size: 16px; font-weight: 700; color: var(--dark); margin-bottom: 8px; }
+.modal-box p { font-size: 13px; color: #666; margin-bottom: 18px; line-height: 1.5; }
+.modal-url-row { display: flex; gap: 8px; margin-bottom: 18px; }
+.modal-url { flex: 1; border: 1px solid #DED9D3; border-radius: 8px; padding: 8px 12px; font-size: 12px; color: #333; background: #f9f8f6; outline: none; font-family: monospace; }
+.modal-copy-btn { background: var(--dark); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 13px; cursor: pointer; font-weight: 500; white-space: nowrap; }
+.modal-copy-btn:hover { background: #2d5c40; }
+.modal-copy-btn.copied { background: #52b788; }
+.modal-close-btn { width: 100%; background: #f0ede8; color: #555; border: none; padding: 10px; border-radius: 8px; font-size: 13px; cursor: pointer; font-weight: 500; }
+.modal-close-btn:hover { background: #e5e1db; }
+.modal-note { font-size: 11px; color: #aaa; margin-top: 12px; text-align: center; }
+
+/* ── Inbound Signals redesign ────────────────────────────────────────── */
+.inbound-wrap { padding: 14px 20px 0; max-width: 1100px; }
+.inbound-section { background: white; border: 1px solid #D4EDDA; border-radius: var(--r-lg); overflow: hidden; margin-bottom: 14px; }
+.inbound-header { background: linear-gradient(135deg, #1a3a2a 0%, #2d5c40 100%); padding: 11px 18px; display: flex; align-items: center; gap: 10px; }
+.inbound-header-icon { font-size: 16px; }
+.inbound-header-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: white; flex: 1; }
+.inbound-header-sub { font-size: 10px; color: rgba(255,255,255,.5); }
+
+/* Activity row */
+.inbound-row { border-bottom: 1px solid #f0ede8; }
+.inbound-row:last-child { border-bottom: none; }
+.inbound-row-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: #aaa; padding: 8px 16px 4px; }
+
+/* Tab strip */
+.inbound-tabs { display: flex; align-items: stretch; gap: 6px; padding: 6px 16px 10px; flex-wrap: wrap; }
+.inbound-tab { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 80px; padding: 8px 14px; border: 1px solid #e5e1db; border-radius: var(--r-lg); cursor: pointer; background: #f8f6f3; transition: all .15s; position: relative; user-select: none; gap: 2px; }
+.inbound-tab:hover { border-color: #52b788; background: #f0faf5; }
+.inbound-tab.active { background: #1a3a2a; border-color: #1a3a2a; box-shadow: 0 2px 8px rgba(26,58,42,.2); }
+.inbound-tab-count { font-size: 22px; font-weight: 800; color: #1a3a2a; line-height: 1; }
+.inbound-tab.active .inbound-tab-count { color: white; }
+.inbound-tab-label { font-size: 10px; color: #888; white-space: nowrap; font-weight: 500; }
+.inbound-tab.active .inbound-tab-label { color: rgba(255,255,255,.7); }
+.inbound-tab-badge { position: absolute; top: 5px; right: 6px; font-size: 8px; font-weight: 700; padding: 1px 5px; border-radius: 6px; }
+.inbound-tab-badge.live { background: #d1fae5; color: #065f46; }
+.inbound-tab-badge.soon { background: #f0ede8; color: #bbb; }
+.inbound-tab.total { border-width: 2px; }
+.inbound-tab.company-tab { border-style: dashed; border-width: 1.5px; }
+.inbound-tab.company-tab.active { border-style: solid; }
+.inbound-tab-sep { width: 1px; background: #e5e1db; margin: 6px 2px; align-self: stretch; flex-shrink: 0; }
+
+/* Detail panel */
+.inbound-detail { display: none; border-top: 2px solid #1a3a2a; background: #fafff8; }
+.inbound-detail.open { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+.inbound-detail-half { padding: 14px 16px; }
+.inbound-detail-half:first-child { border-right: 1px solid #e5e1db; }
+.inbound-detail-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: #888; margin-bottom: 8px; }
+.inbound-detail-list { list-style: none; margin: 0; padding: 0; max-height: 240px; overflow-y: auto; }
+.inbound-detail-item { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid #f0ede8; }
+.inbound-detail-item:last-child { border-bottom: none; }
+.inbound-detail-name { flex: 1; font-size: 12px; font-weight: 500; color: #1a3a2a; }
+.inbound-detail-name a { color: #1a3a2a; text-decoration: none; }
+.inbound-detail-name a:hover { text-decoration: underline; }
+.inbound-detail-sub { font-size: 10px; color: #999; margin-top: 1px; }
+.inbound-detail-count { font-size: 11px; font-weight: 700; background: #d1fae5; color: #065f46; padding: 2px 7px; border-radius: 8px; white-space: nowrap; flex-shrink: 0; }
+.inbound-detail-count.multi { background: #fef3c7; color: #92400e; }
+.inbound-anon-tag { background: #f3f4f6; color: #9ca3af; font-size: 10px; padding: 1px 6px; border-radius: 6px; font-style: italic; }
+.inbound-new-tag { background: #fef3c7; color: #92400e; font-size: 9px; padding: 1px 5px; border-radius: 5px; font-weight: 700; }
+.inbound-empty-detail { text-align: center; padding: 20px; color: #ccc; font-size: 12px; }
+
+/* Actions row for refresh */
+.inbound-actions { padding: 8px 16px 10px; display: flex; align-items: center; gap: 10px; }
+.inbound-scrape-btn { background: #f0ede8; color: #555; border: none; padding: 5px 12px; border-radius: 7px; font-size: 11px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 5px; transition: all .15s; }
+.inbound-scrape-btn:hover { background: #1a3a2a; color: white; }
+.inbound-scrape-btn.loading { opacity: .6; pointer-events: none; }
+.inbound-ts { font-size: 10px; color: #bbb; }
+
+/* Drill-down drawer */
+.drawer-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:500; }
+.drawer-overlay.open { display:block; }
+.drawer { position:fixed; right:0; top:0; bottom:0; width:520px; background:white;
+  box-shadow:-4px 0 24px rgba(0,0,0,.12); z-index:501; display:flex; flex-direction:column;
+  transform:translateX(100%); transition:transform .25s cubic-bezier(.4,0,.2,1); }
+.drawer.open { transform:translateX(0); }
+.drawer-header { padding:18px 20px; border-bottom:1px solid #E9E5DF; display:flex; align-items:center; gap:12px; }
+.drawer-title { font-size:15px; font-weight:700; color:#1a3a2a; flex:1; }
+.drawer-subtitle { font-size:12px; color:#888; }
+.drawer-close { width:32px; height:32px; border:none; background:#f0ede8; border-radius:8px;
+  cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center; }
+.drawer-close:hover { background:#e5e1db; }
+.drawer-search { padding:10px 20px; border-bottom:1px solid #E9E5DF; }
+.drawer-search input { width:100%; border:1px solid #DED9D3; border-radius:8px; padding:7px 12px;
+  font-size:13px; outline:none; }
+.drawer-search input:focus { border-color:#52b788; }
+.drawer-body { flex:1; overflow-y:auto; }
+.drawer-table { width:100%; border-collapse:collapse; font-size:12px; }
+.drawer-table th { position:sticky; top:0; background:#1a3a2a; color:white; padding:8px 12px;
+  text-align:left; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; white-space:nowrap; }
+.drawer-table td { padding:8px 12px; border-bottom:1px solid #F0EDE8; vertical-align:middle; }
+.drawer-table tr:hover td { background:#f7f4f0; }
+.drawer-table .td-name { font-weight:600; color:#1a3a2a; }
+.drawer-table .td-name a { color:#1a3a2a; text-decoration:none; }
+.drawer-table .td-name a:hover { text-decoration:underline; }
+.drawer-table .td-sub { font-size:11px; color:#888; }
+.drawer-table .td-date { color:#999; font-size:11px; white-space:nowrap; }
+.drawer-empty { text-align:center; padding:48px 20px; color:#aaa; }
+.drawer-footer { padding:12px 20px; border-top:1px solid #E9E5DF; font-size:11px; color:#999; display:flex; justify-content:space-between; align-items:center; }
+.metric { cursor:pointer; transition:box-shadow .15s, border-color .15s; }
+.metric:hover { box-shadow:0 2px 8px rgba(82,183,136,.25); border-color:#52b788 !important; }
+.metric-click-hint { font-size:10px; color:#bbb; margin-top:4px; }
+
+/* Tab bar */
+.tab-bar { background:white; border-bottom:1px solid #E9E5DF; padding:0 20px; display:flex; gap:0; }
+.tab-btn { padding:10px 20px; border:none; background:transparent; font-size:13px; font-weight:500;
+  color:#888; cursor:pointer; border-bottom:3px solid transparent; margin-bottom:-1px; transition:all .15s; white-space:nowrap; }
+.tab-btn:hover { color:var(--dark); }
+.tab-btn.active { color:var(--dark); border-bottom-color:var(--green); font-weight:700; }
+
+/* Email tab */
+.email-stats { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:10px; margin-bottom:16px; }
+.email-stat { background:white; border:1px solid #E9E5DF; border-radius:10px; padding:12px 14px; }
+.email-stat-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#888; margin-bottom:6px; }
+.email-stat-value { font-size:26px; font-weight:800; color:var(--dark); line-height:1; }
+.email-stat-sub { font-size:11px; color:var(--green); font-weight:600; margin-top:3px; }
+.email-stat.highlight .email-stat-value { color:var(--green); }
+
+/* Email contacts table */
+.email-table-wrap { background:white; border:1px solid #E9E5DF; border-radius:12px; overflow:hidden; }
+.email-table-header { padding:12px 16px; border-bottom:1px solid #E9E5DF; display:flex; align-items:center; gap:10px; background:#f8f6f3; flex-wrap:wrap; }
+.email-table-title { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--dark); }
+.email-search { flex:1; min-width:180px; border:1px solid #DED9D3; border-radius:7px; padding:6px 10px; font-size:12px; outline:none; }
+.email-search:focus { border-color:var(--green); }
+.email-status-filter { border:1px solid #DED9D3; border-radius:7px; padding:6px 10px; font-size:12px; background:white; outline:none; cursor:pointer; }
+.email-table { width:100%; border-collapse:collapse; font-size:12px; }
+.email-table th { background:var(--dark); color:white; padding:8px 12px; text-align:left; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; white-space:nowrap; position:sticky; top:0; }
+.email-table td { padding:7px 12px; border-bottom:1px solid #F0EDE8; vertical-align:middle; }
+.email-table tr:hover td { background:#f7f4f0; }
+.email-table-body-wrap { max-height:520px; overflow-y:auto; }
+.email-pagination { padding:10px 16px; display:flex; align-items:center; gap:10px; border-top:1px solid #E9E5DF; background:#f8f6f3; }
+.page-btn { padding:5px 12px; border:1px solid #DED9D3; border-radius:6px; background:white; font-size:12px; cursor:pointer; }
+.page-btn:hover { border-color:var(--green); }
+.page-btn.active { background:var(--dark); color:white; border-color:var(--dark); }
+.email-loading-bar { height:3px; background:linear-gradient(90deg,var(--green) 0%,#a8dfc9 50%,var(--green) 100%); background-size:200% 100%; animation:slide 1.2s linear infinite; }
+@keyframes slide { from{background-position:200% 0} to{background-position:0 0} }
+
+/* Overlap tab */
+.overlap-summary { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; margin-bottom:16px; }
+.overlap-stat { background:white; border:1px solid #E9E5DF; border-radius:10px; padding:12px 14px; }
+.overlap-stat-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#888; margin-bottom:6px; }
+.overlap-stat-value { font-size:26px; font-weight:800; color:var(--dark); }
+.overlap-stat.green .overlap-stat-value { color:#1a7a5e; }
+.overlap-stat.amber .overlap-stat-value { color:#d97706; }
+.overlap-stat.orange .overlap-stat-value { color:#ea580c; }
+.confidence-bar { display:flex; gap:3px; margin-bottom:16px; height:8px; border-radius:4px; overflow:hidden; }
+.conf-seg { height:100%; transition:width .3s; }
+.conf-high   { background:#1a7a5e; }
+.conf-medium { background:#f59e0b; }
+.conf-low    { background:#ea580c; }
+.conf-legend { display:flex; gap:16px; margin-bottom:14px; font-size:11px; }
+.conf-dot { width:10px; height:10px; border-radius:50%; display:inline-block; margin-right:4px; vertical-align:middle; }
+.overlap-filter-row { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; align-items:center; }
+.sync-btn { background:var(--dark); color:white; border:none; border-radius:7px; padding:7px 14px; font-size:12px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:6px; }
+.sync-btn:hover { background:#2d5c40; }
+.sync-btn:disabled { background:#aaa; cursor:not-allowed; }
+.overlap-table-wrap { background:white; border:1px solid #E9E5DF; border-radius:12px; overflow:hidden; }
+.overlap-table { width:100%; border-collapse:collapse; font-size:12px; }
+.overlap-table th { background:var(--dark); color:white; padding:8px 12px; text-align:left; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; white-space:nowrap; }
+.overlap-table td { padding:7px 12px; border-bottom:1px solid #F0EDE8; vertical-align:middle; }
+.overlap-table tr:hover td { background:#f7f4f0; }
+.badge-high   { display:inline-block; padding:2px 7px; border-radius:999px; font-size:10px; font-weight:700; background:#d1fae5; color:#065f46; }
+.badge-medium { display:inline-block; padding:2px 7px; border-radius:999px; font-size:10px; font-weight:700; background:#fef3c7; color:#92400e; }
+.badge-low    { display:inline-block; padding:2px 7px; border-radius:999px; font-size:10px; font-weight:700; background:#fee2e2; color:#991b1b; }
+.overlap-empty { text-align:center; padding:60px 20px; color:#aaa; }
+.list-filter-chips { display:flex; gap:6px; flex-wrap:wrap; }
+.chip { padding:4px 12px; border:1px solid #DED9D3; border-radius:999px; font-size:11px; cursor:pointer; background:white; transition:all .15s; }
+.chip:hover { border-color:var(--green); }
+.chip.active { background:var(--dark); color:white; border-color:var(--dark); }
+
+.status-badge { display:inline-block; padding:2px 8px; border-radius:999px; font-size:10px; font-weight:700; }
+.status-interested { background:#d1fae5; color:#065f46; }
+.status-not-interested { background:#fee2e2; color:#991b1b; }
+.status-ooo { background:#fef3c7; color:#92400e; }
+.status-default { background:#f3f4f6; color:#6b7280; }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <h1>&#128202; Analytics</h1>
+  <select class="filter-select" id="campaign-select" onchange="onCampaignChange()">
+    <option value="">Select campaign...</option>
+  </select>
+  <div class="spacer"></div>
+  <span id="total-badge" class="total-badge" style="display:none"></span>
+  <button class="share-btn" onclick="openShareModal()" title="Share with client">
+    &#128279; Share
+  </button>
+</div>
+
+<!-- Share modal -->
+<div class="modal-overlay" id="share-modal" onclick="if(event.target===this)closeShareModal()">
+  <div class="modal-box">
+    <h2>&#128279; Share Analytics with Client</h2>
+    <p>Generate a read-only link for your client. They can view the analytics without accessing other workspaces or campaigns.</p>
+    <div class="modal-url-row">
+      <input class="modal-url" id="share-url-input" readonly placeholder="Generating link..." />
+      <button class="modal-copy-btn" id="copy-btn" onclick="copyShareUrl()">Copy link</button>
+    </div>
+    <button class="modal-close-btn" onclick="closeShareModal()">Close</button>
+    <p class="modal-note">Link is valid until revoked from Settings.</p>
+  </div>
+</div>
+
+<!-- Tab bar — only shown for specific workspace -->
+<div class="tab-bar" id="tab-bar" style="display:none">
+  <button class="tab-btn active" id="tab-campaign" onclick="switchTab('campaign',this)">&#128202; Campaign</button>
+  <button class="tab-btn" id="tab-email" onclick="switchTab('email',this)">&#9993;&#65039; Email — HF Quants</button>
+  <button class="tab-btn" id="tab-overlap" onclick="switchTab('overlap',this)">&#128101; Overlap</button>
+  <button class="tab-btn" id="tab-automations" onclick="switchTab('automations',this)">&#9881;&#65039; Automations</button>
+  <button class="tab-btn" id="tab-companies" onclick="switchTab('companies',this)">&#127968; Companies</button>
+</div>
+
+<div class="date-bar" id="date-bar">
+  <button class="range-btn active" data-range="total" onclick="setRange('total', this)">Total</button>
+  <button class="range-btn" data-range="day"   onclick="setRange('day', this)">Today</button>
+  <button class="range-btn" data-range="week"  onclick="setRange('week', this)">Last 7 days</button>
+  <button class="range-btn" data-range="month" onclick="setRange('month', this)">Last 30 days</button>
+  <button class="range-btn" data-range="mtd"   onclick="setRange('mtd', this)">MTD</button>
+  <button class="range-btn" data-range="qtd"   onclick="setRange('qtd', this)">QTD</button>
+  <button class="range-btn" data-range="custom" onclick="setRange('custom', this)">Custom</button>
+  <div class="custom-dates" id="custom-dates">
+    <input type="date" class="date-input" id="date-from" onchange="applyCustom()">
+    <span style="color:#aaa">—</span>
+    <input type="date" class="date-input" id="date-to" onchange="applyCustom()">
+  </div>
+</div>
+
+<!-- ── Inbound Signals ────────────────────────────────────────────────── -->
+<div class="inbound-wrap">
+  <div class="inbound-section" id="inbound-section">
+    <div class="inbound-header">
+      <span class="inbound-header-icon">&#128268;</span>
+      <span class="inbound-header-title">Inbound Signals</span>
+      <span class="inbound-header-sub">Actions your audience took on your profiles &amp; content</span>
+      <button class="inbound-scrape-btn" id="inbound-enrich-btn" onclick="triggerEnrich()" style="margin-left:auto" title="Fetch company names for identified viewers">
+        &#128269; Enrich
+      </button>
+      <button class="inbound-scrape-btn" id="inbound-deep-enrich-btn" onclick="triggerDeepEnrich()" title="Full profile enrichment: title + company from all signals (views, likes, comments) → adds to Lists">
+        &#10024; Deep Enrich
+      </button>
+      <button class="inbound-scrape-btn" id="inbound-scrape-btn" onclick="triggerScrape()" title="Re-scrape latest profile views">
+        &#8635; Refresh
+      </button>
+    </div>
+
+    <!-- Row 1: Profile & Company Views -->
+    <div class="inbound-row" id="inbound-row-views">
+      <div class="inbound-row-label">&#128065; Profile &amp; Company Page Views</div>
+      <div class="inbound-tabs" id="inbound-tabs-views">
+        <!-- injected by JS -->
+      </div>
+      <div class="inbound-detail" id="inbound-detail-views">
+        <div class="inbound-detail-half">
+          <div class="inbound-detail-title">&#128100; People</div>
+          <ul class="inbound-detail-list" id="inbound-people-views"></ul>
+        </div>
+        <div class="inbound-detail-half">
+          <div class="inbound-detail-title">&#127970; Companies</div>
+          <ul class="inbound-detail-list" id="inbound-companies-views"></ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Row 2: Post Likes (stub) -->
+    <div class="inbound-row" id="inbound-row-likes">
+      <div class="inbound-row-label">&#128077; Post Likes</div>
+      <div class="inbound-tabs" id="inbound-tabs-likes">
+        <!-- injected by JS -->
+      </div>
+      <div class="inbound-detail" id="inbound-detail-likes">
+        <div class="inbound-detail-half">
+          <div class="inbound-detail-title">&#128100; People</div>
+          <ul class="inbound-detail-list" id="inbound-people-likes"></ul>
+        </div>
+        <div class="inbound-detail-half">
+          <div class="inbound-detail-title">&#127970; Companies</div>
+          <ul class="inbound-detail-list" id="inbound-companies-likes"></ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Row 3: Comments (stub) -->
+    <div class="inbound-row" id="inbound-row-comments">
+      <div class="inbound-row-label">&#128172; Comments</div>
+      <div class="inbound-tabs" id="inbound-tabs-comments">
+        <!-- injected by JS -->
+      </div>
+      <div class="inbound-detail" id="inbound-detail-comments">
+        <div class="inbound-detail-half">
+          <div class="inbound-detail-title">&#128100; People</div>
+          <ul class="inbound-detail-list" id="inbound-people-comments"></ul>
+        </div>
+        <div class="inbound-detail-half">
+          <div class="inbound-detail-title">&#127970; Companies</div>
+          <ul class="inbound-detail-list" id="inbound-companies-comments"></ul>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="content" id="content">
+  <div class="empty-state">&#128202; Select a campaign to view analytics</div>
+</div>
+
+<!-- Automations Tab -->
+<div id="tab-content-automations" class="tab-content" style="display:none; padding:24px 0;">
+  <div id="automations-container"></div>
+</div>
+
+<!-- Companies Tab -->
+<div id="companies-content" style="display:none; padding:16px 20px">
+
+  <!-- Search + sort bar -->
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+    <input id="co-search" placeholder="Search company..." style="padding:7px 12px;border:1px solid #e5e1db;border-radius:8px;font-size:13px;min-width:220px" oninput="filterCompanies()">
+    <select id="co-sort" onchange="sortCompanies()" style="padding:7px 10px;border:1px solid #e5e1db;border-radius:8px;font-size:12px;color:#555">
+      <option value="outbound_total">Sort: Most Active</option>
+      <option value="contacts">Sort: Most Contacts</option>
+      <option value="inv_approved">Sort: Most Connected</option>
+      <option value="msg_replied">Sort: Most Replies</option>
+      <option value="positive_replies">Sort: Most Positive</option>
+      <option value="engaged">Sort: Most Engaged</option>
+      <option value="co_follow_confirmed">Sort: Follow Confirmed</option>
+    </select>
+    <span id="co-count" style="font-size:12px;color:#888;margin-left:4px"></span>
+    <div style="margin-left:auto;display:flex;gap:8px">
+      <button onclick="exportCompaniesCSV()" style="font-size:12px;padding:6px 14px;border:1px solid #e5e1db;border-radius:8px;cursor:pointer;background:white">&#11015; Export CSV</button>
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;font-size:11px;color:#777">
+    <span style="background:#f0f9f4;border:1px solid #c6e8d7;padding:2px 8px;border-radius:12px;color:#1a6640">&#128228; Outbound</span>
+    <span style="background:#f0f4ff;border:1px solid #c6d0f0;padding:2px 8px;border-radius:12px;color:#2c3e8c">&#128229; Inbound</span>
+    <span style="background:#fff8ec;border:1px solid #f0d89a;padding:2px 8px;border-radius:12px;color:#8c5e00">&#127968; Company Page</span>
+    <span style="background:#fdf2f8;border:1px solid #e8bedd;padding:2px 8px;border-radius:12px;color:#7c2d6e">&#9889; Engagement</span>
+  </div>
+
+  <!-- Table -->
+  <div style="background:white;border:1px solid #E9E5DF;border-radius:12px;overflow:hidden">
+    <table style="width:100%;border-collapse:collapse;font-size:12px" id="co-table">
+      <thead>
+        <tr style="background:#1a3a2a;color:white;font-size:11px">
+          <th style="padding:10px 14px;text-align:left;font-weight:600">Company</th>
+          <th style="padding:10px 8px;text-align:center;white-space:nowrap" title="Total contacts from this company">Contacts</th>
+          <th style="padding:10px 8px;text-align:center;color:#a8d5bc;white-space:nowrap" title="Invites sent">&#128228; Sent</th>
+          <th style="padding:10px 8px;text-align:center;color:#a8d5bc;white-space:nowrap" title="Connected">Connected</th>
+          <th style="padding:10px 8px;text-align:center;color:#a8d5bc;white-space:nowrap" title="Messages sent">Msgs</th>
+          <th style="padding:10px 8px;text-align:center;color:#a8d5bc;white-space:nowrap" title="Replies received">Replies</th>
+          <th style="padding:10px 8px;text-align:center;color:#a8d5bc;white-space:nowrap" title="Positive replies">&#128994; Pos</th>
+          <th style="padding:10px 8px;text-align:center;color:#a8d5bc;white-space:nowrap" title="Profile views sent">Profile Views</th>
+          <th style="padding:10px 8px;text-align:center;color:#a8d5bc;white-space:nowrap" title="Post likes sent">Likes</th>
+          <th style="padding:10px 8px;text-align:center;color:#c4cef7;white-space:nowrap" title="Viewed our profile">&#128229; Viewed Us</th>
+          <th style="padding:10px 8px;text-align:center;color:#f7d98a;white-space:nowrap" title="Company follow invites sent">&#127968; Follow Sent</th>
+          <th style="padding:10px 8px;text-align:center;color:#f7d98a;white-space:nowrap" title="Company follows confirmed">&#127968; Confirmed</th>
+          <th style="padding:10px 8px;text-align:center;color:#e8b4e0;white-space:nowrap" title="Engaged contacts">&#9889; Engaged</th>
+        </tr>
+      </thead>
+      <tbody id="co-tbody">
+        <tr><td colspan="13" style="text-align:center;padding:40px;color:#aaa">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Drill-down panel -->
+  <div id="co-drill" style="display:none;margin-top:16px;background:white;border:1px solid #E9E5DF;border-radius:12px;overflow:hidden">
+    <div style="background:#f8f6f3;padding:12px 18px;border-bottom:1px solid #E9E5DF;display:flex;align-items:center;justify-content:space-between">
+      <span id="co-drill-title" style="font-weight:700;font-size:14px"></span>
+      <button onclick="document.getElementById('co-drill').style.display='none'" style="border:none;background:none;cursor:pointer;font-size:18px;color:#888">&#10005;</button>
+    </div>
+    <div id="co-drill-body" style="padding:0"></div>
+  </div>
+</div>
+
+<!-- Overlap Tab — LinkedIn × Email cross-reference -->
+<div class="content" id="overlap-content" style="display:none">
+
+  <!-- Top controls -->
+  <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap;">
+    <button class="sync-btn" id="sync-btn" onclick="syncLeads()">
+      &#8635; Sync from Instantly
+    </button>
+    <span id="sync-status" style="font-size:11px; color:#888"></span>
+    <div style="flex:1"></div>
+    <input id="overlap-search" class="email-search" style="max-width:260px" placeholder="Search name, email, company…" oninput="filterOverlap()">
+  </div>
+
+  <!-- Summary KPIs -->
+  <div class="overlap-summary" id="overlap-summary" style="display:none">
+    <div class="overlap-stat green">
+      <div class="overlap-stat-label">Total Overlap</div>
+      <div class="overlap-stat-value" id="ov-total">—</div>
+      <div style="font-size:11px;color:#888;margin-top:3px" id="ov-pct"></div>
+    </div>
+    <div class="overlap-stat green">
+      <div class="overlap-stat-label">&#9989; Email Match</div>
+      <div class="overlap-stat-value" id="ov-email">—</div>
+      <div style="font-size:10px;color:#888;margin-top:2px">High confidence</div>
+    </div>
+    <div class="overlap-stat amber">
+      <div class="overlap-stat-label">&#128269; Name + Domain</div>
+      <div class="overlap-stat-value" id="ov-namedomain">—</div>
+      <div style="font-size:10px;color:#888;margin-top:2px">Medium confidence</div>
+    </div>
+    <div class="overlap-stat orange">
+      <div class="overlap-stat-label">&#128100; Name Only</div>
+      <div class="overlap-stat-value" id="ov-nameonly">—</div>
+      <div style="font-size:10px;color:#888;margin-top:2px">Low confidence</div>
+    </div>
+    <div class="overlap-stat">
+      <div class="overlap-stat-label">Email Leads (DB)</div>
+      <div class="overlap-stat-value" id="ov-synced">—</div>
+      <div style="font-size:10px;color:#888;margin-top:2px">Synced to DB</div>
+    </div>
+  </div>
+
+  <!-- List filter chips -->
+  <div id="list-chips-wrap" style="margin-bottom:12px; display:none">
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888;margin-bottom:6px">Filter by LinkedIn list</div>
+    <div class="list-filter-chips" id="list-chips"></div>
+  </div>
+
+  <!-- Results table -->
+  <div class="overlap-table-wrap" id="overlap-table-wrap" style="display:none">
+    <div style="padding:10px 14px; background:#f8f6f3; border-bottom:1px solid #E9E5DF; display:flex; align-items:center; gap:8px;">
+      <span style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--dark)">&#128101; Matched Contacts</span>
+      <span id="ov-count" style="font-size:11px;color:#888;margin-left:4px"></span>
+    </div>
+    <div style="max-height:540px;overflow-y:auto">
+      <table class="overlap-table">
+        <thead><tr>
+          <th>#</th><th>Name</th><th>Company</th><th>LinkedIn Email</th>
+          <th>Instantly Email</th><th>Match</th><th>LI Status</th>
+          <th>Opens</th><th>Replies</th><th>Last Contact</th>
+        </tr></thead>
+        <tbody id="overlap-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="overlap-empty" class="overlap-empty" style="display:none">
+    <div style="font-size:32px;margin-bottom:12px">&#128101;</div>
+    <div>Run "Sync from Instantly" first, then overlaps will appear here.</div>
+  </div>
+
+</div>
+<div class="content" id="email-content" style="display:none">
+  <div id="email-loading-bar" class="email-loading-bar" style="display:none"></div>
+
+  <!-- KPI Stats -->
+  <div class="email-stats" id="email-stats">
+    <div class="email-stat"><div class="email-stat-label">Leads</div><div class="email-stat-value" id="e-leads">—</div></div>
+    <div class="email-stat"><div class="email-stat-label">Contacted</div><div class="email-stat-value" id="e-contacted">—</div></div>
+    <div class="email-stat"><div class="email-stat-label">Emails Sent</div><div class="email-stat-value" id="e-sent">—</div></div>
+    <div class="email-stat highlight"><div class="email-stat-label">Replies</div><div class="email-stat-value" id="e-replies">—</div><div class="email-stat-sub" id="e-reply-rate">—</div></div>
+    <div class="email-stat"><div class="email-stat-label">Bounced</div><div class="email-stat-value" id="e-bounced">—</div></div>
+    <div class="email-stat highlight"><div class="email-stat-label">Opportunities</div><div class="email-stat-value" id="e-opps">—</div></div>
+    <div class="email-stat"><div class="email-stat-label">Completed</div><div class="email-stat-value" id="e-completed">—</div></div>
+    <div class="email-stat"><div class="email-stat-label">Interested</div><div class="email-stat-value" id="e-interested">—</div></div>
+  </div>
+
+  <!-- Leads Table -->
+  <div class="email-table-wrap">
+    <div class="email-table-header">
+      <span class="email-table-title">&#128101; Contacts</span>
+      <input class="email-search" id="email-search" placeholder="Search name, email, company…" oninput="filterEmailTable()">
+      <select class="email-status-filter" id="email-status-filter" onchange="filterEmailTable()">
+        <option value="">All statuses</option>
+        <option value="1">Interested</option>
+        <option value="2">Meeting Booked</option>
+        <option value="-1">Not Interested</option>
+        <option value="-2">Unsubscribed</option>
+        <option value="0">Opted Out</option>
+        <option value="none">Contacted (no status)</option>
+      </select>
+      <span id="email-count-badge" style="font-size:11px;color:#888;white-space:nowrap"></span>
+    </div>
+    <div class="email-table-body-wrap">
+      <table class="email-table">
+        <thead><tr>
+          <th>#</th><th>Name</th><th>Email</th><th>Company</th><th>Title</th>
+          <th>Status</th><th>Opens</th><th>Replies</th><th>Last Contact</th>
+        </tr></thead>
+        <tbody id="email-tbody"></tbody>
+      </table>
+    </div>
+    <div class="email-pagination" id="email-pagination" style="display:none">
+      <button class="page-btn" id="page-prev" onclick="emailPage(-1)">&#8592; Prev</button>
+      <span id="page-info" style="font-size:12px;color:#666"></span>
+      <button class="page-btn" id="page-next" onclick="emailPage(1)">Next &#8594;</button>
+      <span style="flex:1"></span>
+      <span id="email-total-loaded" style="font-size:11px;color:#aaa"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+const params   = new URLSearchParams(window.location.search);
+const wsId     = params.get('workspace_id');
+let allContacts = [];
+let rangeMode   = 'total';
+let rangeFrom   = null;
+let rangeTo     = null;
+
+// ── Date range helpers ────────────────────────────────────────────────────
+function getRange(mode) {
+  var now   = new Date();
+  var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  var tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate()+1);
+
+  if (mode === 'total')  return { from: null, to: null };
+  if (mode === 'day')    return { from: today, to: tomorrow };
+  if (mode === 'week')   { var w=new Date(today); w.setDate(w.getDate()-7); return { from:w, to:tomorrow }; }
+  if (mode === 'month')  { var m=new Date(today); m.setDate(m.getDate()-30); return { from:m, to:tomorrow }; }
+  if (mode === 'mtd')    return { from: new Date(now.getFullYear(), now.getMonth(), 1), to: tomorrow };
+  if (mode === 'qtd')    {
+    var q = Math.floor(now.getMonth()/3);
+    return { from: new Date(now.getFullYear(), q*3, 1), to: tomorrow };
+  }
+  if (mode === 'custom') return { from: rangeFrom ? new Date(rangeFrom) : null, to: rangeTo ? new Date(rangeTo+'T23:59:59') : null };
+  return { from: null, to: null };
+}
+
+function inRange(dateStr, range) {
+  if (!range.from && !range.to) return true;
+  if (!dateStr) return false;
+  var d = new Date(dateStr);
+  if (range.from && d < range.from) return false;
+  if (range.to   && d >= range.to)  return false;
+  return true;
+}
+
+function setRange(mode, btn) {
+  rangeMode = mode;
+  document.querySelectorAll('.range-btn').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  var cd = document.getElementById('custom-dates');
+  if (mode === 'custom') { cd.classList.add('show'); return; }
+  cd.classList.remove('show');
+  if (allContacts.length) render();
+}
+
+function applyCustom() {
+  rangeFrom = document.getElementById('date-from').value;
+  rangeTo   = document.getElementById('date-to').value;
+  if (allContacts.length) render();
+}
+
+
+// ── Companies tab ────────────────────────────────────────────────────────────
+var _companiesData     = [];
+var _companiesFiltered = [];
+var _companiesLoaded   = false;
+
+async function loadCompanies() {
+  var tbody = document.getElementById('co-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;padding:40px;color:#aaa">&#8987; Loading company data...</td></tr>';
+
+  try {
+    var params = new URLSearchParams({ workspace_id: wsId });
+    var campId = (document.getElementById('campaign-select') || {}).value;
+    if (campId) params.set('campaign_id', campId);
+    var range = getRange(rangeMode);
+    if (range.from) params.set('from', range.from.toISOString().slice(0,10));
+    if (range.to)   params.set('to',   range.to.toISOString().slice(0,10));
+
+    var d = await fetch('/api/analytics/companies?' + params.toString()).then(function(r){ return r.json(); });
+    _companiesData     = d.companies || [];
+    _companiesFiltered = _companiesData.slice();
+    _companiesLoaded   = true;
+    document.getElementById('co-count').textContent = _companiesData.length + ' companies';
+    renderCompanies();
+  } catch(e) {
+    tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;padding:40px;color:#c00">Error: ' + e.message + '</td></tr>';
+  }
+}
+
+function filterCompanies() {
+  var q = (document.getElementById('co-search').value || '').toLowerCase();
+  _companiesFiltered = _companiesData.filter(function(c){ return c.company.toLowerCase().includes(q); });
+  document.getElementById('co-count').textContent = _companiesFiltered.length + ' companies';
+  renderCompanies();
+}
+
+function sortCompanies() {
+  var key = document.getElementById('co-sort').value;
+  _companiesFiltered.sort(function(a,b){ return (parseInt(b[key])||0) - (parseInt(a[key])||0); });
+  renderCompanies();
+}
+
+function renderCompanies() {
+  var tbody = document.getElementById('co-tbody');
+  if (!tbody) return;
+  if (!_companiesFiltered.length) {
+    tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;padding:40px;color:#aaa">No companies found</td></tr>';
+    return;
+  }
+
+  function cell(n, color) {
+    var v = parseInt(n) || 0;
+    var style = 'padding:8px 8px;text-align:center;';
+    if (v > 0 && color) style += 'font-weight:600;color:' + color + ';';
+    else if (!v) style += 'color:#ccc;';
+    return '<td style="' + style + '">' + (v || '—') + '</td>';
+  }
+
+  function engBadge(row) {
+    var eng = parseInt(row.engaged) || 0;
+    var avg = parseInt(row.avg_engaged) || 0;
+    var total = eng + avg;
+    if (!total) return '<td style="padding:8px;text-align:center;color:#ccc">—</td>';
+    return '<td style="padding:8px;text-align:center">' +
+      (eng ? '<span style="background:#fdf2f8;border:1px solid #e8b4e0;color:#7c2d6e;font-size:11px;padding:1px 6px;border-radius:10px;font-weight:600">' + eng + ' hot</span> ' : '') +
+      (avg ? '<span style="background:#fff8ec;border:1px solid #f0d89a;color:#8c5e00;font-size:11px;padding:1px 6px;border-radius:10px">' + avg + ' warm</span>' : '') +
+    '</td>';
+  }
+
+  var html = _companiesFiltered.slice(0, 300).map(function(row) {
+    var outTotal = parseInt(row.outbound_total) || 0;
+    var inTotal  = parseInt(row.inbound_total)  || 0;
+    var rowBg    = outTotal > 20 ? 'background:#f9fdf6' : '';
+    return '<tr style="border-bottom:1px solid #f3f0ec;cursor:pointer;' + rowBg + '" onclick="drillCompany(\'' + escCo(row.company) + '\')">' +
+      '<td style="padding:9px 14px;font-weight:600;color:#1a3a2a;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + escCo(row.company) + '">' + escCo(row.company) + '</td>' +
+      cell(row.contacts, '#333') +
+      cell(row.inv_sent, '#2a7a4b') +
+      cell(row.inv_approved, '#1a6640') +
+      cell(row.msg_sent, '#2a7a4b') +
+      cell(row.msg_replied, '#1a5c8c') +
+      cell(row.positive_replies, '#165c2a') +
+      cell(row.profile_views_sent, '#2a7a4b') +
+      cell(row.post_likes_sent, '#2a7a4b') +
+      cell(row.viewed_us, '#2c3e8c') +
+      cell(row.co_follow_sent, '#8c5e00') +
+      cell(row.co_follow_confirmed, '#5c3c00') +
+      engBadge(row) +
+    '</tr>';
+  }).join('');
+
+  tbody.innerHTML = html;
+}
+
+function escCo(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+async function drillCompany(company) {
+  var drill = document.getElementById('co-drill');
+  var drillTitle = document.getElementById('co-drill-title');
+  var drillBody  = document.getElementById('co-drill-body');
+  drillTitle.textContent = '&#127968; ' + company;
+  drillBody.innerHTML = '<div style="padding:20px;color:#aaa;text-align:center">&#8987; Loading...</div>';
+  drill.style.display = '';
+  drill.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  try {
+    var params = new URLSearchParams({ workspace_id: wsId });
+    var campId = (document.getElementById('campaign-select') || {}).value;
+    if (campId) params.set('campaign_id', campId);
+    var d = await fetch('/api/analytics/companies/' + encodeURIComponent(company) + '/contacts?' + params.toString()).then(function(r){ return r.json(); });
+    var contacts = d.contacts || [];
+
+    if (!contacts.length) {
+      drillBody.innerHTML = '<div style="padding:20px;color:#aaa;text-align:center">No contacts found</div>';
+      return;
+    }
+
+    function tick(v, color) {
+      if (!v && v !== true) return '<span style="color:#ddd">—</span>';
+      return '<span style="color:' + (color||'#2a7a4b') + ';font-weight:600">&#10003;</span>';
+    }
+
+    function engLabel(level) {
+      if (level === 'engaged')         return '<span style="background:#fdf2f8;color:#7c2d6e;font-size:10px;padding:1px 6px;border-radius:8px;border:1px solid #e8b4e0">&#9889; hot</span>';
+      if (level === 'average_engaged') return '<span style="background:#fff8ec;color:#8c5e00;font-size:10px;padding:1px 6px;border-radius:8px;border:1px solid #f0d89a">&#9889; warm</span>';
+      return '<span style="color:#ccc;font-size:10px">—</span>';
+    }
+
+    var rows = contacts.map(function(c) {
+      var name = (c.first_name || '') + ' ' + (c.last_name || '');
+      var nameHtml = c.li_profile_url
+        ? '<a href="' + c.li_profile_url + '" target="_blank" rel="noopener" style="color:#1a3a2a;text-decoration:none;font-weight:600">' + escCo(name.trim()) + '</a>'
+        : '<span style="font-weight:600">' + escCo(name.trim()) + '</span>';
+      return '<tr style="border-bottom:1px solid #f3f0ec">' +
+        '<td style="padding:8px 14px">' + nameHtml + '<div style="font-size:11px;color:#888">' + escCo(c.title || '') + '</div></td>' +
+        '<td style="padding:8px;text-align:center">' + tick(c.invite_sent) + '</td>' +
+        '<td style="padding:8px;text-align:center">' + tick(c.invite_approved, '#1a6640') + '</td>' +
+        '<td style="padding:8px;text-align:center">' + tick(c.msg_sent) + '</td>' +
+        '<td style="padding:8px;text-align:center">' + tick(c.msg_replied, '#2563eb') + '</td>' +
+        '<td style="padding:8px;text-align:center">' + tick(c.positive_reply, '#16a34a') + '</td>' +
+        '<td style="padding:8px;text-align:center">' + tick(c.last_profile_view_at) + '</td>' +
+        '<td style="padding:8px;text-align:center">' + tick(c.viewed_our_profile, '#2563eb') + '</td>' +
+        '<td style="padding:8px;text-align:center">' + tick(c.company_follow_confirmed, '#8c5e00') + '</td>' +
+        '<td style="padding:8px;text-align:center">' + engLabel(c.engagement_level) + '</td>' +
+      '</tr>';
+    }).join('');
+
+    drillBody.innerHTML = '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">' +
+      '<thead><tr style="background:#f8f6f3;font-size:11px;font-weight:600;color:#555">' +
+      '<th style="padding:8px 14px;text-align:left">Name</th>' +
+      '<th style="padding:8px;text-align:center" title="Invite sent">&#128228; Sent</th>' +
+      '<th style="padding:8px;text-align:center" title="Connected">Connected</th>' +
+      '<th style="padding:8px;text-align:center" title="Message sent">Msg</th>' +
+      '<th style="padding:8px;text-align:center" title="Replied">Replied</th>' +
+      '<th style="padding:8px;text-align:center" title="Positive reply">&#128994; Pos</th>' +
+      '<th style="padding:8px;text-align:center" title="Profile view sent">Profile View</th>' +
+      '<th style="padding:8px;text-align:center" title="Viewed our profile">&#128229; Viewed Us</th>' +
+      '<th style="padding:8px;text-align:center" title="Follow confirmed">&#127968; Follow</th>' +
+      '<th style="padding:8px;text-align:center" title="Engagement level">&#9889; Eng.</th>' +
+      '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+  } catch(e) {
+    drillBody.innerHTML = '<div style="padding:20px;color:#c00">Error: ' + e.message + '</div>';
+  }
+}
+
+function exportCompaniesCSV() {
+  if (!_companiesFiltered.length) return;
+  var cols = ['company','contacts','inv_sent','inv_approved','msg_sent','msg_replied','positive_replies','profile_views_sent','post_likes_sent','viewed_us','co_follow_sent','co_follow_confirmed','engaged','avg_engaged'];
+  var csv  = cols.join(',') + '\n';
+  csv += _companiesFiltered.map(function(r) {
+    return cols.map(function(k){ return '"' + String(r[k]||'').replace(/"/g,'""') + '"'; }).join(',');
+  }).join('\n');
+  var blob = new Blob([csv], {type:'text/csv'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'company_analytics.csv';
+  a.click();
+}
+
+// ── Email tab (Instantly / HF Quants) ─────────────────────────────────────
+const INSTANTLY_CAMPAIGN_ID = 'd3b8ee99-d5f5-4bc5-a3d3-23e4c286ed01';
+var _emailLeads = [];        // all loaded leads
+var _emailFiltered = [];     // after search/filter
+var _emailPage = 1;
+const EMAIL_PAGE_SIZE = 50;
+var _emailLoading = false;
+var _emailLoaded = false;
+  _companiesLoaded = false;
+
+async function loadEmailTab() {
+  if (_emailLoading) return;
+  _emailLoading = true;
+  _emailLoaded  = false;
+  document.getElementById('email-loading-bar').style.display = '';
+  document.getElementById('email-tbody').innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:#aaa">Loading contacts…</td></tr>';
+
+  // Load analytics
+  try {
+    var anRes = await fetch('/api/instantly/campaigns/'+INSTANTLY_CAMPAIGN_ID+'/analytics?workspace_id='+wsId).then(function(r){return r.json();});
+    var an = anRes && !anRes.error ? anRes : null;
+    if (an) {
+      document.getElementById('e-leads').textContent     = (an.leads_count||0).toLocaleString();
+      document.getElementById('e-contacted').textContent = (an.contacted_count||0).toLocaleString();
+      document.getElementById('e-sent').textContent      = (an.emails_sent_count||0).toLocaleString();
+      document.getElementById('e-replies').textContent   = (an.reply_count||0).toLocaleString();
+      document.getElementById('e-reply-rate').textContent = an.emails_sent_count
+        ? ((an.reply_count/an.emails_sent_count)*100).toFixed(1)+'% reply rate' : '';
+      document.getElementById('e-bounced').textContent   = (an.bounced_count||0).toLocaleString();
+      document.getElementById('e-opps').textContent      = (an.total_opportunities||0).toLocaleString();
+      document.getElementById('e-completed').textContent = (an.completed_count||0).toLocaleString();
+      document.getElementById('e-interested').textContent = (an.total_interested||0).toLocaleString();
+    }
+  } catch(e) { console.warn('analytics err', e); }
+
+  // Load all leads progressively
+  _emailLeads = [];
+  var cursor = null;
+  while(true) {
+    try {
+      var body = { limit: 100 };
+      if (cursor) body.starting_after = cursor;
+      var d = await fetch('/api/instantly/campaigns/'+INSTANTLY_CAMPAIGN_ID+'/leads?workspace_id='+wsId, {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(body)
+      }).then(function(r){return r.json();});
+      var items = d.items || [];
+      _emailLeads = _emailLeads.concat(items);
+      document.getElementById('email-total-loaded').textContent = _emailLeads.length.toLocaleString() + ' leads loaded';
+      filterEmailTable();
+      if (items.length < 100) break;
+      cursor = d.next_starting_after || items[items.length-1].id;
+    } catch(e) { console.warn('leads page err', e); break; }
+  }
+
+    _emailLoaded  = true;
+  _emailLoading = false;
+  document.getElementById('email-loading-bar').style.display = 'none';
+  // Update Interested from actual leads data
+  var interested = _emailLeads.filter(function(l){ return l.lt_interest_status === 1 || l.lt_interest_status === 2; }).length;
+  document.getElementById('e-interested').textContent = interested.toLocaleString();
+  filterEmailTable();
+}
+
+function filterEmailTable() {
+  var q       = (document.getElementById('email-search').value||'').toLowerCase();
+  var statusF = document.getElementById('email-status-filter').value;
+  _emailFiltered = _emailLeads.filter(function(l) {
+    var matchQ = !q || (
+      ((l.first_name||'')+(l.last_name||'')).toLowerCase().includes(q) ||
+      (l.email||'').toLowerCase().includes(q) ||
+      (l.company_name||'').toLowerCase().includes(q) ||
+      (l.job_title||'').toLowerCase().includes(q)
+    );
+    var lStatus = l.lt_interest_status != null ? String(l.lt_interest_status) : 'none';
+    var matchS = !statusF || lStatus === statusF;
+    return matchQ && matchS;
+  });
+  _emailPage = 1;
+  document.getElementById('email-count-badge').textContent = _emailFiltered.length.toLocaleString() + ' contacts';
+  renderEmailPage();
+}
+
+function statusBadge(status) {
+  if (status == 1)  return '<span class="status-badge status-interested">Interested</span>';
+  if (status == -1) return '<span class="status-badge status-not-interested">Not Interested</span>';
+  if (status == -2) return '<span class="status-badge status-ooo">Unsubscribed</span>';
+  if (status == 2)  return '<span class="status-badge status-interested">Meeting Booked</span>';
+  return '<span class="status-badge status-default">Contacted</span>';
+}
+
+function fmtEmailDate(d) {
+  if (!d) return '';
+  var dt = new Date(d);
+  return dt.toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'2-digit'});
+}
+
+function renderEmailPage() {
+  var start = (_emailPage - 1) * EMAIL_PAGE_SIZE;
+  var end   = Math.min(start + EMAIL_PAGE_SIZE, _emailFiltered.length);
+  var page  = _emailFiltered.slice(start, end);
+  var totalPages = Math.ceil(_emailFiltered.length / EMAIL_PAGE_SIZE);
+
+  document.getElementById('page-info').textContent =
+    'Page ' + _emailPage + ' of ' + (totalPages||1) + ' (' + start+1 + '–' + end + ')';
+  document.getElementById('email-pagination').style.display = _emailFiltered.length ? '' : 'none';
+  document.getElementById('page-prev').disabled = _emailPage <= 1;
+  document.getElementById('page-next').disabled = _emailPage >= totalPages;
+
+  if (!page.length) {
+    document.getElementById('email-tbody').innerHTML =
+      '<tr><td colspan="9" style="text-align:center;padding:40px;color:#aaa">' +
+      (_emailLeads.length ? 'No contacts match your filter.' : 'Loading…') + '</td></tr>';
+    return;
+  }
+
+  document.getElementById('email-tbody').innerHTML = page.map(function(l, i) {
+    var name = ((l.first_name||'') + ' ' + (l.last_name||'')).trim() || '—';
+    var rowNum = start + i + 1;
+    return '<tr>' +
+      '<td style="color:#aaa;font-size:11px">' + rowNum + '</td>' +
+      '<td style="font-weight:600;color:#1a3a2a;white-space:nowrap">' + name + '</td>' +
+      '<td style="color:#555;font-size:11px">' + (l.email||'—') + '</td>' +
+      '<td style="color:#555">' + (l.company_name||'—') + '</td>' +
+      '<td style="color:#888;font-size:11px">' + (l.job_title||'—') + '</td>' +
+      '<td>' + statusBadge(l.lt_interest_status) + '</td>' +
+      '<td style="text-align:center;color:#888">' + (l.email_open_count||0) + '</td>' +
+      '<td style="text-align:center;color:#888">' + (l.email_reply_count||0) + '</td>' +
+      '<td style="color:#aaa;font-size:11px;white-space:nowrap">' + fmtEmailDate(l.timestamp_last_contact) + '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+function emailPage(dir) {
+  var totalPages = Math.ceil(_emailFiltered.length / EMAIL_PAGE_SIZE);
+  _emailPage = Math.max(1, Math.min(_emailPage + dir, totalPages));
+  renderEmailPage();
+  document.querySelector('.email-table-body-wrap').scrollTop = 0;
+}
+
+// ── Automations Tab ──────────────────────────────────────────────────────────
+
+var _automationsLoaded = false;
+
+async function loadAutomations() {
+  if (_automationsLoaded) return;
+  _automationsLoaded = true;
+
+  var container = document.getElementById('automations-container');
+  container.innerHTML = '<div style="color:#888;padding:20px">Loading…</div>';
+
+  // Fetch live status from server
+  var stats = {};
+  try {
+    var status = await fetch('/api/automations/status').then(function(r){return r.json();});
+    stats = status || {};
+  } catch(e) { /* use defaults */ }
+
+  var automations = [
+    {
+      category: 'Profile & Company Page Views',
+      icon: '&#128100;',
+      items: [
+        {
+          name: 'Profile View Scraper',
+          description: 'Scrapes who viewed each user\'s LinkedIn profile. Saves to <code>profile_view_events</code>.',
+          schedule: '3x/day — 08:00, 14:00, 20:00',
+          status: 'active',
+          lastRun: stats.profileViews?.lastRun || null,
+          manualTrigger: 'POST /api/profile-views/scrape',
+        },
+        {
+          name: 'Viewer Enrichment',
+          description: 'Stage 1: parses company from viewer name/title. Stage 2: fetches <code>work_experience[0].company</code> via Unipile profile API.',
+          schedule: 'Auto-runs after every scrape cycle',
+          status: 'active',
+          manualTrigger: 'POST /api/profile-views/enrich',
+        },
+        {
+          name: 'Bulk Profile View Import',
+          description: 'One-time import of up to 100 viewers per account using paginated Voyager API (10 per call × 10 batches).',
+          schedule: 'Manual only',
+          status: 'manual',
+          manualTrigger: 'POST /api/profile-views/bulk-import  { start: 0..90 }',
+        },
+      ]
+    },
+    {
+      category: 'Posts',
+      icon: '&#128196;',
+      items: [
+        {
+          name: 'Posts Scraper',
+          description: 'Fetches latest 10 posts per account from <code>GET /api/v1/users/{pid}/posts?limit=10</code>. Upserts engagement counts on re-runs.',
+          schedule: '3x/day — 08:00, 14:00, 20:00',
+          status: 'active',
+          lastRun: stats.posts?.lastRun || null,
+          manualTrigger: 'POST /api/posts/scrape',
+        },
+        {
+          name: 'Post Import (paginated)',
+          description: 'Fetches up to 20 posts per account using cursor pagination (2 rounds × 10 posts). Stores in <code>user_posts</code> table.',
+          schedule: 'Manual only',
+          status: 'manual',
+          manualTrigger: 'POST /api/posts/fetch  { cursors: {} }',
+        },
+      ]
+    },
+    {
+      category: 'Post Engagement (Reactions & Comments)',
+      icon: '&#128293;',
+      items: [
+        {
+          name: 'Engagement Sync — Incremental',
+          description: 'Per-post: fetches 10 reactions then 10 comments. Stops immediately when hitting a known item. Continues paginating only if all 10 are new.',
+          schedule: 'Every 30 minutes',
+          status: 'active',
+          lastRun: stats.engagementSync?.lastRun || null,
+          manualTrigger: 'POST /api/posts/engagement/sync  { workspace_id?, account_id? }',
+        },
+        {
+          name: 'Full Engagement Scrape',
+          description: 'Full initial scrape of reactions + comments for all posts of one account. Used for first-time population.',
+          schedule: 'Manual only',
+          status: 'manual',
+          manualTrigger: 'POST /api/posts/engagement  { account_id, workspace_id, limit_posts: 20 }',
+        },
+      ]
+    },
+    {
+      category: 'Company Page Followers',
+      icon: '&#127968;',
+      items: [
+        {
+          name: 'Follower Scraper',
+          description: 'Scrapes company page followers via Unipile. Cross-references with contacts to mark <code>company_follow_confirmed</code>. Requires <code>company_page_urn</code> in account settings.',
+          schedule: 'Learning mode: runs periodically',
+          status: 'active',
+          lastRun: stats.followers?.lastRun || null,
+          manualTrigger: 'POST /api/followers/scrape  { account_id }',
+        },
+      ]
+    },
+    {
+      category: 'Company Follow Invitations',
+      icon: '&#128231;',
+      items: [
+        {
+          name: 'Company Follow Sender',
+          description: 'Sends follow invitations to approved contacts who haven\'t followed yet. Requires <code>follow_company: true</code> in campaign engagement settings and <code>company_page_urn</code> in account settings. Monthly limit: 250/account.',
+          schedule: 'Every 30 minutes (during working hours)',
+          status: 'active',
+          manualTrigger: 'POST /api/company-follow/run',
+        },
+      ]
+    },
+    {
+      category: 'Outbound Sequences',
+      icon: '&#128228;',
+      items: [
+        {
+          name: 'Invitation Sender',
+          description: 'Sends LinkedIn connection requests to contacts in active campaigns.',
+          schedule: 'Every 30 minutes (working hours)',
+          status: 'active',
+        },
+        {
+          name: 'Message Sender',
+          description: 'Sends follow-up messages to connected contacts.',
+          schedule: 'Every 30 minutes (working hours)',
+          status: 'active',
+        },
+        {
+          name: 'Like Sender',
+          description: 'Sends profile/post likes as engagement warmup.',
+          schedule: 'Every 30 minutes (working hours)',
+          status: 'active',
+        },
+      ]
+    },
+  ];
+
+  var statusBadge = {
+    active:  '<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:#d4edda;color:#155724;">● Active</span>',
+    manual:  '<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:#fff3cd;color:#856404;">⊙ Manual</span>',
+    paused:  '<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:#f8d7da;color:#721c24;">○ Paused</span>',
+  };
+
+  var html = '<div style="max-width:860px;margin:0 auto">';
+
+  automations.forEach(function(cat) {
+    html += '<div style="margin-bottom:32px">' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;border-bottom:1px solid #e0ddd4;padding-bottom:8px">' +
+        '<span style="font-size:18px">' + cat.icon + '</span>' +
+        '<span style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#555">' + cat.category + '</span>' +
+      '</div>';
+
+    cat.items.forEach(function(item) {
+      var badge = statusBadge[item.status] || statusBadge.active;
+      var lastRunHtml = item.lastRun
+        ? '<span style="font-size:11px;color:#888;margin-left:8px">Last run: ' + new Date(item.lastRun).toLocaleString() + '</span>'
+        : '';
+      var triggerHtml = item.manualTrigger
+        ? '<div style="margin-top:6px"><code style="font-size:11px;background:#f0ede6;padding:3px 7px;border-radius:4px;color:#555">' + item.manualTrigger + '</code></div>'
+        : '';
+
+      html +=
+        '<div style="background:#fff;border:1px solid #e8e5de;border-radius:10px;padding:16px 20px;margin-bottom:10px">' +
+          '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">' +
+            '<span style="font-size:14px;font-weight:700;color:#1a3a2a">' + item.name + '</span>' +
+            badge + lastRunHtml +
+          '</div>' +
+          '<div style="font-size:12px;color:#666;line-height:1.5;margin-bottom:6px">' + item.description + '</div>' +
+          '<div style="display:flex;align-items:center;gap:16px">' +
+            '<span style="font-size:11px;color:#888">&#128337; ' + item.schedule + '</span>' +
+          '</div>' +
+          triggerHtml +
+        '</div>';
+    });
+
+    html += '</div>';
+  });
+
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+// ── Overlap Tab ────────────────────────────────────────────────────────────
+const OV_CAMPAIGN_ID = 'd3b8ee99-d5f5-4bc5-a3d3-23e4c286ed01';
+var _overlapData     = null;
+var _overlapFiltered = [];
+var _overlapListId   = '';
+var _overlapLoaded   = false;
+
+function switchTab(tab, btn) {
+  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  document.getElementById('content').style.display              = tab === 'campaign'    ? '' : 'none';
+  document.getElementById('email-content').style.display        = tab === 'email'       ? '' : 'none';
+  document.getElementById('overlap-content').style.display      = tab === 'overlap'     ? '' : 'none';
+  document.getElementById('tab-content-automations').style.display = tab === 'automations' ? '' : 'none';
+  document.getElementById('companies-content').style.display    = tab === 'companies'   ? '' : 'none';
+  document.getElementById('date-bar').style.display             = tab === 'campaign'    ? '' : 'none';
+  document.getElementById('campaign-select').style.display      = tab === 'campaign'    ? '' : 'none';
+  if (tab === 'email'   && !_emailLoaded)   loadEmailTab();
+  if (tab === 'overlap' && !_overlapLoaded) checkSyncStatus();
+  if (tab === 'companies' && !_companiesLoaded) loadCompanies();
+}
+
+async function checkSyncStatus() {
+  try {
+    var d = await fetch('/api/instantly/sync-status/'+OV_CAMPAIGN_ID+'?workspace_id='+wsId).then(function(r){return r.json();});
+    var el = document.getElementById('sync-status');
+    if (d.count > 0) {
+      var dt = d.last_sync ? new Date(d.last_sync).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
+      el.textContent = d.count.toLocaleString() + ' leads in DB · Last sync: ' + dt;
+      loadOverlap();
+    } else if (name === 'automations') {
+      loadAutomations();
+    } else {
+      el.textContent = 'Not synced yet — click "Sync from Instantly" to start';
+      document.getElementById('overlap-empty').style.display = '';
+    }
+  } catch(e) {
+    document.getElementById('sync-status').textContent = 'Error checking sync: ' + e.message;
+  }
+}
+
+async function syncLeads() {
+  var btn = document.getElementById('sync-btn');
+  var status = document.getElementById('sync-status');
+  btn.disabled = true;
+  btn.textContent = '⏳ Syncing…';
+  status.textContent = 'Pulling all leads from Instantly…';
+  try {
+    var d = await fetch('/api/instantly/sync/'+OV_CAMPAIGN_ID+'?workspace_id='+wsId, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ workspace_id: wsId })
+    }).then(function(r){return r.json();});
+    if (d.ok) {
+      status.textContent = '✓ Synced ' + d.synced.toLocaleString() + ' leads from "' + d.campaign + '"';
+      _overlapLoaded = false;
+      loadOverlap();
+    } else {
+      status.textContent = 'Error: ' + (d.error||'unknown');
+    }
+  } catch(e) {
+    status.textContent = 'Sync failed: ' + e.message;
+  }
+  btn.disabled = false;
+  btn.innerHTML = '&#8635; Sync from Instantly';
+}
+
+async function loadOverlap() {
+  _overlapLoaded = true;
+  document.getElementById('overlap-empty').style.display = 'none';
+  document.getElementById('overlap-summary').style.display = '';
+  document.getElementById('ov-total').textContent = '…';
+  try {
+    var url = '/api/instantly/overlap?workspace_id='+wsId+'&campaign_id='+OV_CAMPAIGN_ID;
+    if (_overlapListId) url += '&list_id=' + _overlapListId;
+    var d = await fetch(url).then(function(r){return r.json();});
+    if (!d.ok) { document.getElementById('sync-status').textContent = 'Error: '+(d.error||'unknown'); return; }
+
+    _overlapData = d;
+
+    // KPIs
+    document.getElementById('ov-total').textContent      = d.total_overlap.toLocaleString();
+    document.getElementById('ov-email').textContent      = d.by_confidence.email.toLocaleString();
+    document.getElementById('ov-namedomain').textContent = d.by_confidence.name_domain.toLocaleString();
+    document.getElementById('ov-nameonly').textContent   = d.by_confidence.name_only.toLocaleString();
+    document.getElementById('ov-synced').textContent     = d.instantly_leads_synced.toLocaleString();
+    document.getElementById('ov-pct').textContent        = d.instantly_leads_synced
+      ? ((d.total_overlap / d.instantly_leads_synced)*100).toFixed(1)+'% of email leads'  : '';
+
+    // List chips
+    if (d.lists && d.lists.length) {
+      var chips = document.getElementById('list-chips');
+      chips.innerHTML = '<span class="chip active" onclick="filterByList(\'\',this)">All lists</span>';
+      d.lists.forEach(function(l) {
+        chips.innerHTML += '<span class="chip" onclick="filterByList(\''+l.id+'\',this)">'+l.name+' ('+l.contact_count+')</span>';
+      });
+      document.getElementById('list-chips-wrap').style.display = '';
+    }
+
+    if (d.total_overlap > 0) {
+      document.getElementById('overlap-table-wrap').style.display = '';
+      document.getElementById('overlap-empty').style.display = 'none';
+    } else {
+      document.getElementById('overlap-table-wrap').style.display = 'none';
+      document.getElementById('overlap-empty').style.display = '';
+    }
+
+    filterOverlap();
+  } catch(e) {
+    document.getElementById('ov-total').textContent = 'Error';
+    document.getElementById('sync-status').textContent = e.message;
+  }
+}
+
+function filterByList(listId, chip) {
+  _overlapListId = listId;
+  document.querySelectorAll('.chip').forEach(function(c){ c.classList.remove('active'); });
+  chip.classList.add('active');
+  _overlapLoaded = false;
+  loadOverlap();
+}
+
+function filterOverlap() {
+  if (!_overlapData) return;
+  var q = (document.getElementById('overlap-search').value||'').toLowerCase();
+  _overlapFiltered = !q ? _overlapData.matches : _overlapData.matches.filter(function(r) {
+    return ((r.first_name||'')+(r.last_name||'')+(r.company||'')+(r.instantly_email||'')+(r.li_email||'')).toLowerCase().includes(q);
+  });
+  document.getElementById('ov-count').textContent = _overlapFiltered.length.toLocaleString() + ' matches';
+  renderOverlapTable();
+}
+
+function renderOverlapTable() {
+  var rows = _overlapFiltered;
+  if (!rows.length) {
+    document.getElementById('overlap-tbody').innerHTML =
+      '<tr><td colspan="10" style="text-align:center;padding:30px;color:#aaa">No matches found</td></tr>';
+    return;
+  }
+
+  document.getElementById('overlap-tbody').innerHTML = rows.map(function(r, i) {
+    var name = ((r.first_name||'')+' '+(r.last_name||'')).trim() || '—';
+    var nameCell = r.li_profile_url
+      ? '<a href="'+r.li_profile_url+'" target="_blank" style="color:#1a3a2a;font-weight:600">'+name+'</a>'
+      : '<strong>'+name+'</strong>';
+    var matchBadge = r.match_type === 'email'
+      ? '<span class="badge-high">&#9989; Email</span>'
+      : r.match_type === 'name+domain'
+      ? '<span class="badge-medium">&#128269; Name+Domain</span>'
+      : '<span class="badge-low">&#128100; Name only</span>';
+    var interestBadge = r.lt_interest_status == 1
+      ? '<span style="color:#1a7a5e;font-weight:700;font-size:11px">&#9733; Interested</span>'
+      : r.lt_interest_status == -1
+      ? '<span style="color:#dc2626;font-size:11px">Not interested</span>'
+      : '';
+    var lastContact = r.last_contact
+      ? new Date(r.last_contact).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'})
+      : '—';
+    return '<tr>' +
+      '<td style="color:#aaa;font-size:11px">'+(i+1)+'</td>' +
+      '<td>'+nameCell+'<div style="font-size:10px;color:#888">'+((r.title||r.instantly_title)||'')+'</div></td>' +
+      '<td style="font-size:12px;color:#555">'+(r.company||'—')+'</td>' +
+      '<td style="font-size:11px;color:#555">'+(r.li_email||'<span style="color:#ccc">—</span>')+'</td>' +
+      '<td style="font-size:11px;color:#1a7a5e">'+(r.instantly_email||'—')+'</td>' +
+      '<td>'+matchBadge+'</td>' +
+      '<td>'+interestBadge+'</td>' +
+      '<td style="text-align:center;color:#888">'+(r.email_open_count||0)+'</td>' +
+      '<td style="text-align:center;color:#888">'+(r.email_reply_count||0)+'</td>' +
+      '<td style="color:#aaa;font-size:11px;white-space:nowrap">'+lastContact+'</td>' +
+    '</tr>';
+  }).join('');
+}
+
+// ── Init tabs for all workspaces ─────────────────────────────────────────────
+function initTabs() {
+  // Always show tab-bar (Automations tab available everywhere)
+  document.getElementById('tab-bar').style.display = '';
+
+  // Email + Overlap tabs only for specific workspace config
+  var emailBtn = document.getElementById('tab-email');
+  var overlapBtn = document.getElementById('tab-overlap');
+  if (wsId !== '4') {
+    if (emailBtn) emailBtn.style.display = 'none';
+    if (overlapBtn) overlapBtn.style.display = 'none';
+  }
+}
+
+// ── Campaign loading ──────────────────────────────────────────────────────
+async function loadCampaigns() {
+  var d = await fetch('/api/campaigns?workspace_id='+wsId).then(function(r){return r.json();});
+  var sel = document.getElementById('campaign-select');
+  (d.items||[]).forEach(function(c) {
+    sel.innerHTML += '<option value="'+c.id+'">'+c.name+'</option>';
+  });
+}
+
+function onCampaignChange() {
+  var campId = document.getElementById('campaign-select').value;
+  if (!campId) {
+    document.getElementById('content').innerHTML = '<div class="empty-state">&#128202; Select a campaign to view analytics</div>';
+    document.getElementById('total-badge').style.display='none';
+    return;
+  }
+  loadData(campId);
+}
+
+async function loadData(campId) {
+  document.getElementById('content').innerHTML = '<div class="loading-wrap"><div class="spinner"></div><p style="margin-top:12px">Loading contacts…</p></div>';
+  var d = await fetch('/api/contacts?workspace_id='+wsId+'&campaign_id='+campId+'&limit=2000').then(function(r){return r.json();});
+  allContacts = d.items || [];
+  render();
+}
+
+// ── Render ────────────────────────────────────────────────────────────────
+async function render() {
+  var range = getRange(rangeMode);
+  var c = allContacts;
+  var total = c.length;
+
+  document.getElementById('total-badge').style.display = '';
+  document.getElementById('total-badge').textContent = total.toLocaleString() + ' contacts total';
+
+  // Helper: count contacts where a timestamp is in range
+  function cnt(field) {
+    return range.from || range.to
+      ? c.filter(function(x){ return inRange(x[field], range); }).length
+      : c.filter(function(x){ return x[field]; }).length;
+  }
+
+  // For boolean fields in total mode
+  function cntBool(field) {
+    return c.filter(function(x){ return x[field]; }).length;
+  }
+
+  // For numeric sum fields, filter by a companion timestamp
+  function sum(field, tsField) {
+    if (range.from || range.to) {
+      // sum only for contacts where tsField is in range
+      return c.filter(function(x){ return inRange(x[tsField], range); })
+               .reduce(function(a,x){ return a+(x[field]||0); }, 0);
+    }
+    return c.reduce(function(a,x){ return a+(x[field]||0); }, 0);
+  }
+
+  function pct(n, d) {
+    if (!d) return '';
+    return ' (' + (n/d*100).toFixed(0) + '%)';
+  }
+
+  // ── Metrics ──
+  var invSent     = cnt('invite_sent_at');
+  var invApproved = cnt('invite_approved_at');
+  var msgSent     = cnt('msg_sent_at');
+  var replied     = cnt('msg_replied_at');
+  var positive    = cnt('positive_reply_at');
+
+  var profileViews    = cnt('last_profile_view_at');
+  var postLikes       = sum('post_likes_sent',    'likes_sent_at');
+  var commentLikes    = sum('comment_likes_sent', 'likes_sent_at');
+  var followInvite    = cnt('company_follow_invited_at');
+  var followConfirm   = cnt('company_follow_confirmed_at');
+
+  var coLikes         = sum('company_post_likes_sent',    'company_likes_sent_at')
+                      + sum('company_comment_likes_sent', 'company_likes_sent_at');
+  
+  // Company followers = total confirmed (not date-filtered since it's a running total)
+  // Fetch real follower count from company_followers table
+  var followers = 0;
+  try {
+    var tomer = (await fetch('/api/workspaces/' + wsId + '/accounts').then(function(r){return r.json();})).items
+      .find(function(a){ return a.settings && a.settings.company_page_urn; });
+    if (tomer) {
+      var stats = await fetch('/api/followers/stats?account_id=' + tomer.account_id).then(function(r){return r.json();});
+      followers = stats.total_followers || 0;
+      window._followerStats = stats;
+    }
+  } catch(e) { followers = cntBool('company_follow_confirmed'); }
+
+  var content = document.getElementById('content');
+
+  function metricCard(label, value, denominator, hint, filterKey, filterVal) {
+    var p = '';  // percentages removed
+    var clickAttr = filterKey ? ' onclick="openDrawer(\'' + label + '\',\'' + filterKey + '\',\'' + (filterVal||'true') + '\')" title="Click to see contacts"' : '';
+    var hint2 = filterKey ? '<div class="metric-click-hint">&#128269; Click to explore</div>' : '';
+    return '<div class="metric"' + clickAttr + '><div class="metric-label">'+label+'</div><div class="metric-value">'+value.toLocaleString()+'</div>'+p+hint2+'</div>';
+  }
+
+  content.innerHTML = '' +
+    // Followers hero
+    '<div class="followers-hero">' +
+      '<div class="followers-icon">&#127968;</div>' +
+      '<div class="followers-body">' +
+        '<div class="followers-label">Company Page Followers</div>' +
+        '<div class="followers-value">'+followers.toLocaleString()+'</div>' +
+        '<div class="followers-sub">' + (window._followerStats ? 'Invited: ' + window._followerStats.total_invited + ' · Confirmed: ' + window._followerStats.total_confirmed + ' · Rate: ' + window._followerStats.conversion_rate : 'Company page followers') + '</div>' +
+      '</div>' +
+    '</div>' +
+
+    // Outbound
+    '<div class="section">' +
+      '<div class="section-header"><span class="section-icon">&#128228;</span><span class="section-title">Outbound</span></div>' +
+      '<div class="section-body">' +
+        metricCard('Invitations Sent',     invSent,     total,       'contacts',    'invite_sent',    'true') +
+        metricCard('Invitations Approved', invApproved, invSent,     'sent',        'invite_approved','true') +
+        metricCard('Messages Sent',        msgSent,     invApproved, 'connected',   'msg_sent',       'true') +
+        metricCard('Replies',              replied,     msgSent,     'sent',        'msg_replied',    'true') +
+        metricCard('Positive Replies',     positive,    replied,     'replies',     'positive_reply', 'true') +
+      '</div>' +
+    '</div>' +
+
+    // Engagement Activities
+    '<div class="section">' +
+      '<div class="section-header"><span class="section-icon">&#128293;</span><span class="section-title">Engagement Activities</span></div>' +
+      '<div class="section-body">' +
+        metricCard('Profile Views',             profileViews, total, 'contacts',   'profile_viewed', 'true') +
+        metricCard('Post Likes',                postLikes,    0, '',             'post_liked',     'true') +
+        metricCard('Comment Likes',             commentLikes, 0, '',             'comment_liked',  'true') +
+        metricCard('Company Follow Invited',    followInvite,   invApproved||total, 'connected',    'company_follow_invited', 'true') +
+        metricCard('Company Follow Confirmed',  followConfirm,  followInvite, 'invited',         'company_follow_confirmed', 'true') +
+      '</div>' +
+    '</div>' +
+
+    // Company Engagement Activities
+    '<div class="section">' +
+      '<div class="section-header"><span class="section-icon">&#127968;</span><span class="section-title">Company Engagement Activities</span></div>' +
+      '<div class="section-body">' +
+        '<div class="metric"><div class="metric-label">Co. Post + Comment Likes</div><div class="metric-value">'+coLikes.toLocaleString()+'</div><div class="metric-total">Likes sent from company page</div></div>' +
+        metricCard('Co. Post Likes',    sum('company_post_likes_sent','company_likes_sent_at'), 0, '', 'co_post_liked', 'true') +
+        metricCard('Co. Comment Likes', sum('company_comment_likes_sent','company_likes_sent_at'), 0, '', 'co_comment_liked', 'true') +
+      '</div>' +
+    '</div>';
+}
+
+// ── Share modal ───────────────────────────────────────────────────────────
+async function openShareModal() {
+  const campId = document.getElementById('campaign-select').value;
+  if (!campId) { alert('Please select a campaign first.'); return; }
+  
+  document.getElementById('share-url-input').value = 'Generating…';
+  document.getElementById('copy-btn').textContent = 'Copy link';
+  document.getElementById('copy-btn').classList.remove('copied');
+  document.getElementById('share-modal').classList.add('open');
+  
+  try {
+    const res = await fetch('/api/analytics/share-token', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ workspace_id: wsId, campaign_id: campId })
+    }).then(function(r){ return r.json(); });
+    
+    if (res.token) {
+      const url = window.location.origin + '/client-analytics.html?token=' + res.token;
+      document.getElementById('share-url-input').value = url;
+    } else {
+      document.getElementById('share-url-input').value = 'Error: ' + (res.error || 'Unknown error');
+    }
+  } catch(e) {
+    document.getElementById('share-url-input').value = 'Error generating link';
+  }
+}
+
+function closeShareModal() {
+  document.getElementById('share-modal').classList.remove('open');
+}
+
+function copyShareUrl() {
+  const input = document.getElementById('share-url-input');
+  input.select();
+  document.execCommand('copy');
+  const btn = document.getElementById('copy-btn');
+  btn.textContent = '✓ Copied!';
+  btn.classList.add('copied');
+  setTimeout(function(){ btn.textContent = 'Copy link'; btn.classList.remove('copied'); }, 2500);
+}
+
+// ── Drill-down drawer ─────────────────────────────────────────────────────
+var _drawerContacts = [];
+var _drawerRange    = null;
+
+function fmtDate(d) {
+  if (!d) return '';
+  var dt = new Date(d);
+  return dt.toLocaleDateString('en-GB', {day:'2-digit', month:'short', year:'2-digit'});
+}
+
+// Map filterKey → which contacts belong + columns to show
+function getDrawerContacts(filterKey, range) {
+  var c = allContacts;
+  switch(filterKey) {
+    case 'invite_sent':    return c.filter(function(x){ return range.from||range.to ? inRange(x.invite_sent_at, range) : x.invite_sent_at; });
+    case 'invite_approved':return c.filter(function(x){ return range.from||range.to ? inRange(x.invite_approved_at, range) : x.invite_approved; });
+    case 'msg_sent':       return c.filter(function(x){ return range.from||range.to ? inRange(x.msg_sent_at, range) : x.msg_sent_at; });
+    case 'msg_replied':    return c.filter(function(x){ return range.from||range.to ? inRange(x.msg_replied_at, range) : x.msg_replied; });
+    case 'positive_reply': return c.filter(function(x){ return range.from||range.to ? inRange(x.positive_reply_at, range) : x.positive_reply; });
+    case 'profile_viewed': return c.filter(function(x){ return range.from||range.to ? inRange(x.last_profile_view_at, range) : x.last_profile_view_at; });
+    case 'post_liked':     return c.filter(function(x){ return range.from||range.to ? inRange(x.likes_sent_at, range) : x.post_likes_sent > 0; });
+    case 'comment_liked':  return c.filter(function(x){ return range.from||range.to ? inRange(x.likes_sent_at, range) : x.comment_likes_sent > 0; });
+    case 'company_follow_invited':   return c.filter(function(x){ return range.from||range.to ? inRange(x.company_follow_invited_at, range) : x.company_follow_invited; });
+    case 'company_follow_confirmed': return c.filter(function(x){ return range.from||range.to ? inRange(x.company_follow_confirmed_at, range) : x.company_follow_confirmed; });
+    case 'co_post_liked':    return c.filter(function(x){ return range.from||range.to ? inRange(x.company_likes_sent_at, range) : x.company_post_likes_sent > 0; });
+    case 'co_comment_liked': return c.filter(function(x){ return range.from||range.to ? inRange(x.company_likes_sent_at, range) : x.company_comment_likes_sent > 0; });
+    default: return c;
+  }
+}
+
+function getDateCol(filterKey) {
+  var map = {
+    'invite_sent':'invite_sent_at','invite_approved':'invite_approved_at',
+    'msg_sent':'msg_sent_at','msg_replied':'msg_replied_at','positive_reply':'positive_reply_at',
+    'profile_viewed':'last_profile_view_at','post_liked':'likes_sent_at',
+    'comment_liked':'likes_sent_at','company_follow_invited':'company_follow_invited_at',
+    'company_follow_confirmed':'company_follow_confirmed_at',
+    'co_post_liked':'company_likes_sent_at','co_comment_liked':'company_likes_sent_at'
+  };
+  return map[filterKey] || null;
+}
+
+function openDrawer(label, filterKey, filterVal) {
+  var range = getRange(rangeMode);
+  _drawerRange   = range;
+  _drawerContacts = getDrawerContacts(filterKey, range);
+  window._drawerFilterKey = filterKey;
+
+  document.getElementById('drawer-title').textContent = label;
+  document.getElementById('drawer-subtitle').textContent = _drawerContacts.length + ' contacts';
+  document.getElementById('drawer-search').value = '';
+  document.getElementById('drawer-count').textContent = _drawerContacts.length + ' contacts';
+
+  renderDrawerTable(_drawerContacts, filterKey);
+
+  document.getElementById('drawer-overlay').classList.add('open');
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('drawer-search').focus();
+}
+
+function closeDrawer() {
+  document.getElementById('drawer-overlay').classList.remove('open');
+  document.getElementById('drawer').classList.remove('open');
+}
+
+function renderDrawerTable(contacts, filterKey) {
+  var dateCol = getDateCol(filterKey);
+  var thead   = document.getElementById('drawer-thead');
+  var tbody   = document.getElementById('drawer-tbody');
+  var empty   = document.getElementById('drawer-empty');
+
+  thead.innerHTML = '<tr><th>Name</th><th>Company</th><th>Title</th>' + (dateCol ? '<th>Date</th>' : '') + '<th>LinkedIn</th></tr>';
+
+  if (!contacts.length) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  tbody.innerHTML = contacts.map(function(c) {
+    var name  = ((c.first_name||'') + ' ' + (c.last_name||'')).trim() || '—';
+    var nameCell = c.li_profile_url
+      ? '<a href="' + c.li_profile_url + '" target="_blank">' + name + '</a>'
+      : name;
+    var dateVal = dateCol ? fmtDate(c[dateCol]) : '';
+    return '<tr>' +
+      '<td class="td-name">' + nameCell + '</td>' +
+      '<td><div>' + (c.company||'—') + '</div></td>' +
+      '<td><div class="td-sub">' + (c.title||'—') + '</div></td>' +
+      (dateCol ? '<td class="td-date">' + dateVal + '</td>' : '') +
+      '<td>' + (c.li_profile_url ? '<a href="' + c.li_profile_url + '" target="_blank" style="color:#52b788;font-size:11px">View &#8599;</a>' : '') + '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+function filterDrawer() {
+  var q = (document.getElementById('drawer-search').value||'').toLowerCase();
+  var filtered = !q ? _drawerContacts : _drawerContacts.filter(function(c) {
+    return ((c.first_name||'')+(c.last_name||'')+(c.company||'')+(c.title||'')).toLowerCase().includes(q);
+  });
+  document.getElementById('drawer-count').textContent = filtered.length + ' contacts' + (q ? ' (filtered)' : '');
+  document.getElementById('drawer-subtitle').textContent = filtered.length + ' contacts';
+  renderDrawerTable(filtered, window._drawerFilterKey || '');
+}
+
+// Close drawer on Escape
+document.addEventListener('keydown', function(e) { if(e.key==='Escape') closeDrawer(); });
+
+// Init
+initTabs();
+loadCampaigns();
+loadInboundSignals();
+
+// ── Inbound Signals ─────────────────────────────────────────────────────────
+
+var _inboundRaw = {};          // cached full API response
+var _inboundAccounts = [];     // [{ id, name, shortName }]
+var _activeViewTab = null;     // which tab is open in views row
+
+// ── Load all data ───────────────────────────────────────────────────────────
+async function loadInboundSignals() {
+  try {
+    var range = getRange(rangeMode);
+    var params = new URLSearchParams({ workspace_id: wsId, limit: 200 });
+    if (range.from) params.set('from', range.from.toISOString().slice(0,10));
+    if (range.to)   params.set('to',   range.to.toISOString().slice(0,10));
+
+    var d = await fetch('/api/profile-views?' + params.toString()).then(function(r){ return r.json(); });
+    _inboundRaw = d;
+
+    // Load accounts if not cached
+    if (!_inboundAccounts.length) {
+      var accts = await fetch('/api/workspaces/' + wsId + '/accounts').then(function(r){ return r.json(); });
+      _inboundAccounts = (accts.items || []).map(function(a) {
+        var name = a.display_name || a.email || a.account_id;
+        return { id: a.account_id, name: name, shortName: name.split(' ')[0] };
+      });
+    }
+
+    renderViewsRow();
+    // Load engagement data (reactions + comments)
+    try {
+      var eng = await fetch('/api/posts/engagement-stats?workspace_id=' + wsId).then(function(r){ return r.json(); });
+      renderEngagementRow('likes',    eng.reactions, '&#128077;');
+      renderEngagementRow('comments', eng.comments,  '&#128172;');
+    } catch(e) {
+      renderStubRow('likes',    '&#128077; Post Likes');
+      renderStubRow('comments', '&#128172; Comments');
+    }
+
+    // Update timestamp
+    var ts = document.getElementById('inbound-scrape-btn');
+    if (ts) ts.title = 'Last loaded: ' + new Date().toLocaleTimeString();
+  } catch(e) {
+    console.error('[InboundSignals]', e);
+  }
+}
+
+// ── Views row ───────────────────────────────────────────────────────────────
+function renderViewsRow() {
+  var d = _inboundRaw;
+  var vba = d.viewersByAccount || {};
+  var cba = d.coViewersByAccount || {};
+  var stats = d.stats || {};
+
+  // Compute totals per account (personal profile views)
+  var pvTotals = {};
+  _inboundAccounts.forEach(function(acc) {
+    pvTotals[acc.id] = ((vba[acc.id] || {}).people || []).reduce(function(s, p) { return s + p.count; }, 0);
+  });
+
+  // Company page total
+  var coTotal = 0;
+  var coAcctIds = Object.keys(cba);
+  coAcctIds.forEach(function(id) {
+    coTotal += (cba[id]?.people || []).reduce(function(s, p) { return s + p.count; }, 0);
+  });
+  // Also from companyViewsByAccount if available
+  if (coTotal === 0) {
+    Object.values(d.companyViewsByAccount || {}).forEach(function(v) { coTotal += (v.total_views || 0); });
+  }
+
+  var grandTotal = parseInt(stats.total_views || 0) + coTotal;
+
+  // Build tab HTML
+  var tabs = '';
+
+  // Total tab (leftmost)
+  tabs += '<div class="inbound-tab total" data-tab="total">' +
+    '<span class="inbound-tab-count">' + grandTotal + '</span>' +
+    '<span class="inbound-tab-label">Total</span>' +
+  '</div>';
+  tabs += '<div class="inbound-tab-sep"></div>';
+
+  // Per-user tabs
+  _inboundAccounts.forEach(function(acc) {
+    var cnt = pvTotals[acc.id] || 0;
+    tabs += '<div class="inbound-tab" data-tab="pv-' + acc.id + '" >' +
+      '<span class="inbound-tab-badge live">&#9679;</span>' +
+      '<span class="inbound-tab-count">' + cnt + '</span>' +
+      '<span class="inbound-tab-label">&#128100; ' + acc.shortName + '</span>' +
+    '</div>';
+  });
+
+  // Company page tab (rightmost, separated)
+  if (_inboundAccounts.length > 0) tabs += '<div class="inbound-tab-sep"></div>';
+  tabs += '<div class="inbound-tab company-tab" data-tab="co"">' +
+    '<span class="inbound-tab-badge live">&#9679;</span>' +
+    '<span class="inbound-tab-count">' + coTotal + '</span>' +
+    '<span class="inbound-tab-label">&#127968; Company</span>' +
+  '</div>';
+
+  document.getElementById('inbound-tabs-views').innerHTML = tabs;
+  // Add click listeners (avoids quote escaping issues)
+  document.querySelectorAll('#inbound-tabs-views .inbound-tab').forEach(function(el) {
+    el.addEventListener('click', function() { selectViewTab(el.dataset.tab); });
+  });
+
+  // Restore active tab if any
+  if (_activeViewTab) {
+    var el = document.querySelector('[data-tab="' + _activeViewTab + '"]');
+    if (el) el.classList.add('active');
+  }
+}
+
+function selectViewTab(tabKey) {
+  // Toggle
+  if (_activeViewTab === tabKey) {
+    _activeViewTab = null;
+    document.querySelectorAll('.inbound-tab').forEach(function(el) { el.classList.remove('active'); });
+    document.getElementById('inbound-detail-views').classList.remove('open');
+    return;
+  }
+  _activeViewTab = tabKey;
+
+  // Update active state
+  document.querySelectorAll('#inbound-tabs-views .inbound-tab').forEach(function(el) {
+    el.classList.toggle('active', el.dataset.tab === tabKey);
+  });
+
+  // Build detail data
+  var d = _inboundRaw;
+  var vba = d.viewersByAccount || {};
+  var cba = d.coViewersByAccount || {};
+
+  var people    = [];  // [{ name, company, liUrl, count, isAnon, contactId }]
+  var companies = {};  // name → count
+
+  if (tabKey === 'total') {
+    // Aggregate all personal profile views
+    _inboundAccounts.forEach(function(acc) {
+      ((vba[acc.id] || {}).people || []).forEach(function(p) {
+        var existing = people.find(function(x) { return x.name === p.name && x.company === p.company; });
+        if (existing) { existing.count += p.count; }
+        else           { people.push(Object.assign({}, p)); }
+        if (p.company) companies[p.company] = (companies[p.company] || 0) + p.count;
+      });
+    });
+    // Also aggregate company page visitors
+    Object.values(cba).forEach(function(accData) {
+      (accData.people || []).forEach(function(p) {
+        var name = p.role || p.name || 'Anonymous';
+        var co   = p.company || '';
+        var existing = people.find(function(x) { return x.name === name && x.company === co; });
+        if (existing) { existing.count += p.count; }
+        else           { people.push({ name: name, company: co, liUrl: p.liUrl, count: p.count, isAnon: p.isAnon }); }
+        if (co) companies[co] = (companies[co] || 0) + p.count;
+      });
+    });
+  } else if (tabKey === 'co') {
+    // Company page only
+    Object.values(cba).forEach(function(accData) {
+      (accData.people || []).forEach(function(p) {
+        var name = p.role || p.name || 'Anonymous';
+        var co   = p.company || '';
+        people.push({ name: name, company: co, liUrl: p.liUrl, count: p.count, isAnon: p.isAnon });
+        if (co) companies[co] = (companies[co] || 0) + p.count;
+      });
+    });
+  } else if (tabKey.startsWith('pv-')) {
+    // Specific user personal profile
+    var accId = tabKey.substring(3);
+    people    = ((vba[accId] || {}).people || []).slice();
+    companies = Object.assign({}, vba[accId]?.companies || {});
+  }
+
+  // Sort
+  people.sort(function(a, b) { return b.count - a.count; });
+  var companyList = Object.entries(companies).sort(function(a, b) { return b[1] - a[1]; });
+
+  // Render people
+  var peopleHtml = people.length ? people.map(function(p) {
+    var nameHtml = p.isAnon
+      ? '<span class="inbound-anon-tag">' + escInbound(p.name || 'Anonymous') + '</span>'
+      : (p.liUrl
+          ? '<a href="' + p.liUrl + '" target="_blank">' + escInbound(p.name) + '</a>'
+          : escInbound(p.name));
+    var isNew = !p.contactId && !p.isAnon
+      ? ' <span class="inbound-new-tag">NEW</span>' : '';
+    var sub   = p.company ? '<div class="inbound-detail-sub">' + escInbound(p.company) + '</div>' : '';
+    var cnt   = p.count;
+    return '<li class="inbound-detail-item">' +
+      '<div class="inbound-detail-name">' + nameHtml + isNew + sub + '</div>' +
+      '<span class="inbound-detail-count' + (cnt > 1 ? ' multi' : '') + '">' + cnt + 'x</span>' +
+    '</li>';
+  }).join('') : '<li class="inbound-empty-detail">No identified visitors</li>';
+
+  var companiesHtml = companyList.length ? companyList.map(function(pair) {
+    return '<li class="inbound-detail-item">' +
+      '<div class="inbound-detail-name">' + escInbound(pair[0]) + '</div>' +
+      '<span class="inbound-detail-count' + (pair[1] > 1 ? ' multi' : '') + '">' + pair[1] + 'x</span>' +
+    '</li>';
+  }).join('') : '<li class="inbound-empty-detail">No company data</li>';
+
+  document.getElementById('inbound-people-views').innerHTML   = peopleHtml;
+  document.getElementById('inbound-companies-views').innerHTML = companiesHtml;
+  document.getElementById('inbound-detail-views').classList.add('open');
+}
+
+// ── Engagement rows (Post Likes, Comments) ──────────────────────────────────
+var _engagementDetailOpen = {}; // track open panel per type
+
+function renderEngagementRow(type, data, icon) {
+  var container = document.getElementById('inbound-tabs-' + type);
+  if (!container) return;
+  if (!data) { renderStubRow(type, icon); return; }
+
+  var total = data.total || 0;
+  var byAcc = data.byAccount || {};
+  var opened = _engagementDetailOpen[type] || null;
+
+  var html = '<div class="inbound-tab total ' + (opened === 'total' ? 'active' : '') + '" ' +
+    'data-eng-type="' + type + '" data-eng-acc="total" style="cursor:pointer">' +
+    '<span class="inbound-tab-count">' + total + '</span>' +
+    '<span class="inbound-tab-label">Total</span></div>';
+
+  _inboundAccounts.forEach(function(acc) {
+    var acData = byAcc[acc.id] || {};
+    var cnt = acData.total || 0;
+    var isOpen = opened === acc.id;
+    html += '<div class="inbound-tab ' + (isOpen ? 'active' : '') + '" ' +
+      'data-eng-type="' + type + '" data-eng-acc="' + acc.id + '" style="cursor:pointer">' +
+      '<span class="inbound-tab-count">' + cnt + '</span>' +
+      '<span class="inbound-tab-label">&#128100; ' + escInbound(acc.shortName) + '</span></div>';
+  });
+
+  // Company tab — aggregate all
+  var allCoObj = data.allCompanies || {};
+  var coTotal = Object.values(allCoObj).reduce(function(s,v){ return s+v; }, 0);
+  html += '<div class="inbound-tab-sep"></div>' +
+    '<div class="inbound-tab company-tab ' + (opened === 'company' ? 'active' : '') + '" ' +
+    'data-eng-type="' + type + '" data-eng-acc="company" style="cursor:pointer">' +
+    '<span class="inbound-tab-count">' + coTotal + '</span>' +
+    '<span class="inbound-tab-label">&#127968; Company</span></div>';
+
+  container.innerHTML = html;
+
+  // Event delegation for clicks
+  container.onclick = function(e) {
+    var tab = e.target.closest('[data-eng-acc]');
+    if (!tab) return;
+    var t   = tab.dataset.engType;
+    var acc = tab.dataset.engAcc;
+    if (_engagementDetailOpen[t] === acc) {
+      // Toggle close
+      _engagementDetailOpen[t] = null;
+      document.getElementById('inbound-detail-' + t).classList.remove('open');
+      container.querySelectorAll('.inbound-tab').forEach(function(el){ el.classList.remove('active'); });
+    } else {
+      _engagementDetailOpen[t] = acc;
+      container.querySelectorAll('.inbound-tab').forEach(function(el){ el.classList.remove('active'); });
+      tab.classList.add('active');
+      openEngagementDetail(t, acc, data);
+    }
+  };
+
+  // Re-open if was open
+  if (opened) openEngagementDetail(type, opened, data);
+}
+
+function openEngagementDetail(type, accId, data) {
+  var panelEl = document.getElementById('inbound-detail-' + type);
+  if (!panelEl) return;
+
+  var people, companies;
+  if (accId === 'total') {
+    people    = data.allPeople    || [];
+    companies = data.allCompanies || {};
+  } else if (accId === 'company') {
+    people    = [];
+    companies = data.allCompanies || {};
+  } else {
+    var acData = (data.byAccount || {})[accId] || {};
+    people    = acData.people    || [];
+    companies = acData.companies || {};
+  }
+
+  // People list
+  var peopleHtml = people.length ? people.slice(0,50).map(function(p) {
+    var nameHtml = p.url
+      ? '<a href="' + escInbound(p.url) + '" target="_blank" rel="noopener">' + escInbound(p.name) + '</a>'
+      : escInbound(p.name);
+    var sub = p.title ? '<div class="inbound-detail-sub">' + escInbound(p.title.substring(0,60)) + '</div>' : '';
+    var cnt = p.count || 1;
+    var badge = cnt > 2 ? ' multi' : (cnt > 1 ? ' multi' : '');
+    return '<li class="inbound-detail-item">' +
+      '<div class="inbound-detail-name">' + nameHtml + sub + '</div>' +
+      '<span class="inbound-detail-count' + badge + '">' + cnt + 'x</span>' +
+    '</li>';
+  }).join('') : '<li class="inbound-empty-detail">No data</li>';
+
+  // Companies list
+  var coPairs = Object.entries(companies).sort(function(a,b){ return b[1]-a[1]; }).slice(0,30);
+  var coHtml = coPairs.length ? coPairs.map(function(pair) {
+    return '<li class="inbound-detail-item">' +
+      '<div class="inbound-detail-name">' + escInbound(pair[0]) + '</div>' +
+      '<span class="inbound-detail-count' + (pair[1]>1?' multi':'') + '">' + pair[1] + 'x</span>' +
+    '</li>';
+  }).join('') : '<li class="inbound-empty-detail">No company data</li>';
+
+  document.getElementById('inbound-people-'    + type).innerHTML   = peopleHtml;
+  document.getElementById('inbound-companies-' + type).innerHTML   = coHtml;
+  panelEl.classList.add('open');
+}
+
+// ── Stub rows (Post Likes, Comments) ────────────────────────────────────────
+function renderStubRow(type, label) {
+  var container = document.getElementById('inbound-tabs-' + type);
+  if (!container) return;
+  container.innerHTML =
+    '<div class="inbound-tab total" style="cursor:default;opacity:.5">' +
+      '<span class="inbound-tab-count">—</span>' +
+      '<span class="inbound-tab-label">Total</span>' +
+    '</div>' +
+    _inboundAccounts.map(function(acc) {
+      return '<div class="inbound-tab" style="cursor:default;opacity:.5">' +
+        '<span class="inbound-tab-badge soon">Soon</span>' +
+        '<span class="inbound-tab-count">—</span>' +
+        '<span class="inbound-tab-label">&#128100; ' + acc.shortName + '</span>' +
+      '</div>';
+    }).join('') +
+    '<div class="inbound-tab-sep"></div>' +
+    '<div class="inbound-tab company-tab" style="cursor:default;opacity:.5">' +
+      '<span class="inbound-tab-badge soon">Soon</span>' +
+      '<span class="inbound-tab-count">—</span>' +
+      '<span class="inbound-tab-label">&#127968; Company</span>' +
+    '</div>';
+}
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
+function escInbound(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+async function triggerDeepEnrich() {
+  var btn = document.getElementById('inbound-deep-enrich-btn');
+  btn.classList.add('loading');
+  btn.innerHTML = '&#8987; Enriching…';
+  btn.disabled = true;
+  var done = 0;
+
+  // Run in batches of 20 until nothing left
+  while (true) {
+    try {
+      var res = await fetch('/api/inbound/enrich', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ workspace_id: parseInt(wsId), limit: 20 })
+      }).then(function(r){ return r.json(); });
+
+      done += (res.enriched || 0);
+      btn.innerHTML = '&#8987; ' + done + ' enriched…';
+
+      // Stop when nothing more to enrich
+      if (!res.toEnrich || res.toEnrich === 0 || res.enriched === 0) break;
+    } catch(e) { break; }
+
+    // Small delay between batches
+    await new Promise(function(r){ setTimeout(r, 1000); });
+  }
+
+  btn.classList.remove('loading');
+  btn.disabled = false;
+  btn.innerHTML = '&#10024; Deep Enrich';
+  btn.title = 'Done: ' + done + ' profiles enriched and added to Inbound Signals list';
+
+  // Reload signals
+  _inboundAccounts = [];
+  await loadInboundSignals();
+}
+
+async function triggerEnrich() {
+  var btn = document.getElementById('inbound-enrich-btn');
+  btn.classList.add('loading');
+  btn.innerHTML = '&#8987; Enriching…';
+  try {
+    var res = await fetch('/api/profile-views/enrich', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ workspace_id: parseInt(wsId), limit: 50 })
+    }).then(function(r){ return r.json(); });
+
+    var msg = 'Enriched ' + (res.enriched||0) + '/' + (res.total||0) + ' viewers';
+    if (res.fromTitle > 0) msg += ' (' + res.fromTitle + ' from title';
+    if (res.fromApi   > 0) msg += ', ' + res.fromApi   + ' from API';
+    if (res.fromTitle > 0 || res.fromApi > 0) msg += ')';
+    console.log('[Enrich]', msg);
+
+    // Reload signals to show enriched companies
+    _inboundAccounts = []; // force accounts reload
+    await loadInboundSignals();
+    btn.classList.remove('loading');
+    btn.innerHTML = '&#128269; Enrich';
+    btn.title = msg;
+  } catch(e) {
+    btn.classList.remove('loading');
+    btn.innerHTML = '&#128269; Enrich';
+    console.error('[Enrich]', e);
+  }
+}
+
+async function triggerScrape() {
+  var btn = document.getElementById('inbound-scrape-btn');
+  btn.classList.add('loading');
+  btn.innerHTML = '&#8987; Scraping…';
+  try {
+    await fetch('/api/profile-views/scrape', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ workspace_id: parseInt(wsId) })
+    });
+    setTimeout(function() {
+      _activeViewTab = null;
+      loadInboundSignals();
+      btn.classList.remove('loading');
+      btn.innerHTML = '&#8635; Refresh';
+    }, 4000);
+  } catch(e) {
+    btn.classList.remove('loading');
+    btn.innerHTML = '&#8635; Refresh';
+  }
+}
+
+// Reload when date range changes
+var _origSetRange = setRange;
+setRange = function(mode, el) {
+  _origSetRange(mode, el);
+  _activeViewTab = null;
+  loadInboundSignals();
+};
+</script>
+
+<!-- Drill-down drawer -->
+<div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <div>
+      <div class="drawer-title" id="drawer-title">Contacts</div>
+      <div class="drawer-subtitle" id="drawer-subtitle"></div>
+    </div>
+    <button class="drawer-close" onclick="closeDrawer()">&#x2715;</button>
+  </div>
+  <div class="drawer-search">
+    <input type="text" id="drawer-search" placeholder="Search name or company…" oninput="filterDrawer()">
+  </div>
+  <div class="drawer-body">
+    <table class="drawer-table">
+      <thead id="drawer-thead"></thead>
+      <tbody id="drawer-tbody"></tbody>
+    </table>
+    <div class="drawer-empty" id="drawer-empty" style="display:none">No contacts found</div>
+  </div>
+  <div class="drawer-footer">
+    <span id="drawer-count"></span>
+  </div>
+</div>
+
+</body>
+</html>

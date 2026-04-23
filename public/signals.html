@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="stylesheet" href="/ds.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Signals</title>
+<link rel="stylesheet" href="/elvia.css">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-size: 14px; font-family: var(--font); }
+.header { padding: 20px 24px 0; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.header-left h1 { font-size: 20px; font-weight: 700; color: #0f172a; letter-spacing: -.3px; }
+.header-left p  { font-size: 12px; color: #94a3b8; margin-top: 3px; }
+.header-right   { display: flex; gap: 8px; align-items: center; }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px;
+       font-size: 13px; font-weight: 500; cursor: pointer; border: none; transition: all .15s; line-height: 1; }
+.btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.btn-primary { background: #1D9E75; color: #fff; }
+.btn-primary:hover:not(:disabled) { background: #188a65; }
+.btn-ghost { background: #fff; color: #475569; border: 1px solid #e2e8f0; }
+.btn-ghost:hover:not(:disabled) { background: var(--c-bg); border-color: #cbd5e1; }
+.stats-strip { display: flex; gap: 8px; padding: 16px 24px 0; }
+.stat { background: #fff; border: 1px solid #e2e8f0; border-radius: var(--r-lg); padding: 10px 16px; display: flex; align-items: center; gap: 10px; }
+.stat-icon { font-size: 18px; }
+.stat-num  { font-size: 22px; font-weight: 700; color: #0f172a; line-height: 1; }
+.stat-lbl  { font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: .4px; }
+.content { padding: 16px 24px 32px; }
+.cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 12px; }
+.opp-card { background: #fff; border: 1px solid #e2e8f0; border-radius: var(--r-lg); padding: 16px;
+            display: flex; flex-direction: column; gap: 10px; transition: border-color .15s, box-shadow .15s;
+            animation: fadeIn .25s ease; }
+.opp-card:hover { border-color: #cbd5e1; box-shadow: 0 2px 12px rgba(0,0,0,.06); }
+@keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+.opp-card.priority-1,.opp-card.priority-2 { border-left: 4px solid #EF4444; }
+.opp-card.priority-3,.opp-card.priority-4 { border-left: 4px solid #F59E0B; }
+.opp-card.priority-5,.opp-card.priority-6 { border-left: 4px solid #3B82F6; }
+.opp-card.priority-7,.opp-card.priority-8,.opp-card.priority-9,.opp-card.priority-10 { border-left: 4px solid #10B981; }
+.card-header { display: flex; align-items: flex-start; gap: 10px; }
+.card-icon { width: 38px; height: 38px; border-radius: var(--r-lg); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+.card-meta { flex: 1; min-width: 0; }
+.card-type-badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+.card-title { font-size: 14px; font-weight: 700; color: #0f172a; line-height: 1.3; }
+.card-entity { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.entity-name { font-size: 13px; font-weight: 600; color: #1D9E75; }
+.entity-name a { color: #1D9E75; text-decoration: none; }
+.entity-name a:hover { text-decoration: underline; }
+.entity-co { font-size: 12px; color: #94a3b8; }
+.card-desc { font-size: 12px; color: #475569; line-height: 1.5; }
+.card-action { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 8px 12px; display: flex; align-items: center; gap: 8px; }
+.card-action-text { font-size: 12px; font-weight: 600; color: #065f46; flex: 1; }
+.card-footer { display: flex; gap: 6px; justify-content: flex-end; padding-top: 4px; border-top: 1px solid #f1f5f9; }
+.btn-send-cta { background: #1D9E75; color: #fff; border: none; font-size: 12px; padding: 6px 12px; border-radius: 7px; cursor: pointer; font-weight: 600; white-space: nowrap; transition: background .15s; flex-shrink: 0; }
+.btn-send-cta:hover { background: #188a65; }
+.btn-done    { background: #f0fdf4; color: #065f46; border: 1px solid #bbf7d0; font-size: 12px; padding: 5px 12px; border-radius: 7px; cursor: pointer; font-weight: 600; transition: background .15s; }
+.btn-done:hover { background: #dcfce7; }
+.btn-dismiss { background: #fff; color: #94a3b8; border: 1px solid #e2e8f0; font-size: 12px; padding: 5px 12px; border-radius: 7px; cursor: pointer; transition: all .15s; }
+.btn-dismiss:hover { background: #fef2f2; color: #ef4444; border-color: #fecaca; }
+.empty-state { text-align: center; padding: 64px 24px; color: #94a3b8; }
+.empty-state-icon { font-size: 48px; margin-bottom: 16px; }
+.empty-state h2 { font-size: 18px; font-weight: 600; color: #475569; margin-bottom: 8px; }
+.empty-state p  { font-size: 14px; max-width: 420px; margin: 0 auto; line-height: 1.6; }
+.gen-status { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--r-lg); padding: 14px 18px; margin-bottom: 16px; display: flex; align-items: center; gap: 12px; }
+.gen-status-text { font-size: 13px; color: #065f46; font-weight: 500; }
+.last-gen { font-size: 11px; color: #94a3b8; }
+.skeleton { background: linear-gradient(90deg,#f1f5f9 25%,#e2e8f0 50%,#f1f5f9 75%); background-size:200% 100%; animation:shimmer 1.4s infinite; border-radius:6px; }
+@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+.opp-card .card-avatar {
+  width: 44px; height: 44px; border-radius: 50%; object-fit: cover;
+  flex-shrink: 0; border: 2px solid #e2e8f0;
+}
+.opp-card .card-initials {
+  width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; font-weight: 700; color: #fff; border: 2px solid rgba(255,255,255,.3);
+}
+.co-logo { width: 36px; height: 36px; border-radius: 8px; object-fit: contain;
+           background: #f1f5f9; padding: 3px; flex-shrink: 0; border: 1px solid #e2e8f0; }
+/* Message panel */
+#msg-panel-overlay {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45);
+  z-index: 9999; align-items: flex-end; justify-content: flex-end;
+  padding: 24px;
+}
+#msg-panel-overlay.open { display: flex; animation: slideUp .2s ease; }
+@keyframes slideUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+#msg-panel {
+  background: #fff; border-radius: 16px; width: 480px; max-width: 95vw;
+  box-shadow: 0 20px 60px rgba(0,0,0,.2); display: flex; flex-direction: column; overflow: hidden;
+}
+.msg-panel-head {
+  padding: 16px 20px; border-bottom: 1px solid #f1f5f9;
+  display: flex; align-items: center; gap: 12px;
+}
+.msg-panel-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.msg-panel-avatar-init {
+  width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; font-size: 14px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; color: #fff;
+}
+.msg-panel-to { flex: 1; min-width: 0; }
+.msg-panel-to strong { font-size: 14px; font-weight: 700; color: #0f172a; display: block; }
+.msg-panel-to span   { font-size: 11px; color: #94a3b8; }
+.msg-panel-close { background: none; border: none; font-size: 20px; color: #94a3b8; cursor: pointer; padding: 0; }
+.msg-panel-close:hover { color: #475569; }
+.msg-panel-body { padding: 16px 20px; flex: 1; }
+#msg-textarea {
+  width: 100%; min-height: 120px; border: 1px solid #e2e8f0; border-radius: var(--r-lg);
+  padding: 12px 14px; font-size: 13px; font-family: inherit; resize: vertical;
+  outline: none; color: #1e293b; line-height: 1.5;
+}
+#msg-textarea:focus { border-color: #1D9E75; box-shadow: 0 0 0 3px rgba(29,158,117,.1); }
+.msg-panel-foot {
+  padding: 12px 20px; border-top: 1px solid #f1f5f9;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+.msg-char-count { font-size: 11px; color: #94a3b8; }
+.msg-send-btn {
+  background: #1D9E75; color: #fff; border: none; border-radius: 8px;
+  padding: 9px 20px; font-size: 13px; font-weight: 600; cursor: pointer;
+  display: flex; align-items: center; gap: 6px; transition: background .15s;
+}
+.msg-send-btn:hover:not(:disabled) { background: #188a65; }
+.msg-send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.msg-status { font-size: 12px; padding: 6px 10px; border-radius: 6px; }
+.msg-status.success { background: #d1fae5; color: #065f46; }
+.msg-status.error   { background: #fee2e2; color: #dc2626; }
+.type-hot_lead      {background:#fef2f2;color:#dc2626;}
+.type-multi_signal  {background:#fef9c3;color:#b45309;}
+.type-company_spike {background:#eff6ff;color:#1d4ed8;}
+.type-post_engagement{background:#f5f3ff;color:#7c3aed;}
+.type-reconnect     {background:#d1fae5;color:#065f46;}
+.type-cold_outreach {background:#f1f5f9;color:#475569;}
+.icon-hot_lead      {background:#fef2f2;}
+.icon-multi_signal  {background:#fef9c3;}
+.icon-company_spike {background:#eff6ff;}
+.icon-post_engagement{background:#f5f3ff;}
+.icon-reconnect     {background:#d1fae5;}
+.icon-cold_outreach {background:#f1f5f9;}
+
+/* ── Avatar ── */
+.avatar { width:44px; height:44px; border-radius:50%; flex-shrink:0;
+          display:flex; align-items:center; justify-content:center;
+          font-size:15px; font-weight:700; color:#fff; overflow:hidden; }
+.avatar img { width:100%; height:100%; object-fit:cover; border-radius:50%; }
+.avatar-initials { width:100%; height:100%; display:flex; align-items:center; justify-content:center; border-radius:50%; }
+.company-logo { width:32px; height:32px; border-radius:6px; flex-shrink:0;
+                overflow:hidden; display:flex; align-items:center; justify-content:center;
+                background:#f1f5f9; border:1px solid #e2e8f0; }
+.company-logo img { width:100%; height:100%; object-fit:contain; }
+
+/* ── Message compose panel ── */
+#msg-panel {
+  position: fixed; bottom: 0; right: 0; width: 420px; max-width: 96vw;
+  background: #fff; border: 1px solid #e2e8f0; border-radius: var(--r-lg) 14px 0 0;
+  box-shadow: 0 -8px 40px rgba(0,0,0,.12);
+  z-index: 9999; transform: translateY(100%); transition: transform .3s cubic-bezier(.4,0,.2,1);
+  display: flex; flex-direction: column;
+}
+#msg-panel.open { transform: translateY(0); }
+.msg-panel-header {
+  padding: 14px 16px 12px; border-bottom: 1px solid #f1f5f9;
+  display: flex; align-items: center; gap: 10px;
+}
+.msg-panel-header-info { flex: 1; min-width: 0; }
+.msg-panel-header-name { font-size: 14px; font-weight: 700; color: #0f172a; }
+.msg-panel-header-sub  { font-size: 11px; color: #94a3b8; margin-top: 1px; }
+.msg-panel-close { background: none; border: none; font-size: 20px; color: #94a3b8; cursor: pointer; line-height:1; }
+.msg-panel-close:hover { color: #475569; }
+.msg-panel-body { padding: 12px 16px; flex: 1; }
+.msg-textarea {
+  width: 100%; min-height: 100px; max-height: 200px;
+  border: 1px solid #e2e8f0; border-radius: var(--r-lg); padding: 10px 12px;
+  font-size: 13px; color: #1e293b; resize: vertical; outline: none;
+  font-family: inherit; line-height: 1.5;
+  transition: border-color .15s;
+}
+.msg-textarea:focus { border-color: #1D9E75; }
+.msg-panel-footer {
+  padding: 10px 16px 16px; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+.msg-send-status { font-size: 12px; flex: 1; }
+.btn-send { background: #1D9E75; color: #fff; border: none; border-radius: 8px;
+            padding: 9px 20px; font-size: 13px; font-weight: 600; cursor: pointer;
+            display: flex; align-items: center; gap: 6px; transition: background .15s; }
+.btn-send:hover:not(:disabled) { background: #188a65; }
+.btn-send:disabled { opacity: .55; cursor: not-allowed; }
+.msg-via-badge { font-size: 11px; color: #94a3b8; display: flex; align-items: center; gap: 4px; }
+
+/* card header with avatar */
+.card-header { display: flex; align-items: flex-start; gap: 10px; }
+.card-header-right { flex: 1; min-width: 0; }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-left">
+    <h1>📡 Signals</h1>
+    <p>AI-detected outreach opportunities from your engagement data</p>
+  </div>
+  <div class="header-right">
+    <span class="last-gen" id="last-gen-label"></span>
+    <button class="btn btn-ghost" onclick="loadOpportunities()">↻ Refresh</button>
+    <button class="btn btn-primary" id="gen-btn" onclick="generateSignals()">✦ Scan for Signals</button>
+  </div>
+</div>
+<div class="stats-strip" id="stats-strip" style="display:none;">
+  <div class="stat"><div class="stat-icon">📡</div><div><div class="stat-num" id="stat-active">—</div><div class="stat-lbl">Active</div></div></div>
+  <div class="stat"><div class="stat-icon">✅</div><div><div class="stat-num" id="stat-done">—</div><div class="stat-lbl">Handled</div></div></div>
+</div>
+<div class="content">
+  <div id="gen-status" style="display:none;" class="gen-status">
+    <span style="font-size:20px;">🤖</span>
+    <span class="gen-status-text" id="gen-status-text">Analyzing engagement data with AI…</span>
+  </div>
+  <div id="cards-container">
+    <div class="empty-state">
+      <div class="empty-state-icon">📡</div>
+      <h2>No signals yet</h2>
+      <p>Click <strong>✦ Scan for Signals</strong> to let the AI analyze your engagement data and surface the best outreach opportunities.</p>
+    </div>
+  </div>
+</div>
+<script>
+const params  = new URLSearchParams(location.search);
+const WS_ID   = params.get('workspace_id') || '';
+const TYPE_META = {
+  hot_lead:        { icon: '🎯', label: 'Hot Lead' },
+  multi_signal:    { icon: '🔥', label: 'Multi-Signal' },
+  company_spike:   { icon: '🏢', label: 'Company Spike' },
+  post_engagement: { icon: '👍', label: 'Post Engagement' },
+  reconnect:       { icon: '🔗', label: 'Reconnect' },
+  cold_outreach:   { icon: '🌐', label: 'Cold Outreach' },
+};
+const AVATAR_COLORS = ['#1D9E75','#3B82F6','#8B5CF6','#F59E0B','#EF4444','#06B6D4','#84CC16','#EC4899'];
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// ── Avatar helpers ────────────────────────────────────────────────────────────
+
+
+
+
+
+// ── Avatar helpers ──────────────────────────────────────────────────
+function nameColor(name) {
+  let h = 0;
+  for (let i=0; i<name.length; i++) h = ((h<<5)-h)+name.charCodeAt(i);
+  return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
+}
+function initialsOf(name) {
+  const parts = (name||'').trim().split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0]+parts[parts.length-1][0]).toUpperCase();
+  return (name||'?').slice(0,2).toUpperCase();
+}
+function avatarHtml(name, liUrl, company, size) {
+  const sz = size || 44;
+  const initials = initialsOf(name || company || '?');
+  const color = nameColor(name || company || '');
+  // Try LinkedIn profile picture (only works if we have a way to get it — use initials fallback)
+  return `<div class="avatar" style="width:${sz}px;height:${sz}px;background:${color};" title="${esc(name||'')}">
+    <span style="font-size:${Math.round(sz*0.35)}px;">${esc(initials)}</span>
+  </div>`;
+}
+function companyLogoHtml(company) {
+  if (!company) return '';
+  // Extract domain from company name heuristically
+  const clean = company.toLowerCase()
+    .replace(/\s+(ltd|llc|inc|corp|co|group|solutions|technologies|services|systems).*/, '')
+    .replace(/[^a-z0-9]/g, '') + '.com';
+  const logoUrl = `https://logo.clearbit.com/${clean}`;
+  return `<div class="company-logo">
+    <img src="${esc(logoUrl)}" alt="${esc(company)}" 
+         onerror="this.parentElement.innerHTML='<span style=\"font-size:14px;\">${esc(initialsOf(company))}</span>'"
+         style="width:100%;height:100%;object-fit:contain;">
+  </div>`;
+}
+
+// ── Message panel ───────────────────────────────────────────────────
+let _msgState = { threadId: null, contactId: null, liUrl: null, name: null };
+
+function openMsgPanel(opp) {
+  _msgState = {
+    threadId:  opp.thread_id_ref || null,
+    contactId: opp.contact_id_ref || null,
+    liUrl:     opp.entity_li_url || null,
+    name:      opp.entity_name || opp.company || '',
+    company:   opp.company || '',
+    type:      opp.type,
+  };
+  // Set header
+  document.getElementById('msg-panel-name').textContent = _msgState.name;
+  document.getElementById('msg-panel-sub').textContent  = _msgState.company || 'LinkedIn outreach';
+  // Avatar in panel header
+  const avatarEl = document.getElementById('msg-panel-avatar');
+  if (_msgState.company && !_msgState.liUrl) {
+    avatarEl.innerHTML = companyLogoHtml(_msgState.company);
+  } else {
+    avatarEl.innerHTML = avatarHtml(_msgState.name, _msgState.liUrl, _msgState.company, 38);
+  }
+  // Via badge
+  const viaText = document.getElementById('msg-via-text');
+  if (_msgState.threadId) {
+    viaText.textContent = 'LinkedIn (existing thread)';
+    document.getElementById('msg-send-btn').disabled = false;
+  } else if (_msgState.liUrl) {
+    viaText.textContent = 'LinkedIn (new message)';
+    document.getElementById('msg-send-btn').disabled = false;
+  } else {
+    viaText.textContent = 'LinkedIn (manual — no thread found)';
+    document.getElementById('msg-send-btn').disabled = true;
+  }
+  document.getElementById('msg-send-status').textContent = '';
+  document.getElementById('msg-textarea').value = '';
+  document.getElementById('msg-textarea').focus();
+  document.getElementById('msg-panel').classList.add('open');
+}
+
+function closeMsgPanel() {
+  document.getElementById('msg-panel').classList.remove('open');
+}
+
+async function doSendMessage() {
+  const text = document.getElementById('msg-textarea').value.trim();
+  if (!text) {
+    document.getElementById('msg-send-status').innerHTML = '<span style="color:#ef4444">Please write a message first.</span>';
+    return;
+  }
+  const btn = document.getElementById('msg-send-btn');
+  const status = document.getElementById('msg-send-status');
+  btn.disabled = true;
+  btn.textContent = '⏳ Sending…';
+  status.textContent = '';
+  try {
+    if (_msgState.threadId) {
+      // Reply to existing thread
+      const r = await fetch('/api/inbox/'+encodeURIComponent(_msgState.threadId)+'/reply', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ content: text, workspace_id: parseInt(WS_ID) }),
+      }).then(r => r.json());
+      if (r.error) throw new Error(r.error);
+      status.innerHTML = '<span style="color:#1D9E75">✓ Message sent!</span>';
+      setTimeout(closeMsgPanel, 1500);
+    } else if (_msgState.liUrl) {
+      // New message — use send_new_message endpoint
+      const r = await fetch('/api/inbox/new-message', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          workspace_id: parseInt(WS_ID),
+          li_profile_url: _msgState.liUrl,
+          contact_id: _msgState.contactId,
+          content: text,
+        }),
+      }).then(r => r.json());
+      if (r.error) throw new Error(r.error);
+      status.innerHTML = '<span style="color:#1D9E75">✓ Message sent!</span>';
+      setTimeout(closeMsgPanel, 1500);
+    }
+  } catch(e) {
+    status.innerHTML = '<span style="color:#ef4444">❌ ' + esc(e.message) + '</span>';
+    btn.disabled = false;
+    btn.innerHTML = '<span>↗</span> Send';
+  }
+}
+
+// ── Cards ───────────────────────────────────────────────────────────
+async function loadOpportunities() {
+  if (!WS_ID) return;
+  const r = await fetch('/api/opportunities?workspace_id='+WS_ID).then(r=>r.json()).catch(()=>({items:[]}));
+  const items = r.items || [];
+  const meta  = r.meta  || {};
+  if (meta.active !== undefined) {
+    document.getElementById('stats-strip').style.display = '';
+    document.getElementById('stat-active').textContent = meta.active || 0;
+    document.getElementById('stat-done').textContent   = meta.done   || 0;
+    if (meta.last_generated) {
+      const d = new Date(meta.last_generated);
+      document.getElementById('last-gen-label').textContent =
+        'Last scanned: ' + d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'}) + ' ' +
+        d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    }
+  }
+  renderCards(items);
+}
+
+function renderCards(items) {
+  _allOpps = items;  // cache for openPCByOppId
+  const c = document.getElementById('cards-container');
+  if (!items.length) {
+    c.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✅</div><h2>All clear</h2><p>No open signals. Click <strong>✦ Scan for Signals</strong> to run a fresh analysis.</p></div>';
+    return;
+  }
+  c.innerHTML = '<div class="cards-grid">'+items.map(renderCard).join('')+'</div>';
+}
+
+function renderCard(opp) {
+  const tm = TYPE_META[opp.type] || {icon:'📍',label:opp.type||'Signal'};
+  const pCls = 'priority-'+Math.min(10,Math.max(1,opp.priority||5));
+  const isCompany = opp.type === 'company_spike';
+  
+  // Avatar or company logo
+  let avatarHtmlStr;
+  if (isCompany && opp.company) {
+    avatarHtmlStr = companyLogoHtml(opp.company);
+  } else if (opp.entity_name) {
+    avatarHtmlStr = avatarHtml(opp.entity_name, opp.entity_li_url, opp.company, 44);
+  } else {
+    // Type icon as fallback
+    avatarHtmlStr = `<div class="avatar card-icon icon-${opp.type}" style="width:44px;height:44px;">${tm.icon}</div>`;
+  }
+
+  const entityHtml = opp.entity_name
+    ? '<div class="card-entity"><span class="entity-name">'+(opp.entity_li_url?'<a href="'+esc(opp.entity_li_url)+'" target="_blank" rel="noopener">'+esc(opp.entity_name)+'</a>':esc(opp.entity_name))+'</span>'+(opp.company?'<span class="entity-co">@ '+esc(opp.company)+'</span>':'')+'</div>'
+    : (opp.company?'<div class="card-entity"><span class="entity-co">'+esc(opp.company)+'</span></div>':'');
+
+  // CTA logic: connected → Send panel | not connected → Personal Campaign
+  const hasLiUrl  = !!(opp.entity_li_url);
+  const connected = !!(opp.is_connected);
+  let ctaBtn;
+  if (hasLiUrl && connected) {
+    // Already connected — can send a direct message
+    ctaBtn = `<div class="card-action" style="cursor:pointer;" onclick='openMsgPanel(${JSON.stringify(opp).replace(/'/g,"\'")})'>`+
+      `<span style="font-size:15px;">✉</span>`+
+      `<span class="card-action-text">` + esc(opp.action_label) + `</span>`+
+      `<span style="font-size:11px;color:#10b981;font-weight:700;flex-shrink:0;">✉ Send</span>`+
+      `</div>`;
+  } else if (hasLiUrl && !connected) {
+    // Not connected — recommend personal campaign
+    // Use opp id to avoid JSON-in-onclick escaping issues
+    ctaBtn = `<div class="card-action" style="cursor:pointer;background:#eff6ff;border-color:#bfdbfe;" onclick="openPCByOppId(${opp.id})">`+
+      `<span style="font-size:15px;">🎯</span>`+
+      `<span class="card-action-text" style="color:#1d4ed8;">` + esc(opp.action_label) + `</span>`+
+      `<span style="font-size:11px;color:#1d4ed8;font-weight:700;flex-shrink:0;">Add to Campaign ▸</span>`+
+      `</div>`;
+  } else {
+    // No LinkedIn URL — show action label only
+    ctaBtn = `<div class="card-action"><span style="font-size:15px;">→</span><span class="card-action-text">` + esc(opp.action_label) + `</span></div>`;
+  }
+
+  return '<div class="opp-card '+pCls+'" id="card-'+opp.id+'">'+
+    '<div class="card-header">'+avatarHtmlStr+
+    '<div class="card-header-right">'+
+    '<span class="card-type-badge type-'+opp.type+'">'+tm.label+'</span>'+
+    '<div class="card-title">'+esc(opp.title)+'</div>'+
+    '</div></div>'+
+    entityHtml+
+    '<div class="card-desc">'+esc(opp.description)+'</div>'+
+    ctaBtn+
+    '<div class="card-footer">'+
+    '<button class="btn-dismiss" onclick="dismissCard('+opp.id+')">🗑 Dismiss</button>'+
+    '<button class="btn-done"    onclick="doneCard('+opp.id+')">✓ Done</button>'+
+    '</div></div>';
+}
+
+async function dismissCard(id) {
+  const c = document.getElementById('card-'+id);
+  if(c){c.style.opacity='0.35';c.style.pointerEvents='none';}
+  await fetch('/api/opportunities/'+id,{method:'DELETE'}).catch(()=>{});
+  setTimeout(()=>{c?.remove();checkEmpty();},300);
+}
+async function doneCard(id) {
+  const c = document.getElementById('card-'+id);
+  if(c){c.style.opacity='0.35';c.style.pointerEvents='none';}
+  await fetch('/api/opportunities/'+id+'/done',{method:'POST'}).catch(()=>{});
+  setTimeout(()=>{c?.remove();checkEmpty();},300);
+}
+function checkEmpty() {
+  const g = document.querySelector('.cards-grid');
+  if (g && g.children.length===0) {
+    document.getElementById('cards-container').innerHTML =
+      '<div class="empty-state"><div class="empty-state-icon">✅</div><h2>All handled!</h2><p>Click <strong>✦ Scan for Signals</strong> to find more opportunities.</p></div>';
+  }
+}
+
+async function generateSignals() {
+  if (!WS_ID) return;
+  const btn = document.getElementById('gen-btn');
+  const st  = document.getElementById('gen-status');
+  const stTxt = document.getElementById('gen-status-text');
+  btn.disabled=true; btn.textContent='⏳ Scanning…';
+  st.style.display='flex'; stTxt.textContent='Analyzing engagement data with AI — this takes ~15 seconds…';
+  document.getElementById('cards-container').innerHTML =
+    '<div class="cards-grid">'+Array.from({length:6}).map(()=>
+      '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:16px;">'+
+      '<div style="display:flex;gap:10px;margin-bottom:12px;"><div class="skeleton" style="width:44px;height:44px;border-radius:50%;flex-shrink:0;"></div>'+
+      '<div style="flex:1;"><div class="skeleton" style="height:11px;width:55%;margin-bottom:6px;"></div><div class="skeleton" style="height:15px;width:82%;"></div></div></div>'+
+      '<div class="skeleton" style="height:11px;width:38%;margin-bottom:8px;"></div>'+
+      '<div class="skeleton" style="height:11px;margin-bottom:4px;"></div>'+
+      '<div class="skeleton" style="height:11px;width:76%;margin-bottom:12px;"></div>'+
+      '<div class="skeleton" style="height:34px;border-radius:8px;"></div></div>').join('')+'</div>';
+  try {
+    const r = await fetch('/api/opportunities/generate',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({workspace_id:parseInt(WS_ID)})
+    }).then(r=>r.json());
+    if(r.error) throw new Error(r.error);
+    stTxt.textContent='✅ Generated '+r.generated+' signal'+(r.generated!==1?'s':'')+' — loading…';
+    await loadOpportunities();
+    setTimeout(()=>{st.style.display='none';},3000);
+  } catch(e) {
+    stTxt.textContent='❌ Error: '+e.message;
+    document.getElementById('cards-container').innerHTML =
+      '<div class="empty-state"><div class="empty-state-icon">⚠️</div><h2>Scan failed</h2><p>'+esc(e.message)+'</p></div>';
+  } finally {
+    btn.disabled=false; btn.innerHTML='✦ Scan for Signals';
+  }
+}
+
+// ── Personal Campaign Modal ──────────────────────────────────────────────────
+let _pcOpp = null;
+let _allOpps = [];  // cached opportunity list
+
+function openPCByOppId(oppId) {
+  const opp = _allOpps.find(o => o.id === oppId);
+  if (!opp) return;
+  // Open the standard campaign wizard in personal mode via postMessage
+  window.parent.postMessage({
+    type:        'open-campaign-wizard',
+    personalMode: true,
+    aiMsg:        opp.personal_msg || opp.action_label || '',
+    entityName:   opp.entity_name  || '',
+    entityLiUrl:  opp.entity_li_url || null,
+    company:      opp.company || '',
+    oppId:        opp.id,
+  }, '*');
+}
+
+function openPersonalCampaignModal(opp) {
+  _pcOpp = opp;
+  // Render avatar
+  document.getElementById('pc-avatar').innerHTML = avatarHtml(opp.entity_name, opp.entity_li_url, opp.company, 44);
+  document.getElementById('pc-title').textContent = opp.entity_name || opp.company || 'Contact';
+  document.getElementById('pc-sub').textContent = [opp.company, opp.type?.replace(/_/g,' ')].filter(Boolean).join(' · ');
+  document.getElementById('pc-reason').textContent = opp.description || '';
+  // Pre-fill personalized message from AI (personal_msg field)
+  const msg = opp.personal_msg || opp.action_label || '';
+  document.getElementById('pc-msg-textarea').value = msg;
+  document.getElementById('pc-status').style.display = 'none';
+  document.getElementById('pc-create-btn').disabled = false;
+  document.getElementById('pc-create-btn').innerHTML = '🎯 Create Personal Campaign';
+  document.getElementById('pc-modal-overlay').style.display = 'flex';
+  setTimeout(() => document.getElementById('pc-msg-textarea').focus(), 100);
+}
+
+function closePCModal() {
+  document.getElementById('pc-modal-overlay').style.display = 'none';
+  _pcOpp = null;
+}
+
+async function createPersonalCampaign() {
+  if (!_pcOpp) return;
+  const msg = document.getElementById('pc-msg-textarea').value.trim();
+  if (!msg) {
+    const st = document.getElementById('pc-status');
+    st.style.display = 'block';
+    st.innerHTML = '<span style="color:#ef4444">Please write a message first.</span>';
+    return;
+  }
+  const btn = document.getElementById('pc-create-btn');
+  const st  = document.getElementById('pc-status');
+  btn.disabled = true;
+  btn.innerHTML = '⏳ Creating campaign…';
+  st.style.display = 'none';
+  try {
+    const r = await fetch('/api/opportunities/personal-campaign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        workspace_id: parseInt(WS_ID),
+        contacts: [{
+          entity_name:   _pcOpp.entity_name  || '',
+          entity_li_url: _pcOpp.entity_li_url || null,
+          company:       _pcOpp.company       || null,
+          opp_id:        _pcOpp.id,
+          personal_msg:  msg,
+        }],
+      }),
+    }).then(r => r.json());
+    if (r.error) throw new Error(r.error);
+    st.style.display = 'block';
+    st.innerHTML = `<span style="color:#1D9E75">✅ Campaign "<strong>${esc(r.name)}</strong>" created! Find it in the Campaigns tab.</span>`;
+    btn.innerHTML = '✅ Created';
+    // Mark opp as handled after a delay
+    setTimeout(async () => {
+      if (_pcOpp) {
+        await fetch('/api/opportunities/'+_pcOpp.id+'/done', {method:'POST'}).catch(()=>{});
+        closePCModal();
+        const card = document.getElementById('card-'+_pcOpp.id);
+        card?.remove();
+        checkEmpty();
+      }
+    }, 2000);
+  } catch(e) {
+    st.style.display = 'block';
+    st.innerHTML = `<span style="color:#ef4444">❌ ${esc(e.message)}</span>`;
+    btn.disabled = false;
+    btn.innerHTML = '🎯 Create Personal Campaign';
+  }
+}
+
+loadOpportunities();
+</script>
+
+<!-- Personal Campaign Modal -->
+<div id="pc-modal-overlay" onclick="if(event.target===this)closePCModal()"
+  style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10000;align-items:center;justify-content:center;">
+  <div id="pc-modal" style="background:#fff;border-radius:16px;width:520px;max-width:95vw;max-height:85vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,.2);">
+    <!-- Header -->
+    <div style="padding:20px 24px 16px;border-bottom:1px solid #f1f5f9;display:flex;align-items:flex-start;gap:14px;">
+      <div id="pc-avatar" style="flex-shrink:0;"></div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:11px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Personal Campaign</div>
+        <div id="pc-title" style="font-size:16px;font-weight:700;color:#0f172a;"></div>
+        <div id="pc-sub" style="font-size:12px;color:#94a3b8;margin-top:2px;"></div>
+      </div>
+      <button onclick="closePCModal()" style="background:none;border:none;font-size:20px;color:#94a3b8;cursor:pointer;line-height:1;">×</button>
+    </div>
+    <!-- Why section -->
+    <div style="padding:14px 24px;background:#f8fafc;border-bottom:1px solid #e2e8f0;">
+      <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;">Why this opportunity</div>
+      <div id="pc-reason" style="font-size:13px;color:#475569;line-height:1.5;"></div>
+    </div>
+    <!-- Message editor -->
+    <div style="padding:16px 24px;flex:1;overflow-y:auto;">
+      <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;">AI-drafted message <span style="font-weight:400;color:#94a3b8;">(edit before sending)</span></div>
+      <textarea id="pc-msg-textarea"
+        style="width:100%;min-height:110px;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;font-size:13px;font-family:inherit;resize:vertical;outline:none;color:#1e293b;line-height:1.5;transition:border-color .15s;"
+        onfocus="this.style.borderColor='#1D9E75'" onblur="this.style.borderColor='#e2e8f0'"
+        placeholder="Personalized message will appear here…"></textarea>
+      <div style="font-size:11px;color:#94a3b8;margin-top:4px;">This will be sent as a LinkedIn message. Review and edit as needed.</div>
+    </div>
+    <!-- Footer -->
+    <div style="padding:14px 24px;border-top:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;gap:8px;">
+      <button onclick="closePCModal()" style="background:#fff;color:#475569;border:1px solid #e2e8f0;border-radius:8px;padding:9px 16px;font-size:13px;cursor:pointer;">Cancel</button>
+      <div style="display:flex;gap:8px;">
+        <button id="pc-create-btn" onclick="createPersonalCampaign()"
+          style="background:#1d4ed8;color:#fff;border:none;border-radius:8px;padding:9px 20px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;transition:background .15s;"
+          onmouseover="this.style.background='#1e40af'" onmouseout="this.style.background='#1d4ed8'">
+          🎯 Create Personal Campaign
+        </button>
+      </div>
+    </div>
+    <div id="pc-status" style="padding:0 24px 12px;font-size:12px;display:none;"></div>
+  </div>
+</div>
+
+<!-- Message compose panel -->
+<div id="msg-panel">
+  <div class="msg-panel-header">
+    <div id="msg-panel-avatar"></div>
+    <div class="msg-panel-header-info">
+      <div class="msg-panel-header-name" id="msg-panel-name">—</div>
+      <div class="msg-panel-header-sub" id="msg-panel-sub"></div>
+    </div>
+    <button class="msg-panel-close" onclick="closeMsgPanel()">×</button>
+  </div>
+  <div class="msg-panel-body">
+    <textarea id="msg-textarea" class="msg-textarea" placeholder="Write your message…"></textarea>
+  </div>
+  <div class="msg-panel-footer">
+    <div>
+      <div class="msg-via-badge" id="msg-via-badge">
+        <span>via</span><strong id="msg-via-text">LinkedIn</strong>
+      </div>
+      <div class="msg-send-status" id="msg-send-status"></div>
+    </div>
+    <button class="btn-send" id="msg-send-btn" onclick="doSendMessage()">
+      <span>↗</span> Send
+    </button>
+  </div>
+</div>
+
+</body>
+</html>
