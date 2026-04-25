@@ -837,7 +837,7 @@ router.post('/bulk-insert-contacts', async (req, res) => {
 });
 
 module.exports = router;
-// GET /api/admin/enrich-list?list_id=23&workspace_id=4
+// GET /api/admin/enrich-list?list_id=<id>&workspace_id=<id>
 // Trigger background enrichment for all contacts in a list (no POST body needed)
 router.get('/enrich-list', async (req, res) => {
   const { list_id, workspace_id } = req.query;
@@ -895,7 +895,7 @@ router.get('/enrich-list', async (req, res) => {
 module.exports = router;
 
 // POST /api/admin/enroll-campaigns — enroll contacts from multiple campaigns into enrollments
-// Body: { campaign_ids: [14,15,16,17], workspace_id: 1 }
+// Body: { campaign_ids: [<id>,...], workspace_id: <id> }
 router.post('/enroll-campaigns', async (req, res) => {
   const { campaign_ids, workspace_id } = req.body;
   if (!Array.isArray(campaign_ids) || !workspace_id)
@@ -1044,7 +1044,7 @@ router.post('/trigger-job', async (req, res) => {
   }
 });
 
-// GET /api/admin/enrollment-stats?workspace_id=1
+// GET /api/admin/enrollment-stats?workspace_id=<id>
 // Returns enrollment status breakdown across all campaigns in a workspace
 router.get('/enrollment-stats', async (req, res) => {
   const { workspace_id } = req.query;
@@ -1158,7 +1158,7 @@ router.post('/register-signals-webhooks', async (req, res) => {
   } catch(err) { res.status(500).json({ error: err.message }); }
 });
 
-// GET /api/admin/debug-company-follow?workspace_id=2
+// GET /api/admin/debug-company-follow?workspace_id=<id>
 // Traces through companyFollowSender logic and shows exactly why follow invites are/aren't sending
 router.get('/debug-company-follow', async (req, res) => {
   const { workspace_id } = req.query;
@@ -1270,7 +1270,7 @@ router.post('/reset-company-follow-state', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// GET /api/admin/debug-senders?workspace_id=2
+// GET /api/admin/debug-senders?workspace_id=<id>
 // Full diagnostic of all senders for a workspace
 router.get('/debug-senders', async (req, res) => {
   const { workspace_id } = req.query;
