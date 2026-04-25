@@ -501,7 +501,7 @@ async function loadAI(vel,jour,stale) {
   try {
     const r=await fetch('/api/admin/analytics/insights',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({data:dataStr, workspace:WSNAME||'CLY workspace'})
+      body:JSON.stringify({data:dataStr, workspace:WSNAME||'workspace'})
     }).then(r=>r.json());
     const raw = r.insights;
     let items = [];
