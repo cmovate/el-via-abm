@@ -1,7 +1,7 @@
 {
-  "name": "interactive-report",
+  "name": "el-via-abm",
   "version": "1.0.0",
-  "description": "Interactive Report - Campaign & Contact Management",
+  "description": "El-Via ABM \u2014 LinkedIn outreach automation platform (self-hosted)",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

@@ -1,7 +1,7 @@
 const express = require('express');
 const router  = express.Router();
 
-// GET /api/debug-unipile-profile?identifier=danielle-naomi-beker&account_id=LbOfGBgvReGZXfIO9wixPA
+// GET /api/debug-unipile-profile?identifier=<linkedin-slug>&account_id=<account_id>
 router.get('/debug-unipile-profile', async (req, res) => {
   try {
     const { identifier, account_id } = req.query;
